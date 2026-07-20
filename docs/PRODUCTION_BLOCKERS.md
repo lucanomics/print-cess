@@ -83,9 +83,11 @@ configuration file or green mock test does not close an institutional gate.
       of support is **2026-11-10**. Select, implement, and retest a supported target before that date.
       Self-contained publish does not make unsupported runtime bits safe.
 - [ ] **Signed installer/update chain.** The workflow now requires a protected Authenticode
-      sign/verify job before creating a Release candidate. Obtain an approved certificate, configure
-      reviewed `windows-signing`, choose installer/update distribution, timestamp and malware-scan
-      builds, verify on target Windows, and prove rollback.
+      sign/verify job before creating a Release candidate. It fail-closes on the exact approved
+      certificate thumbprint, timestamp presence, tag/commit-bound executable version, and emits a
+      hashed evidence manifest for target-device comparison. Obtain an approved certificate,
+      configure reviewed `windows-signing`, choose installer/update distribution, timestamp and
+      malware-scan builds, verify the manifest chain on target Windows, and prove rollback.
 - [ ] **Exact printer/driver validation.** Printer model, firmware, connection, driver, queue name,
       A4/simplex/mono/fit/one-copy capabilities, status mapping, and XPS/GDI/render path are unknown and
       untested on physical hardware.

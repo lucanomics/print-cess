@@ -133,6 +133,7 @@ capture.
 `.github/workflows/ci.yml` must run:
 
 ```powershell
+pwsh -NoProfile -File scripts/windows/Test-AcceptancePolicy.ps1
 dotnet restore apps/kiosk/Paradiso.PrintCess.sln --locked-mode
 dotnet build apps/kiosk/Paradiso.PrintCess.sln -c Release --no-restore
 dotnet test apps/kiosk/Paradiso.PrintCess.Tests/Paradiso.PrintCess.Tests.csproj `
@@ -196,6 +197,8 @@ must still be distinguished from Windows runtime and physical-printer evidence.
 - Windows CI build/test/publish succeeds with uploaded evidence.
 - Approved Preview signed URL/Redis/QStash tests pass or Production remains blocked.
 - Exact physical printer/kiosk acceptance passes or Production remains blocked.
+- Signed candidates and target-device evidence agree on the manifest digest, release tag/commit,
+  executable hash/version, exact approved signer thumbprint, and timestamp certificate.
 - No real data, forbidden brand string, token, signed URL, filename, or sensitive log field appears
   in repository or artifacts.
 - Security/privacy reviewers accept remaining risks and rollback/incident procedures are exercised.

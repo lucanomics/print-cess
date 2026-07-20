@@ -15,13 +15,24 @@ Set-ExecutionPolicy -Scope Process Bypass
 ./scripts/windows/Invoke-PrintCessAcceptance.ps1 `
   -ApplicationPath "C:\Program Files\Paradiso\Print-cess Kiosk\Print-cess Kiosk.exe" `
   -PrinterName "<approved exact queue name>" `
-  -ExpectedPublisherSubject "<approved publisher subject>"
+  -SigningManifestPath ".\authenticode-manifest.json" `
+  -ExpectedSigningManifestSha256 "<64-hex digest recorded in the approval system>" `
+  -ExpectedReleaseTag "<approved vX.Y.Z or prerelease tag>" `
+  -ExpectedCommitSha "<full approved Git commit>" `
+  -ExpectedSignerThumbprint "<40-hex thumbprint from certificate inventory>"
 ```
 
-The JSON records the executable hash/version/signature, Windows build, printer/driver/port and
-fixed print defaults. Secrets are represented only by presence/shape booleans. Review the file for
-site infrastructure details before attaching it to a private approval ticket. The script does not
-submit a print job and cannot close the physical tests below.
+Obtain the manifest and its sidecar from the protected signing run, then record the manifest digest,
+release tag, commit, and signer thumbprint in the institution's approval system before moving files
+to the target. The thumbprint must come from the approved certificate inventory, not solely from
+the manifest under test. The collector rejects a changed manifest, substituted release, mismatched
+product version or executable hash, different signer, missing/different timestamp, or invalid
+Authenticode result.
+
+The JSON records that release identity plus the executable hash/version/signature, Windows build,
+printer/driver/port and fixed print defaults. Secrets are represented only by presence/shape
+booleans. Review the file for site infrastructure details before attaching it to a private approval
+ticket. The script does not submit a print job and cannot close the physical tests below.
 
 ## Physical acceptance matrix
 

@@ -94,6 +94,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Test signing and acceptance evidence policy
+        shell: pwsh
+        run: ./scripts/windows/Test-AcceptancePolicy.ps1
+
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v6
         with:
