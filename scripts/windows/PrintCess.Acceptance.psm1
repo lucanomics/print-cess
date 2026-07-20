@@ -64,10 +64,19 @@ function Assert-TrueProperty {
 
 function Assert-RoundTripTimestamp {
     param(
-        [Parameter(Mandatory = $true)][string]$Value,
+        [Parameter(Mandatory = $true)][object]$Value,
         [Parameter(Mandatory = $true)][string]$Path
     )
 
+    if ($Value -is [DateTimeOffset]) {
+        return $Value
+    }
+    if ($Value -is [DateTime]) {
+        return [DateTimeOffset]$Value
+    }
+    if ($Value -isnot [string] -or [string]::IsNullOrWhiteSpace($Value)) {
+        throw "$Path must be a round-trip timestamp."
+    }
     $parsed = [DateTimeOffset]::MinValue
     if (-not [DateTimeOffset]::TryParse(
         $Value,
@@ -120,7 +129,7 @@ function Assert-SigningManifestContract {
     Assert-StringEqual $workflowSha $expectedCommit "manifest.workflowSha"
     $protocolVersion = Get-RequiredPropertyValue $Manifest "protocolVersion" "manifest"
     if ([int]$protocolVersion -ne 1) { throw "manifest.protocolVersion must be 1." }
-    $generatedAt = Get-RequiredString $Manifest "generatedAtUtc" "manifest"
+    $generatedAt = Get-RequiredPropertyValue $Manifest "generatedAtUtc" "manifest"
     $null = Assert-RoundTripTimestamp $generatedAt "manifest.generatedAtUtc"
     Assert-TrueProperty $Manifest "passed" "manifest"
 
@@ -149,10 +158,10 @@ function Assert-SigningManifestContract {
     )
     Assert-StringEqual $signerThumbprint $expectedThumbprint "manifest.signature.signerThumbprint"
     $signerNotBefore = Assert-RoundTripTimestamp (
-        Get-RequiredString $signature "signerNotBeforeUtc" "manifest.signature"
+        Get-RequiredPropertyValue $signature "signerNotBeforeUtc" "manifest.signature"
     ) "manifest.signature.signerNotBeforeUtc"
     $signerNotAfter = Assert-RoundTripTimestamp (
-        Get-RequiredString $signature "signerNotAfterUtc" "manifest.signature"
+        Get-RequiredPropertyValue $signature "signerNotAfterUtc" "manifest.signature"
     ) "manifest.signature.signerNotAfterUtc"
     if ($signerNotBefore -ge $signerNotAfter) {
         throw "manifest signer certificate validity is inverted or empty."
@@ -163,10 +172,10 @@ function Assert-SigningManifestContract {
         Get-RequiredString $signature "timestampThumbprint" "manifest.signature"
     )
     $timestampNotBefore = Assert-RoundTripTimestamp (
-        Get-RequiredString $signature "timestampNotBeforeUtc" "manifest.signature"
+        Get-RequiredPropertyValue $signature "timestampNotBeforeUtc" "manifest.signature"
     ) "manifest.signature.timestampNotBeforeUtc"
     $timestampNotAfter = Assert-RoundTripTimestamp (
-        Get-RequiredString $signature "timestampNotAfterUtc" "manifest.signature"
+        Get-RequiredPropertyValue $signature "timestampNotAfterUtc" "manifest.signature"
     ) "manifest.signature.timestampNotAfterUtc"
     if ($timestampNotBefore -ge $timestampNotAfter) {
         throw "manifest timestamp certificate validity is inverted or empty."

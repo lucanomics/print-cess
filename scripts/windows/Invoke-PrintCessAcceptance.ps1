@@ -38,7 +38,7 @@ if ($env:OS -ne "Windows_NT") {
     throw "This acceptance collector must run on the target Windows device."
 }
 
-Import-Module (Join-Path $PSScriptRoot "PrintCess.Acceptance.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "PrintCess.Acceptance.psm1") -Force -DisableNameChecking
 
 function New-Check {
     param(

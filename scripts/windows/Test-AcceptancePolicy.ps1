@@ -4,7 +4,7 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Import-Module (Join-Path $PSScriptRoot "PrintCess.Acceptance.psm1") -Force
+Import-Module (Join-Path $PSScriptRoot "PrintCess.Acceptance.psm1") -Force -DisableNameChecking
 
 $script:passed = 0
 $commit = "a" * 40
