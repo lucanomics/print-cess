@@ -7,10 +7,18 @@ Windows Authenticode policy with `signtool verify /pa /all /v`, remove symbols, 
 release ZIP and checksum. The certificate file is created only in the runner temporary directory
 and is removed in a `finally` block.
 
+The workflow must be dispatched from the exact tag named by its input. It rejects a branch run,
+ref/input mismatch, tag/`github.sha` mismatch, or tag commit that is not reachable from protected
+`main`. GitHub additionally restricts the `windows-signing` and `github-release` environments to
+`v*` tag refs. Active repository ruleset `19197379` prevents other write actors from creating,
+moving, or deleting `v*` release tags; the current `lucanomics` user remains the sole bypass and
+must be replaced by an approved institutional release role before Production.
+
 ## Protected environment contract
 
-Create `windows-signing` with required institutional reviewers and no branch other than protected
-tags. Configure:
+`windows-signing` exists with a `v*` tag-only deployment policy. Required-reviewer rules are not
+available for this private personal repository under its current plan, so institutional ownership
+or an eligible plan is still required before configuring signing material. Then configure:
 
 - secret `WINDOWS_SIGNING_CERT_BASE64`: base64 of the approved code-signing PFX;
 - secret `WINDOWS_SIGNING_CERT_PASSWORD`: independent PFX password;
@@ -30,6 +38,7 @@ target-device output from `scripts/windows/Invoke-PrintCessAcceptance.ps1`. Veri
 again after download and before installation. A valid signature does not prove institutional
 approval, printer compatibility, or safe deployment.
 
-Do not publish a stable GitHub Release until the signing environment, tag restriction, reviewer,
-certificate, timestamp service, target-device verification, and revocation/rotation runbook are
-approved. No certificate or signed release was available during the current macOS work.
+Do not publish a stable GitHub Release until the signing environment, institutional tag-bypass
+role, independent reviewer, certificate, timestamp service, target-device verification, and
+revocation/rotation runbook are approved. No certificate or signed release was available during the
+current macOS work.

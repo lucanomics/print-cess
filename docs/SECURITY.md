@@ -2,10 +2,9 @@
 
 ## Supported versions
 
-Until a stable release exists, only the latest commit on the default branch is eligible for
-security fixes. That branch is intended to be protected, but the protection is not configured yet
-and remains a Production blocker. Feature branches and Preview deployments are test environments
-and must never process real documents.
+Until a stable release exists, only the latest commit on the protected default branch is eligible
+for security fixes. Feature branches and Preview deployments are test environments and must never
+process real documents.
 
 ## Reporting a vulnerability
 
@@ -139,7 +138,12 @@ No production credentials were present or used during the initial implementation
 
 `main` now requires strict pull requests, conversation resolution, Web/Windows/dependency/Gitleaks
 checks, linear history, admin enforcement, and no force-push/delete. The solo personal repository
-cannot require an independent self-review; institutional ownership must add approval/CODEOWNER and
-tag controls before Production. Use Conventional Commits and a Draft PR until evidence is complete.
+cannot require an independent self-review. `vercel-preview` is restricted to `main`, while
+`windows-signing` and `github-release` accept only `v*` tag refs; the release workflow also requires
+the input tag, workflow ref, commit, and protected-main ancestry to agree. Active ruleset `19197379`
+restricts creation, update, and deletion of matching release tags to the current `lucanomics` user
+bypass. Institutional ownership must still add approval/CODEOWNER review and migrate that bypass to
+an approved release role before Production. Use Conventional Commits and a Draft PR until evidence
+is complete.
 
 GitHub Release and Vercel Production deployment remain prohibited. See `GITHUB_WORKFLOW.md`.

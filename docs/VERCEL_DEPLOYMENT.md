@@ -38,7 +38,9 @@ The last command creates a manual Preview only after the provider gate is ready.
 Do not use real documents in Preview. Record the Preview URL in the Draft PR only after checking
 that it does not contain tokens or signed URLs. Run the manual `Preview provider acceptance`
 workflow from protected `main`; it fails closed unless the selected suite's isolated Preview
-credentials and exact `PROVIDER_BASE_URL` exist.
+credentials and exact `PROVIDER_BASE_URL` exist. The GitHub `vercel-preview` environment is also
+restricted to workflow runs whose `GITHUB_REF` is the `main` branch; the workflow repeats that
+check before installing dependencies.
 
 The expected public hostname `print-cess.vercel.app` is not approved or verified for Production.
 

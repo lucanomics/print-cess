@@ -38,7 +38,20 @@ jobs:
       DOTNET_NOLOGO: "1"
       RELEASE_TAG: ${{ inputs.tag }}
       RELEASE_CHANNEL: ${{ inputs.channel }}
+      WORKFLOW_REF_TYPE: ${{ github.ref_type }}
+      WORKFLOW_REF_NAME: ${{ github.ref_name }}
+      WORKFLOW_SHA: ${{ github.sha }}
     steps:
+      - name: Require the matching workflow tag ref
+        shell: pwsh
+        run: |
+          if ($env:WORKFLOW_REF_TYPE -cne "tag") {
+            throw "Release signing must be dispatched from the requested tag ref."
+          }
+          if ($env:WORKFLOW_REF_NAME -cne $env:RELEASE_TAG) {
+            throw "The workflow ref must exactly match the requested release tag."
+          }
+
       - name: Check out requested tag
         uses: actions/checkout@v7
         with:
@@ -46,20 +59,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Validate tag and channel
-        shell: pwsh
-        run: |
-          if ($env:RELEASE_CHANNEL -eq "stable") {
-            if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') {
-              throw "Stable tags must match vX.Y.Z"
-            }
-          } elseif ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+-[0-9A-Za-z][0-9A-Za-z.-]*$') {
-            throw "Prerelease tags must match vX.Y.Z-<label>"
-          }
-          git rev-parse --verify "refs/tags/$env:RELEASE_TAG^{commit}"
-          if ($LASTEXITCODE -ne 0) {
-            throw "The requested tag does not exist"
-          }
+      - name: Set up Node.js for release policy validation
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+
+      - name: Validate tag, channel, commit, and main ancestry
+        run: node scripts/github/validate-release-context.mjs
 
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v6

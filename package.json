@@ -17,6 +17,7 @@
     "test": "turbo run test",
     "test:integration": "pnpm --filter @print-cess/web test:integration",
     "test:provider": "turbo run build --filter=@print-cess/web^... && pnpm --filter @print-cess/web test:provider",
+    "test:workflow": "node --test scripts/github/*.test.mjs",
     "test:e2e": "pnpm --filter @print-cess/web test:e2e",
     "fixtures": "pnpm --filter @print-cess/test-fixtures generate"
   },

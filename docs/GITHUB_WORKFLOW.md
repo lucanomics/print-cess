@@ -76,9 +76,12 @@ if ownership moves from a personal account to an organization.
 
 ### `release-kiosk.yml`
 
-This is manual-only and tag-based. The operator supplies an existing `vX.Y.Z` stable tag or
-`vX.Y.Z-rc.N` prerelease tag. It restores, builds, tests, publishes self-contained `win-x64`, and
-uploads a one-day unsigned handoff. A separate protected `windows-signing` job signs
+This is manual-only and tag-based. The operator must dispatch the workflow from the exact existing
+`vX.Y.Z` stable tag or `vX.Y.Z-rc.N` prerelease tag supplied as the input. The workflow rejects a
+branch dispatch, a ref/input mismatch, a tag whose commit differs from the workflow ref, or a tag
+whose commit is not reachable from protected `main`. It restores, builds, tests, publishes
+self-contained `win-x64`, and uploads a one-day unsigned handoff. A separate protected
+`windows-signing` job signs
 `Print-cess Kiosk.exe`, runs `signtool verify /pa /all /v`, checks the approved publisher subject,
 removes PDBs, and creates the signed ZIP and SHA-256 checksum. No unsigned artifact can reach the
 GitHub Release job. See `AUTHENTICODE.md`.
@@ -100,21 +103,36 @@ delete merged branches, allow update-branch, and enable auto-merge capability.
 
 The repository is currently a single-maintainer private personal repository, so required approvals
 and CODEOWNER reviews are set to zero rather than creating an impossible self-approval gate. This
-is not adequate institutional separation of duties. Before Production, move or staff the repository
-so at least one independent approval and CODEOWNER review can be required, restrict `v*` tag
-creation, decide signed-commit policy, and capture the resulting ruleset evidence.
+is not adequate institutional separation of duties. Active repository ruleset `19197379` protects
+`refs/tags/v*` from creation, update, and deletion by every actor except the current `lucanomics`
+user bypass. That preserves current solo release administration, but it is not independent approval.
+Before Production, move or staff the repository so at least one independent approval and CODEOWNER
+review can be required, migrate the release-tag bypass to an approved institutional release role,
+decide signed-commit policy, and capture the resulting ruleset evidence.
 
 ## Protected environments
 
-Create before enabling any corresponding repository circuit breaker:
+The following environments were created on 2026-07-20. GitHub custom deployment policies now
+restrict `vercel-preview` to the `main` branch and both `windows-signing` and `github-release` to
+tags matching `v*`. GitHub evaluates those rules against the workflow run's `GITHUB_REF`, so the
+release workflow also binds its tag input to the exact tag ref in code. Current policies are:
 
-- `github-release`: required reviewer, tag restriction, no general secrets; only then set
+- `github-release`: `v*` tags only; still needs an independent institutional reviewer before
   `ENABLE_GITHUB_RELEASES=true`;
-- `windows-signing`: required reviewer, approved tag restriction, PFX or managed-signing custody,
-  publisher/timestamp variables;
-- `vercel-preview`: Preview-only credentials/resources, synthetic data only;
-- `vercel-production`: multiple required reviewers, Production credentials, deployment branch
-  `main` only.
+- `windows-signing`: `v*` tags only; still needs an independent reviewer, approved PFX or
+  managed-signing custody, and publisher/timestamp variables;
+- `vercel-preview`: `main` only; still needs approved Preview-only credentials/resources and an
+  independent reviewer;
+- `Production`: `main` only; Vercel Production deployment remains disabled and this environment
+  still needs multiple required reviewers and approved Production credentials.
+
+Required-reviewer protection is unavailable for this private personal repository's current plan,
+and no environment contains secrets or release-enabling variables. The ref restrictions therefore
+reduce accidental execution but do not provide institutional separation of duties.
+
+Vercel also created a generic `Preview` deployment-record environment with no protection rules.
+It is not an authorized provider-acceptance gate: the controlled workflow uses `vercel-preview`,
+and automatic Vercel Git deployment remains disabled.
 
 Never expose credentials to untrusted fork pull requests. Workflows use least-privilege
 `permissions` and grant `contents: write` only to the explicit Release job.
