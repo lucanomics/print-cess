@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+artifacts/
+bin/
+obj/
+publish/
+.env
+.env.*
+!.env.example
+.DS_Store
+work/
+outputs/
+
