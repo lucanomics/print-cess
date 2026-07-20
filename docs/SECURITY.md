@@ -123,21 +123,23 @@ No production credentials were present or used during the initial implementation
 - Commit `pnpm-lock.yaml` and NuGet lock data where supported; use frozen/locked restore in CI.
 - Pin direct dependency versions. Dependabot covers npm/pnpm, NuGet, and GitHub Actions weekly.
 - CI runs pnpm audit, a NuGet vulnerable-package check, and a secret-scanning helper. The workflow
-  defines CodeQL for JavaScript/TypeScript and C#, gated by `ENABLE_CODEQL=true` because code
-  scanning is not yet enabled. GitHub native secret scanning/push protection must also be enabled.
+  defines CodeQL for JavaScript/TypeScript and C#, gated by `ENABLE_CODEQL=true`. GitHub returned
+  403/422 because this private personal repository lacks native code/secret scanning entitlement;
+  upgrade or move it before enabling those jobs and push protection.
 - Review package provenance, maintainer activity, security history, transitive graph, and license
   before adding a parser, renderer, crypto package, Action, or native binary.
 - Require CODEOWNERS review for cryptography, protocol, API, kiosk infrastructure, and workflows.
-- Produce a SHA-256 checksum for kiosk artifacts. Production additionally requires Authenticode
-  signing, a protected release environment, and independent signature/checksum verification.
+- Produce a SHA-256 checksum for kiosk artifacts. The release workflow now requires Authenticode
+  signing and `/pa` verification in `windows-signing`; Production still requires an approved
+  certificate/custody model and independent target-device verification.
 - Major-version Action tags receive Dependabot review. Institutional policy may require immutable
   commit-SHA pinning before Production.
 
 ## Repository controls
 
-Protect `main`: pull requests only, one or more approvals, CODEOWNERS review, conversation
-resolution, required CI/security checks, no force-push/delete, and no administrator bypass for
-ordinary changes. Use Conventional Commits and a Draft PR until evidence is complete.
+`main` now requires strict pull requests, conversation resolution, Web/Windows/dependency/Gitleaks
+checks, linear history, admin enforcement, and no force-push/delete. The solo personal repository
+cannot require an independent self-review; institutional ownership must add approval/CODEOWNER and
+tag controls before Production. Use Conventional Commits and a Draft PR until evidence is complete.
 
-GitHub Release, Vercel Production deployment, and main-branch merge are intentionally outside the
-initial implementation task. See `GITHUB_WORKFLOW.md`.
+GitHub Release and Vercel Production deployment remain prohibited. See `GITHUB_WORKFLOW.md`.

@@ -1,0 +1,65 @@
+name: Preview provider acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Approved Preview provider suite
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - redis
+          - blob
+          - qstash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-provider-acceptance
+  cancel-in-progress: false
+
+jobs:
+  provider-acceptance:
+    name: Approved Preview providers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: vercel-preview
+    env:
+      RUN_PROVIDER_INTEGRATION: "true"
+      PROVIDER_ENVIRONMENT: preview
+      PROVIDER_CONFIRM_SYNTHETIC_ONLY: "true"
+      PROVIDER_TEST_SUITE: ${{ inputs.suite }}
+      PROVIDER_BASE_URL: ${{ vars.PROVIDER_BASE_URL }}
+      BLOB_STORE_ID: ${{ secrets.BLOB_STORE_ID }}
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      UPSTASH_DISABLE_TELEMETRY: "1"
+      QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+      QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
+      QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
+    steps:
+      - name: Check out protected main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run synthetic provider acceptance
+        run: pnpm test:provider

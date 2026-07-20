@@ -63,15 +63,17 @@ pnpm test:e2e
 
 Windows-only validation runs in GitHub Actions. A physical printer test is required before any
 real deployment; a green CI build is not evidence that a printer model or driver is operational.
+Credential-backed provider tests are intentionally separate and require the protected manual
+`Preview provider acceptance` workflow.
 
 ## Review, Preview, and Windows commands
 
-Keep implementation work on `feature/initial-implementation`, push it, and open a Draft PR to
-`main`. Do not merge until the documented Production gates are approved:
+Keep implementation work on a short-lived branch, push it, and open a Draft PR to protected
+`main`. A merge is an integration event, not Production approval:
 
 ```bash
-git push -u origin feature/initial-implementation
-gh pr create --draft --base main --head feature/initial-implementation
+git push -u origin agent/production-readiness
+gh pr create --draft --base main --head agent/production-readiness
 gh pr checks --watch
 ```
 
@@ -93,4 +95,5 @@ dotnet publish apps/kiosk/Paradiso.PrintCess.Kiosk/Paradiso.PrintCess.Kiosk.cspr
 ```
 
 Full procedures and evidence boundaries are in `docs/GITHUB_WORKFLOW.md`,
-`docs/VERCEL_DEPLOYMENT.md`, and `docs/WINDOWS_KIOSK_DEPLOYMENT.md`.
+`docs/VERCEL_DEPLOYMENT.md`, `docs/AUTHENTICODE.md`, and
+`docs/WINDOWS_PRINTER_ACCEPTANCE.md`.
