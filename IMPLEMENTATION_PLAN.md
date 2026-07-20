@@ -19,7 +19,7 @@ documents are prohibited.
 | Item                       | Observed or selected value                                             | Consequence                                                                                                            |
 | -------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Repository                 | Private `lucanomics/paradiso-print-cess`                               | No implementation is pushed directly to `main`.                                                                        |
-| Working branch             | `agent/production-readiness`                                           | PR #1 established the merged baseline; readiness work still enters protected `main` through a PR.                      |
+| Working branch             | Short-lived `agent/*` branches                                         | Readiness work enters protected `main` only through a PR with required checks.                                         |
 | Local host                 | macOS 15.6.1, arm64                                                    | WPF, Windows printer APIs, Shell Launcher, and a physical printer cannot be validated locally.                         |
 | Local Node.js              | 24.14.0                                                                | The repository and CI select Node.js 24.18.0; local results obtained on 24.14.0 are not equivalent to that CI lane.    |
 | Local pnpm                 | 11.9.0                                                                 | The repository pins pnpm 11.15.1 through `packageManager`.                                                             |
@@ -141,13 +141,17 @@ macOS host cannot establish WPF runtime correctness.
   and representative-driver review.
 - Browser speech voices and all non-English copy require device testing and native-speaker review.
 - Code signing, installer format, and update trust chain require institutional configuration. The
-  release workflow now requires protected Authenticode signing and verification, but no approved
-  certificate or `windows-signing` environment exists.
+  `windows-signing` environment exists with a `v*` tag-ref restriction, and the workflow requires
+  the input tag, workflow ref, commit, and protected-main ancestry to agree. No approved
+  certificate, publisher/timestamp configuration, or independent environment reviewer exists.
 - `main` now requires strict PRs, current Web/Windows/dependency/Gitleaks checks, conversation
-  resolution, linear history, and admin enforcement. Independent review, protected environments,
-  and tag restrictions remain open. GitHub native secret scanning returned 422 and CodeQL setup
-  returned 403 for this private personal repository; keep `ENABLE_CODEQL` unset until the repository
-  has the required security entitlement and a successful validation run.
+  resolution, linear history, and admin enforcement. GitHub environments restrict Preview to
+  `main`, Production to `main`, and signing/Release to `v*` tags. Active ruleset `19197379`
+  restricts creation, update, and deletion of matching release tags to the current `lucanomics` user
+  bypass; independent review and migration to an institutional release role remain open. GitHub
+  native secret scanning returned 422 and CodeQL setup returned 403 for this private personal
+  repository; keep `ENABLE_CODEQL` unset until the repository has the required security entitlement
+  and a successful validation run.
 - Provider deletion semantics, backups, and infrastructure access-log retention require contractual
   review; application deletion cannot prove immediate physical erasure in provider backups.
 

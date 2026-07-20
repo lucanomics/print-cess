@@ -48,11 +48,15 @@ configuration file or green mock test does not close an institutional gate.
       permitted.
 - [ ] **Repository controls.** `main` now requires strict PRs, conversation resolution, linear
       history, admin enforcement, and Web/Windows/dependency/Gitleaks checks, and blocks force-push
-      and deletion. Remaining: independent/CODEOWNER approval, protected signing/deployment
-      environments with reviewers, tag restriction, signed-commit decision, native secret scanning
-      and push protection, and CodeQL. GitHub returned 422/403 because native secret/code scanning is
-      unavailable for this private personal repository; upgrade/move it before setting
-      `ENABLE_CODEQL=true`.
+      and deletion. `vercel-preview` is `main`-only; `windows-signing` and `github-release` are
+      `v*`-tag-only, and release inputs are bound to the workflow tag ref and protected-main
+      ancestry. `Production` is also `main`-only, while Vercel Production deployment remains
+      disabled. Active ruleset `19197379` restricts creation, update, and deletion of `v*` tags to
+      the current `lucanomics` user bypass. Remaining: independent/CODEOWNER and environment
+      reviewers, migration of that bypass to an institutional release role, signed-commit decision,
+      native secret scanning and push protection, and CodeQL. GitHub returned 422/403 because native
+      secret/code scanning is unavailable for this private personal repository; upgrade/move it
+      before setting `ENABLE_CODEQL=true`.
 - [ ] **CI evidence privacy.** Verify that Playwright screenshots/traces and raw `test-results` stay
       disabled/excluded, only synthetic fixtures are used, Web evidence expires after three days,
       Windows TRX/publish-smoke evidence expires after seven days, and incident deletion/rotation is
