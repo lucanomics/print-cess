@@ -67,6 +67,13 @@ jobs:
       - name: Validate tag, channel, commit, and main ancestry
         run: node scripts/github/validate-release-context.mjs
 
+      - name: Bind executable version to the release tag and commit
+        shell: pwsh
+        run: |
+          $releaseVersion = $env:RELEASE_TAG.Substring(1)
+          Add-Content -Path $env:GITHUB_ENV -Encoding utf8 -Value "RELEASE_VERSION=$releaseVersion"
+          Add-Content -Path $env:GITHUB_ENV -Encoding utf8 -Value "RELEASE_INFORMATIONAL_VERSION=$releaseVersion+$env:WORKFLOW_SHA"
+
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v6
         with:
@@ -96,8 +103,11 @@ jobs:
           apps/kiosk/Paradiso.PrintCess.Kiosk/Paradiso.PrintCess.Kiosk.csproj
           -c Release
           -r win-x64
+          --no-restore
           --self-contained true
           -p:PublishSingleFile=true
+          -p:PrintCessReleaseVersion=$env:RELEASE_VERSION
+          -p:PrintCessReleaseInformationalVersion=$env:RELEASE_INFORMATIONAL_VERSION
           -o artifacts/kiosk-win-x64
 
       - name: Upload unsigned handoff
@@ -127,9 +137,11 @@ jobs:
       contents: read
     env:
       RELEASE_TAG: ${{ inputs.tag }}
+      WORKFLOW_SHA: ${{ github.sha }}
       SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERT_BASE64 }}
       SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
       EXPECTED_PUBLISHER_SUBJECT: ${{ vars.AUTHENTICODE_EXPECTED_SUBJECT }}
+      EXPECTED_SIGNER_THUMBPRINT: ${{ vars.AUTHENTICODE_EXPECTED_THUMBPRINT }}
       TIMESTAMP_URL: ${{ vars.AUTHENTICODE_TIMESTAMP_URL }}
     steps:
       - name: Download unsigned handoff
@@ -149,6 +161,13 @@ jobs:
           }
           if ([string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_SUBJECT)) {
             throw "AUTHENTICODE_EXPECTED_SUBJECT is not configured in windows-signing."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:EXPECTED_SIGNER_THUMBPRINT)) {
+            throw "AUTHENTICODE_EXPECTED_THUMBPRINT is not configured in windows-signing."
+          }
+          $expectedThumbprint = ($env:EXPECTED_SIGNER_THUMBPRINT -replace '\s', '').ToUpperInvariant()
+          if ($expectedThumbprint -notmatch '^[0-9A-F]{40}$') {
+            throw "AUTHENTICODE_EXPECTED_THUMBPRINT must be the approved 40-hex certificate thumbprint."
           }
           $timestamp = $null
           if (-not [Uri]::TryCreate($env:TIMESTAMP_URL, [UriKind]::Absolute, [ref]$timestamp)) {
@@ -179,11 +198,11 @@ jobs:
               throw "Expected exactly one Print-cess Kiosk.exe signing target."
             }
             $executable = $executables[0]
-            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $env:TIMESTAMP_URL /f $certificatePath /p $env:SIGNING_CERTIFICATE_PASSWORD $executable.FullName
+            & $signTool.FullName sign /fd SHA256 /tr $env:TIMESTAMP_URL /td SHA256 /f $certificatePath /p $env:SIGNING_CERTIFICATE_PASSWORD $executable.FullName
             if ($LASTEXITCODE -ne 0) { throw "SignTool signing failed." }
 
             New-Item -ItemType Directory -Force artifacts/signing-evidence | Out-Null
-            & $signTool.FullName verify /pa /all /v $executable.FullName 2>&1 |
+            & $signTool.FullName verify /pa /all /tw /v $executable.FullName 2>&1 |
               Tee-Object -FilePath artifacts/signing-evidence/authenticode-verification.txt
             if ($LASTEXITCODE -ne 0) { throw "SignTool Authenticode verification failed." }
 
@@ -191,12 +210,81 @@ jobs:
             if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
               throw "PowerShell did not report a valid Authenticode signature."
             }
-            if (-not $signature.SignerCertificate.Subject.Contains(
+            $signerCertificate = $signature.SignerCertificate
+            $timestampCertificate = $signature.TimeStamperCertificate
+            if ($null -eq $signerCertificate) {
+              throw "The valid Authenticode signature did not expose a signer certificate."
+            }
+            if ($null -eq $timestampCertificate) {
+              throw "The Authenticode signature does not contain a verified timestamp."
+            }
+            if (-not [string]::Equals(
+              $signerCertificate.Subject,
               $env:EXPECTED_PUBLISHER_SUBJECT,
               [StringComparison]::OrdinalIgnoreCase
             )) {
               throw "The signer certificate subject does not match the approved publisher."
             }
+            $actualThumbprint = ($signerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+            $expectedThumbprint = ($env:EXPECTED_SIGNER_THUMBPRINT -replace '\s', '').ToUpperInvariant()
+            if (-not [string]::Equals(
+              $actualThumbprint,
+              $expectedThumbprint,
+              [StringComparison]::Ordinal
+            )) {
+              throw "The signer certificate thumbprint does not match the approved certificate."
+            }
+            $now = [DateTime]::UtcNow
+            if ($now -lt $signerCertificate.NotBefore.ToUniversalTime() -or
+                $now -gt $signerCertificate.NotAfter.ToUniversalTime()) {
+              throw "The approved signer certificate is not currently valid."
+            }
+
+            $applicationHash = (Get-FileHash $executable.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $version = $executable.VersionInfo
+            $manifest = [ordered]@{
+              schemaVersion = 1
+              product = "Print-cess by Paradiso"
+              releaseTag = $env:RELEASE_TAG
+              workflowSha = $env:WORKFLOW_SHA.ToLowerInvariant()
+              protocolVersion = 1
+              generatedAtUtc = [DateTimeOffset]::UtcNow.ToString("O")
+              application = [ordered]@{
+                fileName = $executable.Name
+                length = $executable.Length
+                sha256 = $applicationHash
+                productName = $version.ProductName
+                productVersion = $version.ProductVersion
+                fileVersion = $version.FileVersion
+              }
+              signature = [ordered]@{
+                status = [string]$signature.Status
+                signerSubject = $signerCertificate.Subject
+                signerThumbprint = $actualThumbprint
+                signerNotBeforeUtc = $signerCertificate.NotBefore.ToUniversalTime().ToString("O")
+                signerNotAfterUtc = $signerCertificate.NotAfter.ToUniversalTime().ToString("O")
+                timestampPresent = $true
+                timestampSubject = $timestampCertificate.Subject
+                timestampThumbprint = ($timestampCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+                timestampNotBeforeUtc = $timestampCertificate.NotBefore.ToUniversalTime().ToString("O")
+                timestampNotAfterUtc = $timestampCertificate.NotAfter.ToUniversalTime().ToString("O")
+              }
+              policy = [ordered]@{
+                fileDigest = "SHA256"
+                timestampDigest = "SHA256"
+                verificationFlags = @("/pa", "/all", "/tw", "/v")
+                expectedPublisherSubject = $env:EXPECTED_PUBLISHER_SUBJECT
+                expectedSignerThumbprint = $expectedThumbprint
+                expectedPublisherSubjectMatched = $true
+                expectedSignerThumbprintMatched = $true
+                signToolVerified = $true
+              }
+              passed = $true
+            }
+            $manifestPath = "artifacts/signing-evidence/authenticode-manifest.json"
+            $manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $manifestPath -Encoding utf8
+            $manifestHash = (Get-FileHash $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            Set-Content -Path "$manifestPath.sha256" -Value "$manifestHash *authenticode-manifest.json" -Encoding ascii
           } finally {
             Remove-Item $certificatePath -Force -ErrorAction SilentlyContinue
           }
@@ -221,6 +309,8 @@ jobs:
             artifacts/Print-cess-Kiosk-*-win-x64-signed.zip
             artifacts/Print-cess-Kiosk-*-win-x64-signed.zip.sha256
             artifacts/signing-evidence/authenticode-verification.txt
+            artifacts/signing-evidence/authenticode-manifest.json
+            artifacts/signing-evidence/authenticode-manifest.json.sha256
           if-no-files-found: error
           retention-days: 14
 

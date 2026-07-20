@@ -8,6 +8,13 @@
     <Description>Secure self-service document printing</Description>
     <Company>Paradiso</Company>
     <Authors>Paradiso</Authors>
+    <Version Condition="'$(PrintCessReleaseVersion)' != ''">$(PrintCessReleaseVersion)</Version>
+    <InformationalVersion Condition="'$(PrintCessReleaseInformationalVersion)' != ''">
+      $(PrintCessReleaseInformationalVersion)
+    </InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion Condition="'$(PrintCessReleaseInformationalVersion)' != ''">
+      false
+    </IncludeSourceRevisionInInformationalVersion>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationIcon Condition="Exists('Assets\printcess.ico')">Assets\printcess.ico</ApplicationIcon>

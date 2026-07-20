@@ -46,7 +46,8 @@ On pull requests and pushes to `main`:
   report/coverage artifact upload. Automated Playwright screenshots and traces are disabled because
   QR images and network bodies can contain short-lived credentials.
 - **Windows kiosk** on `windows-latest` with .NET 8: restore, Release build, xUnit/TRX tests, a
-  self-contained `win-x64` publish smoke test, a synthetic-only TRX artifact, and the smoke binary.
+  self-contained `win-x64` publish smoke test, signing/acceptance evidence-contract tests, a
+  synthetic-only TRX artifact, and the smoke binary.
 
 The Web workflow uploads only coverage and the HTML Playwright report for three days; raw
 `test-results`, screenshots, and traces are excluded. Windows TRX and publish-smoke artifacts are
@@ -80,11 +81,12 @@ This is manual-only and tag-based. The operator must dispatch the workflow from 
 `vX.Y.Z` stable tag or `vX.Y.Z-rc.N` prerelease tag supplied as the input. The workflow rejects a
 branch dispatch, a ref/input mismatch, a tag whose commit differs from the workflow ref, or a tag
 whose commit is not reachable from protected `main`. It restores, builds, tests, publishes
-self-contained `win-x64`, and uploads a one-day unsigned handoff. A separate protected
-`windows-signing` job signs
-`Print-cess Kiosk.exe`, runs `signtool verify /pa /all /v`, checks the approved publisher subject,
-removes PDBs, and creates the signed ZIP and SHA-256 checksum. No unsigned artifact can reach the
-GitHub Release job. See `AUTHENTICODE.md`.
+self-contained `win-x64` whose product version is bound to the tag and commit, and uploads a one-day
+unsigned handoff. A separate protected `windows-signing` job signs `Print-cess Kiosk.exe`, runs
+`signtool verify /pa /all /tw /v`, checks the exact approved publisher subject and certificate
+thumbprint, requires a timestamp certificate, removes PDBs, and creates the signed ZIP, checksums,
+and structured Authenticode manifest. No unsigned artifact can reach the GitHub Release job. See
+`AUTHENTICODE.md`.
 
 The separate GitHub Release job runs only when the operator explicitly sets `publish_release`, an
 administrator has set repository variable `ENABLE_GITHUB_RELEASES=true`, and the job passes the

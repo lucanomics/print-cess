@@ -142,7 +142,9 @@ macOS host cannot establish WPF runtime correctness.
 - Browser speech voices and all non-English copy require device testing and native-speaker review.
 - Code signing, installer format, and update trust chain require institutional configuration. The
   `windows-signing` environment exists with a `v*` tag-ref restriction, and the workflow requires
-  the input tag, workflow ref, commit, and protected-main ancestry to agree. No approved
+  the input tag, workflow ref, commit, and protected-main ancestry to agree. The signed candidate
+  is additionally bound to the tag/commit version, exact approved certificate thumbprint,
+  timestamp certificate, and hashed manifest that the target collector re-verifies. No approved
   certificate, publisher/timestamp configuration, or independent environment reviewer exists.
 - `main` now requires strict PRs, current Web/Windows/dependency/Gitleaks checks, conversation
   resolution, linear history, and admin enforcement. GitHub environments restrict Preview to
