@@ -40,7 +40,7 @@ jobs:
       RELEASE_CHANNEL: ${{ inputs.channel }}
     steps:
       - name: Check out requested tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
@@ -62,7 +62,7 @@ jobs:
           }
 
       - name: Set up .NET 8
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
           dotnet-quality: ga
@@ -105,7 +105,7 @@ jobs:
           Set-Content -Path "$archive.sha256" -Value $line -Encoding ascii
 
       - name: Upload release candidate
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64
           path: |
@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload tagged test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Print-cess-Kiosk-${{ inputs.tag }}-test-evidence
           path: artifacts/test-results/**
@@ -137,7 +137,7 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag }}
     steps:
       - name: Download candidate
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64
           path: release-assets
