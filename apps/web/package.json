@@ -1,0 +1,47 @@
+{
+  "name": "@print-cess/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "prebuild": "node scripts/copy-pdf-worker.mjs",
+    "predev": "node scripts/copy-pdf-worker.mjs",
+    "build": "next build",
+    "dev": "next dev",
+    "lint": "eslint .",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "test:integration": "vitest run test/integration",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@print-cess/crypto": "workspace:*",
+    "@print-cess/i18n": "workspace:*",
+    "@print-cess/protocol": "workspace:*",
+    "@print-cess/ui": "workspace:*",
+    "@upstash/qstash": "2.11.2",
+    "@upstash/redis": "1.38.0",
+    "@vercel/blob": "2.6.1",
+    "i18next": "26.3.6",
+    "lucide-react": "1.25.0",
+    "next": "16.2.10",
+    "pdfjs-dist": "6.1.200",
+    "qrcode": "1.5.4",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-i18next": "17.0.10",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
+    "@print-cess/test-fixtures": "workspace:*",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.1.10",
+    "jsdom": "29.1.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

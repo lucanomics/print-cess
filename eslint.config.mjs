@@ -1,0 +1,19 @@
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
+
+export default defineConfig([
+  ...nextVitals,
+  ...nextTypescript,
+  globalIgnores([
+    "**/.next/**",
+    "**/.turbo/**",
+    "**/coverage/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/playwright-report/**",
+    "**/public/pdf.worker.min.mjs",
+    "**/test-results/**",
+    "work/**",
+  ]),
+]);

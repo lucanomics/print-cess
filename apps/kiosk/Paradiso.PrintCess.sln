@@ -1,0 +1,40 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Paradiso.PrintCess.Core", "Paradiso.PrintCess.Core\Paradiso.PrintCess.Core.csproj", "{4C05EE32-AB4C-4187-B342-2B21EAA1F7D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Paradiso.PrintCess.Infrastructure", "Paradiso.PrintCess.Infrastructure\Paradiso.PrintCess.Infrastructure.csproj", "{25239467-48C4-46BC-A1C7-DB91375F42F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Paradiso.PrintCess.Kiosk", "Paradiso.PrintCess.Kiosk\Paradiso.PrintCess.Kiosk.csproj", "{9FC62429-8731-4B53-A4F4-5709EB667DB7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Paradiso.PrintCess.Tests", "Paradiso.PrintCess.Tests\Paradiso.PrintCess.Tests.csproj", "{55EA740C-9659-4172-83AD-5C688AFEBE38}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4C05EE32-AB4C-4187-B342-2B21EAA1F7D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C05EE32-AB4C-4187-B342-2B21EAA1F7D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C05EE32-AB4C-4187-B342-2B21EAA1F7D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C05EE32-AB4C-4187-B342-2B21EAA1F7D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25239467-48C4-46BC-A1C7-DB91375F42F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25239467-48C4-46BC-A1C7-DB91375F42F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25239467-48C4-46BC-A1C7-DB91375F42F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25239467-48C4-46BC-A1C7-DB91375F42F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FC62429-8731-4B53-A4F4-5709EB667DB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FC62429-8731-4B53-A4F4-5709EB667DB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FC62429-8731-4B53-A4F4-5709EB667DB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FC62429-8731-4B53-A4F4-5709EB667DB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55EA740C-9659-4172-83AD-5C688AFEBE38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55EA740C-9659-4172-83AD-5C688AFEBE38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55EA740C-9659-4172-83AD-5C688AFEBE38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55EA740C-9659-4172-83AD-5C688AFEBE38}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

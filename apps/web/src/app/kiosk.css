@@ -1,0 +1,225 @@
+.kiosk-shell {
+  min-height: 100vh;
+  padding: clamp(36px, 4vw, 68px);
+  background: white;
+  color: var(--pc-ink);
+}
+.kiosk-shell > .pc-wordmark {
+  margin-bottom: clamp(52px, 7vh, 84px);
+}
+.kiosk-shell > .pc-wordmark svg {
+  width: 58px;
+  height: 58px;
+}
+.kiosk-shell > .pc-wordmark strong {
+  font-size: clamp(42px, 4vw, 64px);
+}
+.kiosk-shell > .pc-wordmark small {
+  font-size: clamp(24px, 2vw, 34px);
+}
+.kiosk-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.78fr);
+  gap: clamp(50px, 7vw, 110px);
+  align-items: start;
+}
+.kiosk-instructions h1 {
+  margin: 0;
+  font-size: clamp(54px, 5.4vw, 84px);
+  line-height: 1.2;
+  letter-spacing: -0.055em;
+}
+.kiosk-english {
+  margin: 22px 0 0;
+  font-size: clamp(26px, 2.5vw, 42px);
+  color: var(--pc-text);
+}
+.kiosk-rule {
+  height: 2px;
+  margin: 38px 0;
+  background: var(--pc-line);
+}
+.kiosk-data {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-size: clamp(22px, 1.8vw, 31px);
+  line-height: 1.45;
+}
+.kiosk-data > svg {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  padding: 19px;
+  border-radius: 50%;
+  color: white;
+  background: var(--pc-teal);
+}
+.kiosk-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-block: 2px solid var(--pc-line);
+  margin-top: 36px;
+}
+.kiosk-facts p {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 28px 16px 28px 0;
+  font-size: clamp(18px, 1.35vw, 24px);
+  line-height: 1.45;
+}
+.kiosk-facts p + p {
+  padding-left: 24px;
+  border-left: 2px solid var(--pc-line);
+}
+.kiosk-facts svg {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  padding: 10px;
+  border-radius: 50%;
+  color: var(--pc-ink);
+  background: #eaf3f8;
+}
+.kiosk-facts strong {
+  color: var(--pc-teal-dark);
+  font-size: 1.2em;
+}
+.kiosk-status-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-top: 38px;
+  color: var(--pc-teal-dark);
+  font-size: clamp(28px, 2.5vw, 42px);
+}
+.kiosk-status-dot {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: var(--pc-teal);
+  color: white;
+}
+.kiosk-status-dot svg {
+  width: 46px;
+  height: 46px;
+}
+.kiosk-countdown {
+  margin-left: auto;
+  color: var(--pc-text);
+  font-size: clamp(17px, 1.25vw, 23px);
+}
+.kiosk-countdown b {
+  margin-left: 10px;
+  color: var(--pc-teal-dark);
+  font-size: 1.7em;
+}
+.kiosk-qr {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+}
+.kiosk-qr img,
+.kiosk-qr__loading {
+  display: block;
+  width: min(100%, 580px);
+  aspect-ratio: 1;
+  border: 4px solid var(--pc-teal);
+  border-radius: 28px;
+  background: white;
+}
+.kiosk-qr__loading {
+  background: linear-gradient(90deg, #f0f5f7, #fff, #f0f5f7);
+  background-size: 200% 100%;
+  animation: kiosk-loading 1.2s infinite linear;
+}
+.kiosk-qr p {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: clamp(20px, 1.6vw, 28px);
+  line-height: 1.45;
+  font-weight: 700;
+}
+.kiosk-qr p svg {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  color: var(--pc-teal);
+}
+@keyframes kiosk-loading {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.kiosk-result {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 22px;
+  padding: 50px;
+  text-align: center;
+}
+.kiosk-result > .pc-wordmark {
+  position: absolute;
+  inset: 54px auto auto 60px;
+}
+.kiosk-result > svg {
+  width: 160px;
+  height: 160px;
+}
+.kiosk-result h1 {
+  margin: 8px 0;
+  font-size: clamp(64px, 7vw, 108px);
+  letter-spacing: -0.055em;
+  color: var(--pc-ink);
+}
+.kiosk-result p {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 34px;
+  color: var(--pc-text);
+}
+.kiosk-result p svg {
+  width: 44px;
+  height: 44px;
+}
+.kiosk-result span {
+  font-size: 23px;
+  color: var(--pc-muted);
+}
+.kiosk-result--success > svg {
+  color: var(--pc-teal);
+}
+.kiosk-result--error > svg {
+  color: var(--pc-error);
+}
+.kiosk-result button {
+  min-height: 64px;
+  margin-top: 30px;
+  padding: 16px 24px;
+  border: 2px solid var(--pc-line);
+  border-radius: 12px;
+  background: white;
+  color: var(--pc-ink);
+  font-size: 19px;
+}
+
+@media (max-width: 960px) {
+  .kiosk-layout {
+    grid-template-columns: 1fr;
+  }
+  .kiosk-qr {
+    grid-row: 1;
+  }
+  .kiosk-qr img,
+  .kiosk-qr__loading {
+    width: min(70vw, 520px);
+  }
+}

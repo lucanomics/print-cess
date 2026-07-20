@@ -1,0 +1,141 @@
+.admin-login {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  width: min(100% - 40px, 480px);
+  margin: auto;
+}
+.admin-login > svg {
+  width: 60px;
+  height: 60px;
+  margin-top: 30px;
+  color: var(--pc-teal);
+}
+.admin-login h1 {
+  margin: 0;
+  color: var(--pc-ink);
+  font-size: 42px;
+  letter-spacing: -0.04em;
+}
+.admin-login p {
+  color: var(--pc-muted);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.admin-login label,
+.admin-controls label {
+  display: grid;
+  gap: 8px;
+  color: var(--pc-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.admin-login input,
+.admin-controls select {
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 2px solid var(--pc-line);
+  border-radius: 10px;
+  background: white;
+  color: var(--pc-ink);
+  font-size: 17px;
+}
+
+.admin-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 0.8fr);
+  gap: 32px;
+  align-content: start;
+  padding: 34px;
+  background: var(--pc-subtle);
+}
+.admin-shell header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--pc-line);
+}
+.admin-shell header > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--pc-teal-dark);
+  font-weight: 750;
+}
+.admin-status,
+.admin-controls {
+  padding: 28px;
+  border: 1px solid var(--pc-line);
+  border-radius: 16px;
+  background: white;
+}
+.admin-status h1,
+.admin-controls h2 {
+  color: var(--pc-ink);
+  font-size: 28px;
+}
+.admin-status dl {
+  margin: 0;
+}
+.admin-status dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 15px 0;
+  border-top: 1px solid var(--pc-line);
+}
+.admin-status dt {
+  color: var(--pc-muted);
+}
+.admin-status dd {
+  margin: 0;
+  color: var(--pc-success);
+  font-weight: 750;
+}
+.admin-controls {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+.admin-controls .pc-button {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  min-height: 54px;
+  font-size: 16px;
+}
+.admin-controls p {
+  color: var(--pc-muted);
+  line-height: 1.5;
+}
+.admin-shell aside {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 22px;
+  border-left: 4px solid var(--pc-teal);
+  background: white;
+  color: var(--pc-text);
+  line-height: 1.5;
+}
+.admin-shell aside svg {
+  flex: none;
+  color: var(--pc-teal);
+}
+
+@media (max-width: 800px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .admin-shell header {
+    align-items: flex-start;
+    gap: 20px;
+  }
+}

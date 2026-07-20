@@ -1,0 +1,17 @@
+import { ShieldCheck } from "lucide-react";
+
+import { Wordmark } from "@print-cess/ui";
+
+export default function HomePage() {
+  return (
+    <main className="status-page">
+      <Wordmark />
+      <section>
+        <ShieldCheck aria-hidden="true" />
+        <h1>Secure print transfer service</h1>
+        <p>Start by scanning the QR code shown on a Print-cess Kiosk.</p>
+        <p className="status-page__privacy">No account or public-computer login is required.</p>
+      </section>
+    </main>
+  );
+}

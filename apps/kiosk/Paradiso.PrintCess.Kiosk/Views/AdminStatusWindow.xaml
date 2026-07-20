@@ -1,0 +1,107 @@
+<Window x:Class="Paradiso.PrintCess.Kiosk.Views.AdminStatusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Print-cess by Paradiso — 관리자 진단"
+        Width="820"
+        Height="980"
+        MinHeight="720"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource CanvasBrush}"
+        Loaded="OnLoaded"
+        ShowInTaskbar="False">
+    <Grid Margin="40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="키오스크 진단" FontSize="32" FontWeight="Bold" />
+            <TextBlock Text="식별자, 파일명, 토큰, 키, signed URL은 이 화면에 표시되지 않습니다."
+                       FontSize="16" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,26,0,20">
+            <StackPanel>
+                <TextBlock Text="복구 상태" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="RecoveryStatus" FontSize="21" FontWeight="SemiBold" Margin="0,5,0,20" TextWrapping="Wrap" />
+
+                <TextBlock Text="런타임" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="RuntimeStatus" FontSize="21" FontWeight="SemiBold" Margin="0,5,0,20" TextWrapping="Wrap" />
+
+                <TextBlock Text="선택된 프린터 / 상태" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="PrinterStatus" FontSize="21" FontWeight="SemiBold" Margin="0,5,0,10" TextWrapping="Wrap" />
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="PrinterSelector"
+                              Height="46"
+                              FontSize="17"
+                              Padding="12,4"
+                              SelectionChanged="OnPrinterSelectionChanged" />
+                    <Button x:Name="SelectPrinterButton"
+                            Grid.Column="1"
+                            Content="선택 적용"
+                            Width="120"
+                            Height="46"
+                            Margin="10,0,0,0"
+                            Click="OnSelectPrinter" />
+                </Grid>
+
+                <TextBlock Text="현재 세션" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="SessionStatus" FontSize="21" FontWeight="SemiBold" Margin="0,5,0,20" TextWrapping="Wrap" />
+
+                <TextBlock Text="서버 health" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="ServerHealthStatus" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,14" TextWrapping="Wrap" />
+
+                <TextBlock Text="Redis / 세션 저장소 health" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="SessionStoreStatus" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,14" TextWrapping="Wrap" />
+
+                <TextBlock Text="Blob health" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="BlobStatus" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,14" TextWrapping="Wrap" />
+
+                <TextBlock Text="QStash / 지연 정리 health" FontSize="17" Foreground="{StaticResource MutedBrush}" />
+                <TextBlock x:Name="CleanupStatus" FontSize="19" FontWeight="SemiBold" Margin="0,5,0,8" TextWrapping="Wrap" />
+                <TextBlock x:Name="HealthCheckedStatus" FontSize="15" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,20" />
+
+                <Border Background="#FFF5F1E8" CornerRadius="12" Padding="16" Margin="0,0,0,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="기한 지난 암호문 고아 정리" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="한 번에 최대 25건만 서버에 요청하며 문서 식별자는 표시하지 않습니다."
+                                       FontSize="15" Foreground="{StaticResource MutedBrush}" Margin="0,4,12,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button x:Name="SweepOrphansButton"
+                                Grid.Column="1"
+                                Content="최대 25건 정리"
+                                Width="140"
+                                Height="48"
+                                Click="OnSweepOrphans" />
+                    </Grid>
+                </Border>
+
+                <Border Background="#FFE4ECE9" CornerRadius="12" Padding="16" Margin="0,2,0,0">
+                    <TextBlock x:Name="ActionStatus"
+                               Text="관측값은 마지막 성공 작업을 뜻하며 공급자 전체 상태를 보증하지 않습니다."
+                               FontSize="16" TextWrapping="Wrap" />
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <WrapPanel Grid.Row="2" HorizontalAlignment="Right">
+            <Button x:Name="RefreshHealthButton" Content="상태 새로 고침" Width="140" Height="48" Margin="0,6,10,0" Click="OnRefresh" />
+            <Button x:Name="TestPrintButton" Content="테스트 인쇄" Width="120" Height="48" Margin="0,6,10,0" Click="OnTestPrint" />
+            <Button x:Name="ForceDiscardButton" Content="현재 세션 폐기" Width="140" Height="48" Margin="0,6,10,0" Click="OnForceDiscard" />
+            <Button Content="음성 테스트" Width="120" Height="48" Margin="0,6,10,0" Click="OnAudioTest" />
+            <Button x:Name="ResolveRecoveryButton" Content="복구 기록 확인" Width="140" Height="48" Margin="0,6,10,0" Click="OnResolveRecovery" />
+            <Button Content="앱 재시작" Width="110" Height="48" Margin="0,6,10,0" Click="OnRestart" />
+            <Button Content="닫기" Width="100" Height="48" Margin="0,6,0,0" Click="OnClose" />
+        </WrapPanel>
+    </Grid>
+</Window>

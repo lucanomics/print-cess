@@ -1,4 +1,6 @@
 node_modules/
+dist/
+*.tsbuildinfo
 .next/
 .turbo/
 coverage/
@@ -14,4 +16,6 @@ publish/
 .DS_Store
 work/
 outputs/
-
+packages/test-fixtures/generated/
+apps/web/public/pdf.worker.min.mjs
+.print-cess/

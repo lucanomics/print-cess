@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: "true"
+      PUBLIC_BASE_URL: http://127.0.0.1:3000
+      ALLOWED_ORIGINS: http://127.0.0.1:3000
+      PRINT_CESS_ADAPTER_MODE: local
+      SESSION_TTL_SECONDS: "180"
+      SIGNED_URL_TTL_SECONDS: "120"
+      ENABLE_DEMO_ROUTES: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Integration tests
+        run: pnpm test:integration
+
+      - name: Production build
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @print-cess/web exec playwright install --with-deps chromium webkit
+
+      - name: End-to-end tests
+        run: pnpm test:e2e
+
+      - name: Upload web test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            **/coverage/**
+            **/playwright-report/**
+          if-no-files-found: warn
+          retention-days: 3
+
+  windows-kiosk:
+    name: Windows kiosk
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+      PRINT_CESS_USE_MOCK_PRINT_ENGINE: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+          dotnet-quality: ga
+
+      - name: Restore
+        run: dotnet restore apps/kiosk/Paradiso.PrintCess.sln --locked-mode
+
+      - name: Build WPF solution
+        run: dotnet build apps/kiosk/Paradiso.PrintCess.sln -c Release --no-restore
+
+      - name: Run kiosk tests
+        run: >-
+          dotnet test
+          apps/kiosk/Paradiso.PrintCess.Tests/Paradiso.PrintCess.Tests.csproj
+          -c Release
+          --no-build
+          --logger "trx;LogFileName=print-cess-tests.trx"
+          --results-directory artifacts/test-results
+
+      - name: Publish self-contained Windows x64 kiosk
+        run: >-
+          dotnet publish
+          apps/kiosk/Paradiso.PrintCess.Kiosk/Paradiso.PrintCess.Kiosk.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -o artifacts/kiosk-win-x64
+
+      - name: Upload Windows test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/test-results/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload kiosk publish smoke artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-win-x64-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/kiosk-win-x64/**
+          if-no-files-found: error
+          retention-days: 7
