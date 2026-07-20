@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <RootNamespace>Paradiso.PrintCess.Kiosk</RootNamespace>
+    <AssemblyName>Print-cess Kiosk</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon Condition="Exists('Assets\printcess.ico')">Assets\printcess.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+    <ProjectReference Include="..\Paradiso.PrintCess.Core\Paradiso.PrintCess.Core.csproj" />
+    <ProjectReference Include="..\Paradiso.PrintCess.Infrastructure\Paradiso.PrintCess.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

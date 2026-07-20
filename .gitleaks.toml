@@ -1,0 +1,24 @@
+title = "Print-cess false-positive policy"
+
+[extend]
+useDefault = true
+
+# Keep the built-in generic API-key detector enabled. These rule-specific
+# allowlists require both an exact repository path and the expected synthetic
+# match, so similarly shaped values elsewhere continue to fail the scan.
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "Deterministic protocol v1 known-answer derived key"
+  condition = "AND"
+  regexTarget = "match"
+  paths = ['''^packages/test-fixtures/vectors/protocol-v1\.json$''']
+  regexes = ['''^derivedKeyHex": "63b40a8ffa488f4cb25cfcd3d5e1e1294f5e8273f259af94ce06c2a36c4f2c51"$''']
+
+  [[rules.allowlists]]
+  description = "Empty Upstash token followed by the telemetry flag in the env template"
+  condition = "AND"
+  regexTarget = "match"
+  paths = ['''^\.env\.example$''']
+  regexes = ['''^UPSTASH_REDIS_REST_TOKEN=\r?\nUPSTASH_DISABLE_TELEMETRY=1\r?$''']

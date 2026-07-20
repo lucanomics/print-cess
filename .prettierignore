@@ -1,0 +1,13 @@
+.next
+.turbo
+coverage
+dist
+node_modules
+playwright-report
+pnpm-lock.yaml
+test-results
+work
+outputs
+apps/kiosk/**/bin
+apps/kiosk/**/obj
+apps/web/public/pdf.worker.min.mjs

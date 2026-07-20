@@ -1,0 +1,164 @@
+name: Release kiosk
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build (vX.Y.Z or vX.Y.Z-rc.N)
+        required: true
+        type: string
+      channel:
+        description: Release channel
+        required: true
+        default: prerelease
+        type: choice
+        options:
+          - prerelease
+          - stable
+      publish_release:
+        description: Publish a GitHub Release after the protected environment approves
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-kiosk-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build tagged kiosk
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_CHANNEL: ${{ inputs.channel }}
+    steps:
+      - name: Check out requested tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag and channel
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_CHANNEL -eq "stable") {
+            if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') {
+              throw "Stable tags must match vX.Y.Z"
+            }
+          } elseif ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+-[0-9A-Za-z][0-9A-Za-z.-]*$') {
+            throw "Prerelease tags must match vX.Y.Z-<label>"
+          }
+          git rev-parse --verify "refs/tags/$env:RELEASE_TAG^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "The requested tag does not exist"
+          }
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+          dotnet-quality: ga
+
+      - name: Restore
+        run: dotnet restore apps/kiosk/Paradiso.PrintCess.sln --locked-mode
+
+      - name: Build
+        run: dotnet build apps/kiosk/Paradiso.PrintCess.sln -c Release --no-restore
+
+      - name: Test
+        env:
+          PRINT_CESS_USE_MOCK_PRINT_ENGINE: "true"
+        run: >-
+          dotnet test
+          apps/kiosk/Paradiso.PrintCess.Tests/Paradiso.PrintCess.Tests.csproj
+          -c Release
+          --no-build
+          --logger "trx;LogFileName=print-cess-tests.trx"
+          --results-directory artifacts/test-results
+
+      - name: Publish self-contained Windows x64 kiosk
+        run: >-
+          dotnet publish
+          apps/kiosk/Paradiso.PrintCess.Kiosk/Paradiso.PrintCess.Kiosk.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -o artifacts/kiosk-win-x64
+
+      - name: Create archive and checksum
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_TAG.TrimStart("v")
+          $archive = "artifacts/Print-cess-Kiosk-$version-win-x64.zip"
+          Compress-Archive -Path "artifacts/kiosk-win-x64/*" -DestinationPath $archive
+          $hash = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          $line = "$hash *$(Split-Path -Leaf $archive)"
+          Set-Content -Path "$archive.sha256" -Value $line -Encoding ascii
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64
+          path: |
+            artifacts/Print-cess-Kiosk-*.zip
+            artifacts/Print-cess-Kiosk-*.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload tagged test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Print-cess-Kiosk-${{ inputs.tag }}-test-evidence
+          path: artifacts/test-results/**
+          if-no-files-found: warn
+          retention-days: 14
+
+  github-release:
+    name: Publish GitHub Release
+    if: ${{ needs.build.result == 'success' && inputs.publish_release && vars.ENABLE_GITHUB_RELEASES == 'true' }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: github-release
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Download candidate
+        uses: actions/download-artifact@v5
+        with:
+          name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64
+          path: release-assets
+
+      - name: Publish prerelease
+        if: ${{ inputs.channel == 'prerelease' }}
+        run: >-
+          gh release create "$RELEASE_TAG"
+          release-assets/*
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag
+          --prerelease
+          --generate-notes
+          --title "Print-cess Kiosk $RELEASE_TAG"
+
+      - name: Publish stable release
+        if: ${{ inputs.channel == 'stable' }}
+        run: >-
+          gh release create "$RELEASE_TAG"
+          release-assets/*
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag
+          --generate-notes
+          --title "Print-cess Kiosk $RELEASE_TAG"

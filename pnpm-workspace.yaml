@@ -1,0 +1,19 @@
+packages:
+  - apps/*
+  - packages/*
+
+overrides:
+  postcss: 8.5.20
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - unrs-resolver
+
+minimumReleaseAgeExclude:
+  - postcss@8.5.20

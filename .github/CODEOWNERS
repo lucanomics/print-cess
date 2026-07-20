@@ -1,0 +1,16 @@
+# Default owner
+* @lucanomics
+
+# Security-critical contracts and delivery
+/packages/protocol/ @lucanomics
+/packages/crypto/ @lucanomics
+/apps/web/src/app/api/ @lucanomics
+/apps/web/src/server/ @lucanomics
+/apps/kiosk/Paradiso.PrintCess.Core/ @lucanomics
+/apps/kiosk/Paradiso.PrintCess.Infrastructure/ @lucanomics
+/.github/workflows/ @lucanomics
+/docs/SECURITY.md @lucanomics
+/docs/THREAT_MODEL.md @lucanomics
+/docs/CRYPTOGRAPHY.md @lucanomics
+/docs/PRIVACY.md @lucanomics
+/docs/PRODUCTION_BLOCKERS.md @lucanomics

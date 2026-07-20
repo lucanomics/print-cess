@@ -1,0 +1,154 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 16 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codeql-javascript:
+    name: CodeQL JavaScript and TypeScript
+    if: ${{ vars.ENABLE_CODEQL == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+
+  codeql-csharp:
+    name: CodeQL C#
+    if: ${{ vars.ENABLE_CODEQL == 'true' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: csharp
+          build-mode: manual
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+          dotnet-quality: ga
+
+      - name: Restore
+        run: dotnet restore apps/kiosk/Paradiso.PrintCess.sln --locked-mode
+
+      - name: Build WPF solution for analysis
+        run: dotnet build apps/kiosk/Paradiso.PrintCess.sln -c Release --no-restore
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit production npm dependencies
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          pnpm audit --prod --audit-level moderate 2>&1 | tee artifacts/security/pnpm-audit.txt
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+          dotnet-quality: ga
+
+      - name: Restore NuGet dependencies
+        run: dotnet restore apps/kiosk/Paradiso.PrintCess.sln --locked-mode
+
+      - name: Audit transitive NuGet dependencies
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/security | Out-Null
+          $report = & dotnet list apps/kiosk/Paradiso.PrintCess.sln package --vulnerable --include-transitive 2>&1
+          $exitCode = $LASTEXITCODE
+          $report | Tee-Object -FilePath artifacts/security/nuget-vulnerabilities.txt
+          if ($exitCode -ne 0) {
+            exit $exitCode
+          }
+          if (($report -join [Environment]::NewLine) -match "has the following vulnerable packages") {
+            throw "NuGet reported vulnerable packages"
+          }
+
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/security/**
+          if-no-files-found: warn
+          retention-days: 14
+
+  secret-scan:
+    name: Secret scan helper
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Scan with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

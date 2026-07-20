@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a reproducible defect using synthetic data only
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never attach a real document, QR fragment, token, signed URL, filename, or personal data.
+        Report security issues through a private Security Advisory, not this form.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Mobile web
+        - API/session/cleanup
+        - Protocol/cryptography
+        - Browser kiosk simulator
+        - Windows kiosk
+        - Printing
+        - Build/CI/documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: Commit SHA, Preview commit, or kiosk version
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS/browser or Windows build, app version, printer model/driver if relevant
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Synthetic reproduction
+      description: Exact steps and synthetic fixture name; redact credentials and identifiers
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and safe error code
+    validations:
+      required: true
+  - type: checkboxes
+    id: attestations
+    attributes:
+      label: Data and print safety
+      options:
+        - label: I used synthetic data only and removed QR fragments, tokens, signed URLs, filenames, and personal information.
+          required: true
+        - label: If print submission was ambiguous, I did not retry it.
+          required: true
+        - label: This report does not disclose a vulnerability or credential; those use a private Security Advisory.
+          required: true

@@ -1,0 +1,18 @@
+{
+  "description": "Deterministic protocol-only fixture. Weak private scalars are test-only and must never be used in production.",
+  "protocolVersion": 1,
+  "sessionId": "ABEiM0RVZneImaq7zN3u_w",
+  "kioskFingerprint": "aYvqY9xEo0RmP_FCmuoQhC3ye2uZHvJYZrLGwCzcxb4",
+  "kioskPrivateScalarHex": "0000000000000000000000000000000000000000000000000000000000000001",
+  "kioskPublicKeyHex": "046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5",
+  "mobilePrivateScalarHex": "0000000000000000000000000000000000000000000000000000000000000002",
+  "mobilePublicKeyHex": "047cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc4766997807775510db8ed040293d9ac69f7430dbba7dade63ce982299e04b79d227873d1",
+  "saltHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "ivHex": "a0a1a2a3a4a5a6a7a8a9aaab",
+  "plaintextUtf8": "Print-cess by Paradiso protocol v1 test vector.\n",
+  "headerHex": "5043454e56303100010100000041200c10000000003000000040047cf27b188d034f7e8a52380304b51ac3c08969e277f21b35a60b48fc4766997807775510db8ed040293d9ac69f7430dbba7dade63ce982299e04b79d227873d1000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1fa0a1a2a3a4a5a6a7a8a9aaab",
+  "derivedKeyHex": "63b40a8ffa488f4cb25cfcd3d5e1e1294f5e8273f259af94ce06c2a36c4f2c51",
+  "ciphertextHex": "8e6a05d5881a1c5ca2b661e4f6cc0bf342b187fec7b5e71052addbd6d15710ec3e67a72ad82cd0d5de078858ac5bcc7f",
+  "tagHex": "eb41f716375622b4feca257830281bc0",
+  "envelopeSha256Hex": "163362c64c809c811ec895a8bc91cb912f32ad36b999e9365946e935db0d6caa"
+}

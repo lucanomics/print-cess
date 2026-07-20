@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://print-cess.paradiso.invalid/schema/print-session-v1.json",
+  "title": "Print-cess by Paradiso protocol v1 session",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "sessionId",
+    "status",
+    "kioskPublicKey",
+    "kioskPublicKeyFingerprint",
+    "createdAt",
+    "expiresAt",
+    "uploadTokenHash",
+    "kioskTokenHash",
+    "revision"
+  ],
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "sessionId": {
+      "type": "string",
+      "description": "Canonical unpadded base64url encoding of exactly 16 bytes.",
+      "pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"
+    },
+    "status": {
+      "enum": [
+        "waiting",
+        "claimed",
+        "upload_authorized",
+        "uploading",
+        "uploaded",
+        "consumed",
+        "validating",
+        "printing",
+        "completed",
+        "failed",
+        "expired",
+        "cancelled"
+      ]
+    },
+    "kioskPublicKey": {
+      "type": "string",
+      "description": "Canonical unpadded base64url encoding of a 65-byte uncompressed SEC1 P-256 public key beginning with 0x04.",
+      "pattern": "^B[A-P][A-Za-z0-9_-]{84}[AEIMQUYcgkosw048]$"
+    },
+    "kioskPublicKeyFingerprint": { "$ref": "#/$defs/digest" },
+    "encryptedBlobPath": {
+      "type": "string",
+      "pattern": "^v1/[A-Za-z0-9_-]{21}[AQgw]\\.bin$"
+    },
+    "encryptedBlobEtag": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "encryptedBlobSize": { "type": "integer", "minimum": 152, "maximum": 10485911 },
+    "createdAt": { "type": "integer", "minimum": 0 },
+    "expiresAt": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Must be strictly greater than createdAt; enforced by the TypeScript and C# protocol validators and bilateral contract tests."
+    },
+    "uploadTokenHash": { "$ref": "#/$defs/digest" },
+    "kioskTokenHash": { "$ref": "#/$defs/digest" },
+    "mobileTokenHash": { "$ref": "#/$defs/digest" },
+    "claimIdHash": { "$ref": "#/$defs/digest" },
+    "uploadOperationIdHash": { "$ref": "#/$defs/digest" },
+    "consumeIdHash": { "$ref": "#/$defs/digest" },
+    "consumeLeaseExpiresAt": { "type": "integer", "minimum": 1 },
+    "claimedAt": { "type": "integer", "minimum": 0 },
+    "completedAt": { "type": "integer", "minimum": 0 },
+    "revision": { "type": "integer", "minimum": 0 }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "description": "Canonical unpadded base64url encoding of exactly 32 bytes.",
+      "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    }
+  }
+}

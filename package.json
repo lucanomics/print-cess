@@ -1,0 +1,30 @@
+{
+  "name": "paradiso-print-cess",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Secure self-service document printing",
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=24.14.0 <25"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "pnpm --filter @print-cess/web test:integration",
+    "test:e2e": "pnpm --filter @print-cess/web test:e2e",
+    "fixtures": "pnpm --filter @print-cess/test-fixtures generate"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.10",
+    "prettier": "3.9.5",
+    "turbo": "2.10.5",
+    "typescript": "5.9.3"
+  }
+}

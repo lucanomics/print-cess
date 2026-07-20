@@ -1,0 +1,53 @@
+name: Production readiness gate
+description: Track one formally owned deployment blocker
+title: "prod-gate: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Opening this issue does not authorize Production. Link only sanitized evidence created with
+        synthetic data.
+  - type: input
+    id: blocker
+    attributes:
+      label: Blocker ID and title
+      placeholder: PRODUCTION_BLOCKERS.md section / concise title
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: Accountable owner
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Objective, repeatable criteria and required reviewer/approver
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Commands, test run, approval record, hardware/provider versions, and date
+    validations:
+      required: true
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Failure and rollback plan
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: Evidence contains no real document, personal data, secret, token, signed URL, or QR fragment.
+          required: true
+        - label: Hosted Windows CI is not being used as physical-printer evidence.
+          required: true
+        - label: Closing this issue still requires the formal approvals listed in PRODUCTION_BLOCKERS.md.
+          required: true

@@ -1,0 +1,231 @@
+body {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+.status-page {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: 72px;
+  width: min(100% - 40px, 760px);
+  margin: auto;
+  padding: 48px 0;
+}
+.status-page section {
+  padding-top: 32px;
+  border-top: 2px solid var(--pc-line);
+}
+.status-page section > svg {
+  width: 54px;
+  height: 54px;
+  color: var(--pc-teal);
+}
+.status-page h1 {
+  margin: 22px 0 12px;
+  color: var(--pc-ink);
+  font-size: clamp(36px, 8vw, 64px);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+}
+.status-page p {
+  max-width: 620px;
+  color: var(--pc-text);
+  font-size: 21px;
+  line-height: 1.55;
+}
+.status-page__privacy {
+  color: var(--pc-muted) !important;
+}
+
+.mobile-step {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding-bottom: 24px;
+}
+.mobile-step h1 {
+  margin: 0;
+  color: var(--pc-ink);
+  font-size: clamp(34px, 9vw, 48px);
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+}
+.mobile-step p {
+  margin: 0;
+  color: var(--pc-text);
+  font-size: 19px;
+  line-height: 1.5;
+}
+.mobile-step--single {
+  min-height: 58vh;
+  align-content: center;
+  justify-items: start;
+}
+.mobile-step--single .pc-button {
+  margin-top: 18px;
+}
+.mobile-step--preview {
+  gap: 10px;
+}
+.mobile-step--preview h1 {
+  font-size: 32px;
+}
+.mobile-step--preview > p {
+  font-size: 15px;
+  line-height: 1.25;
+}
+.mobile-step--preview .pc-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: calc(100% + 28px);
+  min-height: 56px;
+  margin-left: -14px;
+  padding-block: 12px;
+}
+.mobile-step--preview .pc-button--secondary {
+  min-height: auto;
+  margin-top: -10px;
+  border-color: transparent;
+  padding-block: 8px;
+}
+
+.language-grid,
+.choice-list {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 12px;
+}
+.language-grid {
+  grid-template-columns: 1fr 1fr;
+}
+.choice-row {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 2px solid var(--pc-line);
+  border-radius: 14px;
+  background: white;
+  color: var(--pc-ink);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.choice-row:hover {
+  border-color: #8bb8c0;
+  background: var(--pc-subtle);
+}
+.choice-row.is-selected {
+  border-color: var(--pc-teal);
+  background: var(--pc-teal-soft);
+  box-shadow: inset 0 0 0 1px var(--pc-teal);
+}
+.choice-row input {
+  width: 21px;
+  height: 21px;
+  accent-color: var(--pc-teal);
+}
+.choice-row svg {
+  flex: none;
+  width: 25px;
+  height: 25px;
+  color: var(--pc-teal-dark);
+}
+
+.mobile-preview {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-height: 51vh;
+  overflow: hidden;
+  border: 1px solid #cdd8df;
+  border-radius: 10px;
+  background: #edf2f4;
+  box-shadow: var(--pc-shadow);
+}
+.mobile-preview img,
+.mobile-preview canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 51vh;
+  object-fit: contain;
+  background: white;
+}
+.mobile-preview__fallback {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  color: var(--pc-muted);
+}
+.mobile-summary {
+  border-block: 1px solid var(--pc-line);
+}
+.mobile-summary p {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 0;
+  font-size: 15px;
+}
+.mobile-summary p + p {
+  border-top: 1px solid var(--pc-line);
+}
+.mobile-summary svg {
+  flex: none;
+  width: 25px;
+  height: 25px;
+  color: var(--pc-teal-dark);
+}
+
+.mobile-reminder {
+  margin: -20px 0 20px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--pc-teal);
+  background: var(--pc-teal-soft);
+  color: var(--pc-ink);
+  font-size: 17px;
+  line-height: 1.45;
+}
+.mobile-spinner {
+  width: 58px;
+  height: 58px;
+  border: 6px solid var(--pc-line);
+  border-top-color: var(--pc-teal);
+  border-radius: 50%;
+  animation: mobile-spin 850ms linear infinite;
+}
+@keyframes mobile-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (max-width: 390px) {
+  .language-grid {
+    grid-template-columns: 1fr;
+  }
+  .pc-screen-shell {
+    padding-inline: 18px;
+  }
+}
