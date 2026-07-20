@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload web test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload Windows test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/test-results/**
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload kiosk publish smoke artifact
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kiosk-win-x64-smoke-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/kiosk-win-x64/**
