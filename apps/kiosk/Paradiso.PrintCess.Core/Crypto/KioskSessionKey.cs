@@ -51,23 +51,38 @@ public sealed class KioskSessionKey : IDisposable
             throw new CryptographicException("Invalid uncompressed P-256 public key.");
         }
 
-        using var peer = ECDiffieHellman.Create(new ECParameters
+        ECDiffieHellman peer;
+        try
         {
-            Curve = ECCurve.NamedCurves.nistP256,
-            Q = new ECPoint
+            peer = ECDiffieHellman.Create(new ECParameters
             {
-                X = peerPublicKey.Slice(1, 32).ToArray(),
-                Y = peerPublicKey.Slice(33, 32).ToArray(),
-            },
-        });
-        var secret = _key.DeriveRawSecretAgreement(peer.PublicKey);
-        if (secret.Length != 32)
+                Curve = ECCurve.NamedCurves.nistP256,
+                Q = new ECPoint
+                {
+                    X = peerPublicKey.Slice(1, 32).ToArray(),
+                    Y = peerPublicKey.Slice(33, 32).ToArray(),
+                },
+            });
+        }
+        catch (PlatformNotSupportedException exception) when (exception.InnerException is CryptographicException)
         {
-            CryptographicOperations.ZeroMemory(secret);
-            throw new CryptographicException("P-256 produced an unexpected shared-secret length.");
+            // Windows CNG reports an off-curve peer point as PlatformNotSupportedException,
+            // while OpenSSL reports CryptographicException. Normalize the invalid input so
+            // callers classify the tampered envelope consistently on both platforms.
+            throw new CryptographicException("Invalid uncompressed P-256 public key.", exception);
         }
 
-        return secret;
+        using (peer)
+        {
+            var secret = _key.DeriveRawSecretAgreement(peer.PublicKey);
+            if (secret.Length != 32)
+            {
+                CryptographicOperations.ZeroMemory(secret);
+                throw new CryptographicException("P-256 produced an unexpected shared-secret length.");
+            }
+
+            return secret;
+        }
     }
 
     public void Dispose()
