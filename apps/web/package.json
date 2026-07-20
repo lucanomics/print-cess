@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "test:integration": "vitest run test/integration",
+    "test:provider": "node scripts/provider-preflight.mjs && vitest run --config vitest.provider.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -14,8 +14,11 @@ Use Conventional Commits:
 - `docs(scope): ...` for documentation;
 - `chore(scope): ...` for tooling/dependencies.
 
-Open the initial change as a Draft PR. Mark it ready only when test evidence and blocker status are
-accurate. This task does not authorize merging `main`.
+Initial implementation PR #1 was marked ready and squash-merged on 2026-07-20 only after its
+applicable required checks passed and the user explicitly authorized autonomous PR merge. That
+merge established the development baseline; it did not authorize Production deployment, a stable
+Release, or institutional use. Continue to open Production-readiness changes as Draft PRs and merge
+only when the change's required checks and review evidence are accurate.
 
 ## Required review
 
@@ -74,8 +77,11 @@ if ownership moves from a personal account to an organization.
 ### `release-kiosk.yml`
 
 This is manual-only and tag-based. The operator supplies an existing `vX.Y.Z` stable tag or
-`vX.Y.Z-rc.N` prerelease tag. It restores, builds, tests, publishes self-contained `win-x64`,
-creates a ZIP and SHA-256 checksum, and uploads a workflow artifact.
+`vX.Y.Z-rc.N` prerelease tag. It restores, builds, tests, publishes self-contained `win-x64`, and
+uploads a one-day unsigned handoff. A separate protected `windows-signing` job signs
+`Print-cess Kiosk.exe`, runs `signtool verify /pa /all /v`, checks the approved publisher subject,
+removes PDBs, and creates the signed ZIP and SHA-256 checksum. No unsigned artifact can reach the
+GitHub Release job. See `AUTHENTICODE.md`.
 
 The separate GitHub Release job runs only when the operator explicitly sets `publish_release`, an
 administrator has set repository variable `ENABLE_GITHUB_RELEASES=true`, and the job passes the
@@ -86,20 +92,17 @@ authorized use; it was not run and no GitHub Release is published by this task.
 
 ## Branch protection / ruleset
 
-An administrator must configure a ruleset for `main`:
+On 2026-07-20 the `main` branch protection API was configured to require pull requests, strict
+up-to-date branches, conversation resolution, linear history, and checks `Web`, `Windows kiosk`,
+`Dependency audit`, and `Secret scan helper`. It dismisses stale reviews, enforces the policy for
+administrators, and blocks force-push and deletion. Repository merge settings allow squash only,
+delete merged branches, allow update-branch, and enable auto-merge capability.
 
-1. Require a pull request, at least one approval, CODEOWNERS review, and resolution of
-   conversations.
-2. Dismiss stale approvals when security-critical files change.
-3. Require up-to-date branches and checks **CI / Web** and **CI / Windows kiosk**. Add CodeQL and
-   dependency/secret checks after their first successful run and licensing is confirmed.
-4. Block force pushes, branch deletion, and ordinary administrator bypass.
-5. Require linear history and signed commits if institutional signing infrastructure exists.
-6. Restrict creation of `v*` tags to release maintainers.
-
-Workflow files cannot enforce repository settings by themselves. Ruleset/secret-scanning status is
-a Production blocker until an administrator captures evidence. A read-only GitHub API check on
-2026-07-20 reported `main` unprotected and zero configured environments.
+The repository is currently a single-maintainer private personal repository, so required approvals
+and CODEOWNER reviews are set to zero rather than creating an impossible self-approval gate. This
+is not adequate institutional separation of duties. Before Production, move or staff the repository
+so at least one independent approval and CODEOWNER review can be required, restrict `v*` tag
+creation, decide signed-commit policy, and capture the resulting ruleset evidence.
 
 ## Protected environments
 
@@ -107,6 +110,8 @@ Create before enabling any corresponding repository circuit breaker:
 
 - `github-release`: required reviewer, tag restriction, no general secrets; only then set
   `ENABLE_GITHUB_RELEASES=true`;
+- `windows-signing`: required reviewer, approved tag restriction, PFX or managed-signing custody,
+  publisher/timestamp variables;
 - `vercel-preview`: Preview-only credentials/resources, synthetic data only;
 - `vercel-production`: multiple required reviewers, Production credentials, deployment branch
   `main` only.
@@ -118,8 +123,13 @@ Never expose credentials to untrusted fork pull requests. Workflows use least-pr
 
 No real secret belongs in Git, fixtures, workflow YAML, artifacts, PR text, or screenshots. Store
 GitHub Release signing credentials and Vercel/Upstash values in their protected environment or
-provider secret store. Rotate any value that reaches logs or history. Enable native secret
-scanning and push protection when licensing allows.
+provider secret store. Rotate any value that reaches logs or history.
+
+GitHub returned HTTP 422 for native secret scanning/push protection and HTTP 403 for CodeQL default
+setup on this private personal repository. The current account/repository does not have the required
+GitHub security feature entitlement. Keep Gitleaks and dependency checks required, keep
+`ENABLE_CODEQL` unset, and upgrade or move the repository before treating native secret or code
+scanning as present.
 
 Required Production secret inventory and owners must include Blob/OIDC, Redis, QStash current/next
 keys, kiosk registration, administrator authentication, code-signing certificate access, and

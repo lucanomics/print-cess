@@ -94,25 +94,13 @@ jobs:
           -p:PublishSingleFile=true
           -o artifacts/kiosk-win-x64
 
-      - name: Create archive and checksum
-        shell: pwsh
-        run: |
-          $version = $env:RELEASE_TAG.TrimStart("v")
-          $archive = "artifacts/Print-cess-Kiosk-$version-win-x64.zip"
-          Compress-Archive -Path "artifacts/kiosk-win-x64/*" -DestinationPath $archive
-          $hash = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
-          $line = "$hash *$(Split-Path -Leaf $archive)"
-          Set-Content -Path "$archive.sha256" -Value $line -Encoding ascii
-
-      - name: Upload release candidate
+      - name: Upload unsigned handoff
         uses: actions/upload-artifact@v4
         with:
-          name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64
-          path: |
-            artifacts/Print-cess-Kiosk-*.zip
-            artifacts/Print-cess-Kiosk-*.zip.sha256
+          name: Print-cess-Kiosk-${{ inputs.tag }}-unsigned-handoff
+          path: artifacts/kiosk-win-x64/**
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
 
       - name: Upload tagged test evidence
         if: always()
@@ -123,10 +111,117 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  sign:
+    name: Authenticode sign and verify
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 15
+    environment: windows-signing
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERT_BASE64 }}
+      SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+      EXPECTED_PUBLISHER_SUBJECT: ${{ vars.AUTHENTICODE_EXPECTED_SUBJECT }}
+      TIMESTAMP_URL: ${{ vars.AUTHENTICODE_TIMESTAMP_URL }}
+    steps:
+      - name: Download unsigned handoff
+        uses: actions/download-artifact@v5
+        with:
+          name: Print-cess-Kiosk-${{ inputs.tag }}-unsigned-handoff
+          path: artifacts/kiosk-win-x64
+
+      - name: Validate protected signing configuration
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_BASE64)) {
+            throw "The protected Windows signing certificate is not configured."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_PASSWORD)) {
+            throw "The protected Windows signing certificate password is not configured."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_SUBJECT)) {
+            throw "AUTHENTICODE_EXPECTED_SUBJECT is not configured in windows-signing."
+          }
+          $timestamp = $null
+          if (-not [Uri]::TryCreate($env:TIMESTAMP_URL, [UriKind]::Absolute, [ref]$timestamp)) {
+            throw "AUTHENTICODE_TIMESTAMP_URL must be an absolute approved timestamp URL."
+          }
+          if ($timestamp.Scheme -notin @("http", "https")) {
+            throw "AUTHENTICODE_TIMESTAMP_URL must use HTTP or HTTPS."
+          }
+
+      - name: Sign executable and verify Authenticode policy
+        shell: pwsh
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP "print-cess-authenticode.pfx"
+          try {
+            [IO.File]::WriteAllBytes(
+              $certificatePath,
+              [Convert]::FromBase64String($env:SIGNING_CERTIFICATE_BASE64)
+            )
+            $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+            if (-not $signTool) {
+              throw "A Windows SDK x64 signtool.exe installation was not found."
+            }
+            $executables = @(Get-ChildItem artifacts/kiosk-win-x64 -Recurse -File |
+              Where-Object { $_.Name -eq "Print-cess Kiosk.exe" })
+            if ($executables.Count -ne 1) {
+              throw "Expected exactly one Print-cess Kiosk.exe signing target."
+            }
+            $executable = $executables[0]
+            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $env:TIMESTAMP_URL /f $certificatePath /p $env:SIGNING_CERTIFICATE_PASSWORD $executable.FullName
+            if ($LASTEXITCODE -ne 0) { throw "SignTool signing failed." }
+
+            New-Item -ItemType Directory -Force artifacts/signing-evidence | Out-Null
+            & $signTool.FullName verify /pa /all /v $executable.FullName 2>&1 |
+              Tee-Object -FilePath artifacts/signing-evidence/authenticode-verification.txt
+            if ($LASTEXITCODE -ne 0) { throw "SignTool Authenticode verification failed." }
+
+            $signature = Get-AuthenticodeSignature $executable.FullName
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+              throw "PowerShell did not report a valid Authenticode signature."
+            }
+            if (-not $signature.SignerCertificate.Subject.Contains(
+              $env:EXPECTED_PUBLISHER_SUBJECT,
+              [StringComparison]::OrdinalIgnoreCase
+            )) {
+              throw "The signer certificate subject does not match the approved publisher."
+            }
+          } finally {
+            Remove-Item $certificatePath -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove symbols and create signed archive
+        shell: pwsh
+        run: |
+          Get-ChildItem artifacts/kiosk-win-x64 -Recurse -File -Filter *.pdb |
+            Remove-Item -Force
+          $version = $env:RELEASE_TAG.TrimStart("v")
+          $archive = "artifacts/Print-cess-Kiosk-$version-win-x64-signed.zip"
+          Compress-Archive -Path "artifacts/kiosk-win-x64/*" -DestinationPath $archive
+          $hash = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          $line = "$hash *$(Split-Path -Leaf $archive)"
+          Set-Content -Path "$archive.sha256" -Value $line -Encoding ascii
+
+      - name: Upload signed release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64-signed
+          path: |
+            artifacts/Print-cess-Kiosk-*-win-x64-signed.zip
+            artifacts/Print-cess-Kiosk-*-win-x64-signed.zip.sha256
+            artifacts/signing-evidence/authenticode-verification.txt
+          if-no-files-found: error
+          retention-days: 14
+
   github-release:
     name: Publish GitHub Release
-    if: ${{ needs.build.result == 'success' && inputs.publish_release && vars.ENABLE_GITHUB_RELEASES == 'true' }}
-    needs: build
+    if: ${{ needs.sign.result == 'success' && inputs.publish_release && vars.ENABLE_GITHUB_RELEASES == 'true' }}
+    needs: sign
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: github-release
@@ -139,7 +234,7 @@ jobs:
       - name: Download candidate
         uses: actions/download-artifact@v5
         with:
-          name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64
+          name: Print-cess-Kiosk-${{ inputs.tag }}-win-x64-signed
           path: release-assets
 
       - name: Publish prerelease

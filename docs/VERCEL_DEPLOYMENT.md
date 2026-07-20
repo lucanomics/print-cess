@@ -2,21 +2,27 @@
 
 ## Current status
 
-No Vercel CLI, Vercel identity, Blob token/OIDC context, Upstash credentials, or QStash credentials
-were available for the initial implementation. No Preview or Production deployment was performed.
-The local adapter is the tested development baseline. Credential-backed integration remains a
-Production blocker.
+The Vercel CLI authenticated as `lucanomics` under `club-paradiso`, created and linked project
+`paradiso-print-cess`, connected the private GitHub repository, and set the Project Root Directory
+to `apps/web`. The first automatic build used the repository root, failed framework detection, and
+never produced a live application. The root-directory setting was corrected; no successful Preview
+or Production deployment was made.
+
+Automatic Git deployments are disabled in `apps/web/vercel.json`, and the live project currently
+uses an ignore-build command while approved Preview resources are absent. Do not remove both circuit
+breakers until provider approval, isolated Blob/Redis/QStash resources, environment variables, and
+the manual provider suite are ready. No approved Blob store, Redis, QStash, or Authenticode
+credential was found. The local adapter remains the tested development baseline.
 
 Only the Next.js application is deployable to Vercel. The Windows kiosk is never deployed there.
-The root `vercel.json` builds `@print-cess/web` and emits `apps/web/.next`; all other workspace
-packages are build-time dependencies, not separately hosted applications.
+`apps/web/vercel.json` owns the Next.js commands; Vercel resolves the repository-root pnpm lockfile
+and workspace packages while building from `apps/web`.
 
 ## Project setup
 
-Create or link one Vercel project named `paradiso-print-cess` to the private GitHub repository.
-With the checked-in root configuration, keep the Vercel Project Root Directory at the repository
-root. The build command filters to `@print-cess/web`. Disable automatic Production deployment until
-all items in `PRODUCTION_BLOCKERS.md` are closed.
+Keep the linked project Root Directory at `apps/web`, framework `nextjs`, install command
+`pnpm install --frozen-lockfile`, build command `pnpm build`, and output directory `.next`. Disable
+automatic Production deployment until all items in `PRODUCTION_BLOCKERS.md` are closed.
 
 Using the registry-checked Vercel CLI 56.3.2:
 
@@ -28,12 +34,13 @@ pnpm dlx vercel@56.3.2 env pull apps/web/.env.local --environment=preview
 pnpm dlx vercel@56.3.2
 ```
 
-The last command creates a Preview deployment. Do not add `--prod` during this project. Do not use
-real documents in Preview. Record the Preview URL in the Draft PR only after checking that it does
-not contain tokens or signed URLs.
+The last command creates a manual Preview only after the provider gate is ready. Do not add `--prod`.
+Do not use real documents in Preview. Record the Preview URL in the Draft PR only after checking
+that it does not contain tokens or signed URLs. Run the manual `Preview provider acceptance`
+workflow from protected `main`; it fails closed unless the selected suite's isolated Preview
+credentials and exact `PROVIDER_BASE_URL` exist.
 
-The expected public hostname is `print-cess.vercel.app`, but a hostname is not authoritative until
-the Vercel project is linked and verified.
+The expected public hostname `print-cess.vercel.app` is not approved or verified for Production.
 
 ## Environment variables
 

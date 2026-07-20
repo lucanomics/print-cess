@@ -16,17 +16,17 @@ documents are prohibited.
 
 ## Environment discovered
 
-| Item                       | Observed or selected value                                        | Consequence                                                                                                            |
-| -------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Repository                 | Private `lucanomics/paradiso-print-cess`                          | No implementation is pushed directly to `main`.                                                                        |
-| Working branch             | `feature/initial-implementation`                                  | A Draft PR is the integration path.                                                                                    |
-| Local host                 | macOS 15.6.1, arm64                                               | WPF, Windows printer APIs, Shell Launcher, and a physical printer cannot be validated locally.                         |
-| Local Node.js              | 24.14.0                                                           | The repository and CI select Node.js 24.18.0; local results obtained on 24.14.0 are not equivalent to that CI lane.    |
-| Local pnpm                 | 11.9.0                                                            | The repository pins pnpm 11.15.1 through `packageManager`.                                                             |
-| Local .NET SDK             | Workspace-local 8.0.423 (runtime 8.0.29), under ignored `work/`   | Portable tests and Windows cross-target compilation/publish run on macOS; Windows runtime and printer behavior do not. |
-| Vercel CLI/authentication  | CLI and credentials not found                                     | No Vercel Preview or Production deployment is performed by this implementation task.                                   |
-| Vercel/Upstash credentials | Not present in the repository and not verified in the environment | Local adapters remain the executable baseline; credential-backed integration is a production gate.                     |
-| Physical printer           | Not attached to this macOS environment                            | A GitHub Windows runner proves compilation and mock behavior, not driver, spooler, paper, or physical output behavior. |
+| Item                       | Observed or selected value                                             | Consequence                                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Repository                 | Private `lucanomics/paradiso-print-cess`                               | No implementation is pushed directly to `main`.                                                                        |
+| Working branch             | `agent/production-readiness`                                           | PR #1 established the merged baseline; readiness work still enters protected `main` through a PR.                      |
+| Local host                 | macOS 15.6.1, arm64                                                    | WPF, Windows printer APIs, Shell Launcher, and a physical printer cannot be validated locally.                         |
+| Local Node.js              | 24.14.0                                                                | The repository and CI select Node.js 24.18.0; local results obtained on 24.14.0 are not equivalent to that CI lane.    |
+| Local pnpm                 | 11.9.0                                                                 | The repository pins pnpm 11.15.1 through `packageManager`.                                                             |
+| Local .NET SDK             | Workspace-local 8.0.423 (runtime 8.0.29), under ignored `work/`        | Portable tests and Windows cross-target compilation/publish run on macOS; Windows runtime and printer behavior do not. |
+| Vercel CLI/authentication  | Authenticated `lucanomics`; linked `club-paradiso/paradiso-print-cess` | Project root is `apps/web`; automatic Git builds remain disabled and no successful deployment exists.                  |
+| Vercel/Upstash credentials | Vercel OIDC context only; no approved Blob store/Redis/QStash set      | Local adapters remain the executable baseline; the manual Preview provider gate cannot run yet.                        |
+| Physical printer           | Not attached to this macOS environment                                 | A GitHub Windows runner proves compilation and mock behavior, not driver, spooler, paper, or physical output behavior. |
 
 ## Architectural decisions
 
@@ -75,8 +75,9 @@ The detailed component and failure model is in `docs/ARCHITECTURE.md`. The norma
    engine, session reset, and crash recovery.
 7. Generate only synthetic fixtures and cover units, API integration, browser E2E, cryptographic
    interoperability, Windows build/test/publish, and manual printer acceptance.
-8. Run an adversarial review, resolve fixable findings, then use a Draft PR. Do not merge `main`,
-   publish a GitHub Release, or deploy Production as part of this task.
+8. Run an adversarial review, resolve fixable findings, then use a Draft PR and required checks.
+   The user authorized safe PR merges for online delivery; merging does not authorize a GitHub
+   Release or Vercel Production deployment.
 
 ## Verification strategy
 
@@ -139,13 +140,14 @@ macOS host cannot establish WPF runtime correctness.
 - PDF/image parsing and rendering libraries require final license, maintenance, exploit-resistance,
   and representative-driver review.
 - Browser speech voices and all non-English copy require device testing and native-speaker review.
-- Code signing, installer format, and update trust chain require institutional configuration. A
-  read-only GitHub API check on 2026-07-20 reported `main` unprotected and zero environments, so
-  branch protection, protected environments, and native scanning still require administrator
-  configuration.
-- The GitHub API reported code scanning disabled for the private repository on 2026-07-20. CodeQL
-  jobs remain checked in but gated by `ENABLE_CODEQL=true` until an administrator enables and
-  validates the feature.
+- Code signing, installer format, and update trust chain require institutional configuration. The
+  release workflow now requires protected Authenticode signing and verification, but no approved
+  certificate or `windows-signing` environment exists.
+- `main` now requires strict PRs, current Web/Windows/dependency/Gitleaks checks, conversation
+  resolution, linear history, and admin enforcement. Independent review, protected environments,
+  and tag restrictions remain open. GitHub native secret scanning returned 422 and CodeQL setup
+  returned 403 for this private personal repository; keep `ENABLE_CODEQL` unset until the repository
+  has the required security entitlement and a successful validation run.
 - Provider deletion semantics, backups, and infrastructure access-log retention require contractual
   review; application deletion cannot prove immediate physical erasure in provider backups.
 

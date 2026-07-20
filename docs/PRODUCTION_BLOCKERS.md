@@ -1,7 +1,8 @@
 # Production blockers
 
-Status: **Production is prohibited.** No Vercel Production deployment, stable GitHub Release, or
-site installation is authorized by the initial implementation.
+Status: **Production is prohibited.** The Vercel project is linked but automatic deployments are
+disabled. No successful Preview/Production deployment, stable GitHub Release, signed kiosk
+artifact, physical site installation, or institutional approval exists.
 
 Every item below needs an accountable owner, dated evidence, and formal acceptance. A checked-in
 configuration file or green mock test does not close an institutional gate.
@@ -23,8 +24,9 @@ configuration file or green mock test does not close an institutional gate.
 
 ## Provider and application security
 
-- [ ] **Production resources and credentials.** No approved Blob, Redis, QStash, Vercel,
-      registration, administrator, release, or signing credentials were available. Provision separate
+- [ ] **Production resources and credentials.** Vercel project access exists, but no approved Blob,
+      Redis, QStash, registration, administrator, release, or signing credentials were available.
+      Provision separate
       Preview/Production resources and rotation owners. Evidence the fail-closed startup contract:
       exact HTTPS origins, 32-character-or-longer registration/diagnostics secrets, HTTPS Redis,
       and 20-character-or-longer Blob/Redis/QStash values. The current build requires
@@ -32,6 +34,8 @@ configuration file or green mock test does not close an institutional gate.
 - [ ] **Credential-backed signed URL tests.** Against `@vercel/blob` 2.6.1, prove exact-path,
       one-operation PUT/GET/DELETE, short expiry/clock skew, content type, 10,485,911-byte maximum,
       no-overwrite, ETag comparison, conditional delete, replay, and redaction.
+      The manual `Preview provider acceptance` workflow and provider-only Vitest suite are ready but
+      have not run because approved credentials/resources are absent.
 - [ ] **Redis atomicity under contention.** Prove Lua/CAS first-claim, upload-once, consume-once,
       terminal immutability, cleanup/consume race, and TTL behavior against approved Upstash Redis.
 - [ ] **QStash delivery and recovery.** Prove current/next signature verification, delayed schedule,
@@ -42,10 +46,12 @@ configuration file or green mock test does not close an institutional gate.
       Capture the exact Production Private Blob download hostname(s) for the kiosk allow-list;
       wildcards, Preview hosts, signed-URL user information, and server-supplied GET headers are not
       permitted.
-- [ ] **Repository controls.** Configure and evidence branch rules, required checks/CODEOWNERS,
-      protected release/deployment environments, native secret scanning and push protection,
-      CodeQL/code scanning, tag restriction, and administrator bypass policy. The GitHub API
-      reported code scanning disabled on 2026-07-20; enable it before setting
+- [ ] **Repository controls.** `main` now requires strict PRs, conversation resolution, linear
+      history, admin enforcement, and Web/Windows/dependency/Gitleaks checks, and blocks force-push
+      and deletion. Remaining: independent/CODEOWNER approval, protected signing/deployment
+      environments with reviewers, tag restriction, signed-commit decision, native secret scanning
+      and push protection, and CodeQL. GitHub returned 422/403 because native secret/code scanning is
+      unavailable for this private personal repository; upgrade/move it before setting
       `ENABLE_CODEQL=true`.
 - [ ] **CI evidence privacy.** Verify that Playwright screenshots/traces and raw `test-results` stay
       disabled/excluded, only synthetic fixtures are used, Web evidence expires after three days,
@@ -72,8 +78,10 @@ configuration file or green mock test does not close an institutional gate.
 - [ ] **.NET lifecycle migration.** The required implementation targets .NET 8, whose Microsoft end
       of support is **2026-11-10**. Select, implement, and retest a supported target before that date.
       Self-contained publish does not make unsupported runtime bits safe.
-- [ ] **Signed installer/update chain.** Obtain an approved Authenticode certificate, protect its
-      key, choose installer/update distribution, timestamp and malware-scan builds, and prove rollback.
+- [ ] **Signed installer/update chain.** The workflow now requires a protected Authenticode
+      sign/verify job before creating a Release candidate. Obtain an approved certificate, configure
+      reviewed `windows-signing`, choose installer/update distribution, timestamp and malware-scan
+      builds, verify on target Windows, and prove rollback.
 - [ ] **Exact printer/driver validation.** Printer model, firmware, connection, driver, queue name,
       A4/simplex/mono/fit/one-copy capabilities, status mapping, and XPS/GDI/render path are unknown and
       untested on physical hardware.
