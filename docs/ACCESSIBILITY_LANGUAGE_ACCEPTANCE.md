@@ -64,4 +64,8 @@ listening check on the target kiosk.
 Acceptance is complete only when the product/accessibility owner and all eight language reviewers
 sign a dated matrix tied to a commit and Preview deployment, every blocking issue is closed and
 retested, and the target-device evidence is attached to the institution's private system of record.
+Export only opaque reviewer/attestation references and hashes into the `accessibilityLanguage` stage
+described in `READINESS_EVIDENCE.md`; the validator requires distinct qualified reviewers for all
+eight locales and the complete device/accessibility matrix. It checks completeness, not reviewer
+identity or authority.
 No native-speaker or physical-device approval was available during the current implementation.

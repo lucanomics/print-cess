@@ -29,3 +29,8 @@ The approver records must include decision, scope, conditions, expiry/review dat
 and named owner. Never commit signatures, personal contact details, provider contracts, secrets, or
 sensitive infrastructure diagrams to this repository. No institutional approval has been granted by
 the implementation work itself.
+
+Before final go/no-go, assemble the sanitized private dossier defined in `READINESS_EVIDENCE.md` and
+run `pnpm validate:readiness-evidence --input <private-readiness-dossier.json>`. A passing result is
+required completeness evidence, but is not approval. Preserve the dossier hash, validator commit,
+and private approval-system attestations with the final decision.

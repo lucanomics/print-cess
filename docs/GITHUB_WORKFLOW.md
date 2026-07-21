@@ -42,9 +42,10 @@ PRs must:
 On pull requests and pushes to `main`:
 
 - **Web** on Ubuntu with Node.js 24.18.0 and pnpm 11.15.1: frozen install, format check, lint,
-  typecheck, unit tests, integration tests, production build, Playwright Chromium E2E, and safe
-  report/coverage artifact upload. Automated Playwright screenshots and traces are disabled because
-  QR images and network bodies can contain short-lived credentials.
+  typecheck, unit tests, workflow and external-readiness evidence policy tests, integration tests,
+  production build, Playwright Chromium E2E, and safe report/coverage artifact upload. Automated
+  Playwright screenshots and traces are disabled because QR images and network bodies can contain
+  short-lived credentials.
 - **Windows kiosk** on `windows-latest` with .NET 8: restore, Release build, xUnit/TRX tests, a
   self-contained `win-x64` publish smoke test, signing/acceptance evidence-contract tests, a
   synthetic-only TRX artifact, and the smoke binary.
@@ -172,3 +173,7 @@ protocol version and cannot silently reuse active sessions. Tag examples:
 Publishing a stable tag is not deployment approval. Before any Release, require Windows CI, exact
 printer/driver acceptance, Authenticode signing, checksum verification, security/privacy approval,
 and rollback evidence. Before any Production web deployment, close `PRODUCTION_BLOCKERS.md`.
+
+The final external records must also pass the release-bound dossier policy in
+`READINESS_EVIDENCE.md`. CI tests only the policy implementation with synthetic data; it never treats
+those fixtures as operational approval.

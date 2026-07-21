@@ -179,6 +179,8 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:workflow
+pnpm test:acceptance-evidence
 pnpm test:integration
 pnpm build
 pnpm --filter @print-cess/web exec playwright install --with-deps chromium webkit
@@ -202,3 +204,13 @@ must still be distinguished from Windows runtime and physical-printer evidence.
 - No real data, forbidden brand string, token, signed URL, filename, or sensitive log field appears
   in repository or artifacts.
 - Security/privacy reviewers accept remaining risks and rollback/incident procedures are exercised.
+
+## External readiness evidence policy
+
+Run `pnpm test:acceptance-evidence` in CI to exercise the dossier contract with synthetic positive
+and adversarial cases. Before go/no-go, run
+`pnpm validate:readiness-evidence --input <private-readiness-dossier.json>` on the institution's
+sanitized export. The validator must reject missing native GitHub controls, release/deployment drift,
+incomplete physical/accessibility/language matrices, observer conflicts, unsafe evidence fields,
+missed recovery objectives, and approval timestamps that predate their evidence. A passing policy
+test is not a passing real dossier.

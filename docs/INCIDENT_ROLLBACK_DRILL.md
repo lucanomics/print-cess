@@ -53,3 +53,8 @@ Windows/printer acceptance output, spool observations, timeline, decisions, and 
 Repeat before launch, after protocol/crypto/provider/Windows/printer changes, and at the institution's
 approved cadence. A Production rollback remains prohibited until institutional authorization and a
 controlled change window exist.
+
+After the exercise, export only opaque role-owner IDs, timestamps, outcome flags, RTO/RPO values,
+and hashes of sanitized records into the `incidentRollback` stage described in
+`READINESS_EVIDENCE.md`. The validator requires role separation for the independent observer, all
+seven steps, and final approval after the drill. It does not prove that the exercise occurred.

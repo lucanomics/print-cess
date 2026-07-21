@@ -61,3 +61,8 @@ Acceptance requires application/security engineering, Windows endpoint administr
 operations, site operations, and privacy/security witnesses to sign the dated matrix. Any change to
 the executable, Windows image, printer/driver/firmware, print path, provider endpoints, or kiosk
 policy invalidates the affected rows.
+
+Hash the approved sanitized collector output, device configuration, printer configuration, physical
+matrix, retention decision, and witness attestations. Reference those private records from the
+`windowsPrinter` stage in `READINESS_EVIDENCE.md`; its validator also requires the collector's release
+tag, commit, manifest digest, executable digest, and signer thumbprint to match the final dossier.
