@@ -7,6 +7,10 @@ artifact, physical site installation, or institutional approval exists.
 Every item below needs an accountable owner, dated evidence, and formal acceptance. A checked-in
 configuration file or green mock test does not close an institutional gate.
 
+The final sanitized private export must pass the completeness policy in `READINESS_EVIDENCE.md`.
+Current automated tests prove the validator, not the absent provider, hardware, reviewer, native
+GitHub-control, or institutional records; therefore they do not close any checkbox below.
+
 ## Governance and privacy
 
 - [ ] **Institutional information-security approval.** Approve architecture, threat model,

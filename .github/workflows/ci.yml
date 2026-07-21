@@ -59,6 +59,9 @@ jobs:
       - name: Workflow policy tests
         run: pnpm test:workflow
 
+      - name: External readiness evidence policy tests
+        run: pnpm test:acceptance-evidence
+
       - name: Integration tests
         run: pnpm test:integration
 

@@ -96,4 +96,5 @@ dotnet publish apps/kiosk/Paradiso.PrintCess.Kiosk/Paradiso.PrintCess.Kiosk.cspr
 
 Full procedures and evidence boundaries are in `docs/GITHUB_WORKFLOW.md`,
 `docs/VERCEL_DEPLOYMENT.md`, `docs/AUTHENTICODE.md`, and
-`docs/WINDOWS_PRINTER_ACCEPTANCE.md`.
+`docs/WINDOWS_PRINTER_ACCEPTANCE.md`. The final private release dossier contract is in
+`docs/READINESS_EVIDENCE.md`.
