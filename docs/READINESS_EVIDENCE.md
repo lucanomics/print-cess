@@ -74,8 +74,8 @@ owners.
 8. Run the validator on a trusted workstation. Preserve the validator version/commit and dossier
    digest with the final decision.
 
-Every `evidenceRefs` entry contains only an opaque uppercase record ID, a lowercase 64-hex SHA-256,
-and `sanitized: true`. A hash does not make unsafe evidence safe: review/redact first, then hash the
-approved sanitized representation. Any material provider, protocol, crypto, executable, Windows,
-printer/driver/firmware, kiosk policy, visible copy, or audio change invalidates the affected stages
-and the final approval.
+Every `evidenceRefs` entry contains only an opaque, non-whitespace record ID using letters, digits,
+`.`, `_`, `:`, or `-`; a lowercase 64-hex SHA-256; and `sanitized: true`. A hash does not make unsafe
+evidence safe: review/redact first, then hash the approved sanitized representation. Any material
+provider, protocol, crypto, executable, Windows, printer/driver/firmware, kiosk policy, visible copy,
+or audio change invalidates the affected stages and the final approval.

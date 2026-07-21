@@ -361,6 +361,28 @@ test("accepts native CodeQL advanced configuration", () => {
   assert.equal(validateReadinessDossier(dossier).releaseCommit, COMMIT);
 });
 
+test("accepts additional passing checks, scanned languages, and supported devices", () => {
+  const dossier = completeDossier();
+  dossier.stages.providerPreview.checks.push({ id: "provider-quota-alert", passed: true });
+  dossier.stages.windowsPrinter.tests.push({ id: "vendor-firmware-retention", passed: true });
+  dossier.stages.repositorySecurity.requiredChecks.push({
+    name: "License policy",
+    required: true,
+    passed: true,
+  });
+  dossier.stages.repositorySecurity.codeql.languages.push("actions");
+  dossier.stages.accessibilityLanguage.devices.push({
+    id: "android-chrome-tablet",
+    configurationSha256: sha("f"),
+    passed: true,
+  });
+  dossier.stages.accessibilityLanguage.checks.push({
+    id: "switch-control",
+    passed: true,
+  });
+  assert.equal(validateReadinessDossier(dossier).releaseTag, "v1.2.3-rc.1");
+});
+
 test("rejects release and Preview identities that drift between evidence stages", () => {
   const dossier = completeDossier();
   dossier.release.preview.commit = "f".repeat(40);

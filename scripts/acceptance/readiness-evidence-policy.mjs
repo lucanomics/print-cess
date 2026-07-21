@@ -1,7 +1,7 @@
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const SHA1_PATTERN = /^[0-9a-f]{40}$/;
 const RELEASE_TAG_PATTERN = /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$/;
-const RECORD_ID_PATTERN = /^[A-Z][A-Z0-9-]{5,63}$/;
+const RECORD_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{5,127}$/;
 const UTC_TIMESTAMP_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?Z$/;
 
 export const REQUIRED_PROVIDER_RESOURCES = ["blob", "qstash", "redis"];
@@ -229,7 +229,14 @@ function requiredEvidenceRefs(parent, path, violations) {
   });
 }
 
-function requireCompleteNamedSet(items, requiredNames, nameKey, path, violations) {
+function requireCompleteNamedSet(
+  items,
+  requiredNames,
+  nameKey,
+  path,
+  violations,
+  allowAdditional = false,
+) {
   const names = [];
   items.forEach((item, index) => {
     const itemPath = `${path}[${index}]`;
@@ -247,22 +254,29 @@ function requireCompleteNamedSet(items, requiredNames, nameKey, path, violations
     }
   }
   for (const name of new Set(names)) {
-    if (!requiredNames.includes(name)) {
+    if (!allowAdditional && !requiredNames.includes(name)) {
       violations.push(`${path} contains unsupported ${nameKey} ${JSON.stringify(name)}.`);
     }
   }
   if (new Set(names).size !== names.length) {
     violations.push(`${path} must not contain duplicate ${nameKey} values.`);
   }
-  if (items.length !== requiredNames.length) {
-    violations.push(`${path} must contain exactly ${requiredNames.length} required entries.`);
+  if (
+    (!allowAdditional && items.length !== requiredNames.length) ||
+    (allowAdditional && items.length < requiredNames.length)
+  ) {
+    violations.push(
+      allowAdditional
+        ? `${path} must contain at least ${requiredNames.length} required entries.`
+        : `${path} must contain exactly ${requiredNames.length} required entries.`,
+    );
   }
 }
 
 function requirePassedChecks(parent, key, requiredIds, path, violations) {
   const checks = requiredArray(parent, key, path, violations);
   const checksPath = `${path}.${key}`;
-  requireCompleteNamedSet(checks, requiredIds, "id", checksPath, violations);
+  requireCompleteNamedSet(checks, requiredIds, "id", checksPath, violations, true);
   checks.forEach((check, index) => {
     if (isObject(check))
       requiredExact(check, "passed", true, `${checksPath}[${index}]`, violations);
@@ -401,6 +415,7 @@ function validateRepositorySecurityStage(stage, release, violations) {
     "name",
     `${path}.requiredChecks`,
     violations,
+    true,
   );
   checks.forEach((check, index) => {
     if (!isObject(check)) return;
@@ -423,6 +438,7 @@ function validateRepositorySecurityStage(stage, release, violations) {
     "language",
     `${path}.codeql.languages`,
     violations,
+    true,
   );
 
   const secretScanning = requiredObject(stage, "secretScanning", path, violations);
@@ -479,6 +495,7 @@ function validateAccessibilityStage(stage, release, violations) {
     "id",
     `${path}.devices`,
     violations,
+    true,
   );
   devices.forEach((device, index) => {
     if (!isObject(device)) return;
