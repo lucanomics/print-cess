@@ -6,6 +6,8 @@
   "devCommand": "pnpm dev",
   "outputDirectory": ".next",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "main": false
+    }
   }
 }
