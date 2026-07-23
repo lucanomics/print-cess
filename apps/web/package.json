@@ -16,6 +16,8 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1092.0",
+    "@aws-sdk/s3-request-presigner": "3.1092.0",
     "@print-cess/crypto": "workspace:*",
     "@print-cess/i18n": "workspace:*",
     "@print-cess/protocol": "workspace:*",
@@ -23,6 +25,7 @@
     "@upstash/qstash": "2.11.2",
     "@upstash/redis": "1.38.0",
     "@vercel/blob": "2.6.1",
+    "redis": "4.7.1",
     "i18next": "26.3.6",
     "lucide-react": "1.25.0",
     "next": "16.2.10",
