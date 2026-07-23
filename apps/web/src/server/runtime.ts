@@ -2,12 +2,15 @@ import { generateToken, hashToken } from "@print-cess/crypto";
 import { MAX_ENVELOPE_BYTES, PROTOCOL_VERSION, type PrintSession } from "@print-cess/protocol";
 
 import { LocalEncryptedBlobTransport } from "./blob/local";
+import { S3BlobTransport } from "./blob/s3";
 import { VercelBlobTransport } from "./blob/vercel";
 import { InProcessCleanupScheduler } from "./cleanup/in-process";
+import { PersistentSweepCleanupScheduler } from "./cleanup/persistent-sweep";
 import { QStashCleanupScheduler } from "./cleanup/qstash";
 import { loadConfig, type ServerConfig } from "./config";
 import type { BlobTransport, CleanupScheduler, SessionStore } from "./contracts";
 import { MemorySessionStore } from "./session-store/memory";
+import { RailwayRedisSessionStore } from "./session-store/redis";
 import { UpstashSessionStore } from "./session-store/upstash";
 import { ServiceError } from "./errors";
 
@@ -27,9 +30,16 @@ export function getRuntime(): ServerRuntime {
   const config = loadConfig();
   let runtime: ServerRuntime;
   if (config.mode === "external") {
-    const sessions = new UpstashSessionStore();
-    const blobs = new VercelBlobTransport();
-    const cleanup = new QStashCleanupScheduler(`${config.publicBaseUrl}/api/cleanup`);
+    const sessions: SessionStore =
+      config.sessionProvider === "railway-redis"
+        ? new RailwayRedisSessionStore()
+        : new UpstashSessionStore();
+    const blobs: BlobTransport =
+      config.blobProvider === "railway-s3" ? new S3BlobTransport() : new VercelBlobTransport();
+    const cleanup: CleanupScheduler =
+      config.cleanupProvider === "railway-worker"
+        ? new PersistentSweepCleanupScheduler()
+        : new QStashCleanupScheduler(`${config.publicBaseUrl}/api/cleanup`);
     runtime = { config, sessions, blobs, cleanup };
   } else {
     const sessions = new MemorySessionStore();
