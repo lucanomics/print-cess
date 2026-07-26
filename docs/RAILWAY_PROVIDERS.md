@@ -139,6 +139,13 @@ origins, non-TLS Redis, missing S3 variables, or a weak worker secret.
 
 ## Preview Railway deployment runbook
 
+Operator scripts for steps 1–3 live in `scripts/provisioning/` (see its README):
+`generate-preview-secrets.mjs` mints the three application secrets,
+`provision-railway-preview.mjs` reads the Railway Redis TLS URL, and
+`set-vercel-preview-env.mjs` injects the Preview environment. The last one
+validates every value against the server-side config gate and only ever writes
+`target: ["preview"]`, so Production cannot be modified by accident.
+
 1. Provision **Preview-only, isolated** Railway resources: a Redis instance, a
    private S3-compatible bucket, and a worker service. Never reuse Production
    resources or credentials.
