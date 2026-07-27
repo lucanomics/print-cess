@@ -125,8 +125,7 @@ describe("loadConfig Railway provider selection", () => {
         PRINT_CESS_BLOB_PROVIDER: "vercel-blob",
         PRINT_CESS_CLEANUP_PROVIDER: "railway-worker",
         POSTGRES_URL: "postgresql://preview:secret@postgres.example.test:5432/railway",
-        POSTGRES_CA_CERT:
-          "-----BEGIN CERTIFICATE-----\nQUJDRA==\n-----END CERTIFICATE-----\n",
+        POSTGRES_CA_CERT: "-----BEGIN CERTIFICATE-----\nQUJDRA==\n-----END CERTIFICATE-----\n",
         CLEANUP_WORKER_SECRET: "w".repeat(32),
       }),
     ).toMatchObject({
@@ -142,8 +141,7 @@ describe("loadConfig Railway provider selection", () => {
         ...railwayEnvironment,
         PRINT_CESS_SESSION_PROVIDER: "railway-postgres",
         POSTGRES_URL: "postgresql://preview:secret@localhost:5432/railway",
-        POSTGRES_CA_CERT:
-          "-----BEGIN CERTIFICATE-----\nQUJDRA==\n-----END CERTIFICATE-----\n",
+        POSTGRES_CA_CERT: "-----BEGIN CERTIFICATE-----\nQUJDRA==\n-----END CERTIFICATE-----\n",
       }),
     ).toThrow(/remote TLS-enabled PostgreSQL host/u);
   });

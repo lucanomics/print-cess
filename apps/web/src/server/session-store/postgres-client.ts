@@ -178,11 +178,7 @@ function connectionError(error: unknown): ServiceError {
   // Keep diagnostics credential-free: only the driver/runtime classification
   // is emitted, never the URL, query, certificate, or server response.
   console.error(JSON.stringify({ event: "postgres_connection_error", reason }));
-  return new ServiceError(
-    "unavailable",
-    `PostgreSQL connection failed (${reason}).`,
-    503,
-  );
+  return new ServiceError("unavailable", `PostgreSQL connection failed (${reason}).`, 503);
 }
 
 function classifyError(error: unknown): string {
