@@ -1,5 +1,7 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 
+import { ServiceError } from "../errors";
+
 const TABLE_NAME = "print_cess_preview_state_v1";
 const CONNECT_TIMEOUT_MS = 10_000;
 const IDLE_TIMEOUT_MS = 30_000;
@@ -38,10 +40,11 @@ export function createPostgresExecutor(
   }
   assertPemCertificate(ca);
   assertPostgresUrl(url);
-  const cached = executors.get(url);
+  const cacheKey = `${url}\u0000${ca}`;
+  const cached = executors.get(cacheKey);
   if (cached) return cached;
   const executor = new NodePostgresExecutor(url, ca);
-  executors.set(url, executor);
+  executors.set(cacheKey, executor);
   return executor;
 }
 
@@ -170,8 +173,16 @@ async function rollbackQuietly(client: PoolClient): Promise<void> {
   }
 }
 
-function connectionError(error: unknown): Error {
-  return new Error(`PostgreSQL connection failed: ${classifyError(error)}`);
+function connectionError(error: unknown): ServiceError {
+  const reason = classifyError(error);
+  // Keep diagnostics credential-free: only the driver/runtime classification
+  // is emitted, never the URL, query, certificate, or server response.
+  console.error(JSON.stringify({ event: "postgres_connection_error", reason }));
+  return new ServiceError(
+    "unavailable",
+    `PostgreSQL connection failed (${reason}).`,
+    503,
+  );
 }
 
 function classifyError(error: unknown): string {
