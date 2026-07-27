@@ -62,6 +62,7 @@ Set each value at the appropriate Vercel environment scope. Never commit real va
 | `BLOB_READ_WRITE_TOKEN`                                  | Preview token, at least 20 characters                          | Separate Production token, at least 20 characters      |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`    | HTTPS Preview database URL / token at least 20 characters      | Separate HTTPS database / token at least 20 characters |
 | `POSTGRES_URL`                                           | Existing approved Railway PostgreSQL TLS URL when selected     | Separate approved PostgreSQL URL when selected         |
+| `POSTGRES_CA_CERT`                                       | Root CA PEM for the selected Railway PostgreSQL service        | Root CA PEM for the selected Production database       |
 | `UPSTASH_DISABLE_TELEMETRY`                              | `1`                                                            | `1`                                                    |
 | `QSTASH_TOKEN`                                           | Preview sender token, at least 20 characters                   | Separate sender token, at least 20 characters          |
 | `QSTASH_CURRENT_SIGNING_KEY` / `QSTASH_NEXT_SIGNING_KEY` | Preview receiver keys, each at least 20 characters             | Separate receiver keys, each at least 20 characters    |

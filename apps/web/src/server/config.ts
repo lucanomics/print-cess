@@ -102,6 +102,7 @@ function assertSessionProvider(
   }
   if (provider === "railway-postgres") {
     assertPostgresUrl(environment, "POSTGRES_URL");
+    requirePemCertificate(environment, "POSTGRES_CA_CERT");
     return;
   }
   requireHttpsUrl(environment, "UPSTASH_REDIS_REST_URL");
@@ -181,6 +182,18 @@ function assertPostgresUrl(environment: NodeJS.ProcessEnv, name: string): void {
 function requirePresent(environment: NodeJS.ProcessEnv, name: string): void {
   if (!environment[name]) {
     throw new Error(`${name} must be configured in external adapter mode`);
+  }
+}
+
+function requirePemCertificate(environment: NodeJS.ProcessEnv, name: string): void {
+  const value = environment[name];
+  if (
+    !value ||
+    !/^-----BEGIN CERTIFICATE-----\n(?:[A-Za-z0-9+/=]+\n)+-----END CERTIFICATE-----\n?$/u.test(
+      value,
+    )
+  ) {
+    throw new Error(`${name} must contain one PEM-encoded certificate`);
   }
 }
 

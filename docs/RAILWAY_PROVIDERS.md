@@ -161,13 +161,16 @@ PRINT_CESS_BLOB_PROVIDER=vercel-blob
 PRINT_CESS_CLEANUP_PROVIDER=railway-worker
 
 POSTGRES_URL=postgresql://...
+POSTGRES_CA_CERT=<contents of /var/lib/postgresql/data/certs/root.crt>
 BLOB_READ_WRITE_TOKEN=...
 CLEANUP_WORKER_SECRET=<>= 32 chars>
 ```
 
 This mixed stack creates no Redis or S3 service. It still needs a dedicated
 table in the approved database, an existing private Blob connection, and
-Preview-scoped credentials.
+Preview-scoped credentials. `POSTGRES_CA_CERT` keeps certificate-chain
+verification enabled for Railway's self-signed database certificate even
+though its external TCP proxy hostname differs from the certificate hostname.
 
 Config fails closed: the selected providers' variables are required, unused
 provider credentials are never demanded, and Preview/Production reject non-exact

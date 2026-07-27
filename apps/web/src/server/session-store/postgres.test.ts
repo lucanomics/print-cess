@@ -82,7 +82,15 @@ describe("RailwayPostgresSessionStore", () => {
     expect(() =>
       createPostgresExecutor({
         NODE_ENV: "test",
+        POSTGRES_URL: "postgresql://preview:secret@postgres.example.test:5432/railway",
+      }),
+    ).toThrow(/POSTGRES_CA_CERT is required/u);
+    expect(() =>
+      createPostgresExecutor({
+        NODE_ENV: "test",
         POSTGRES_URL: "postgresql://preview:secret@localhost:5432/railway",
+        POSTGRES_CA_CERT:
+          "-----BEGIN CERTIFICATE-----\nQUJDRA==\n-----END CERTIFICATE-----\n",
       }),
     ).toThrow(/remote TLS-enabled PostgreSQL host/u);
   });

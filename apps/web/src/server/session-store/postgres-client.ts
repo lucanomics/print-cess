@@ -32,10 +32,15 @@ export function createPostgresExecutor(
   if (!url) {
     throw new Error("POSTGRES_URL is required for the railway-postgres session provider");
   }
+  const ca = environment.POSTGRES_CA_CERT;
+  if (!ca) {
+    throw new Error("POSTGRES_CA_CERT is required for the railway-postgres session provider");
+  }
+  assertPemCertificate(ca);
   assertPostgresUrl(url);
   const cached = executors.get(url);
   if (cached) return cached;
-  const executor = new NodePostgresExecutor(url);
+  const executor = new NodePostgresExecutor(url, ca);
   executors.set(url, executor);
   return executor;
 }
@@ -44,13 +49,20 @@ class NodePostgresExecutor implements PostgresExecutor {
   readonly #pool: Pool;
   readonly #ready: Promise<void>;
 
-  public constructor(url: string) {
+  public constructor(url: string, ca: string) {
     this.#pool = new Pool({
       connectionString: url,
       connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
       idleTimeoutMillis: IDLE_TIMEOUT_MS,
       max: MAX_POOL_SIZE,
-      ssl: { rejectUnauthorized: true },
+      ssl: {
+        ca,
+        rejectUnauthorized: true,
+        // Railway's database certificate is issued for localhost while the
+        // external TCP proxy supplies a generated hostname. Pin the database's
+        // private root CA instead of disabling certificate-chain verification.
+        checkServerIdentity: () => undefined,
+      },
     });
     this.#pool.on("error", () => {});
     this.#ready = this.ensureSchema();
@@ -137,6 +149,16 @@ function assertPostgresUrl(raw: string): void {
   }
   if (!url.hostname || url.hostname === "localhost" || url.hostname === "127.0.0.1") {
     throw new Error("POSTGRES_URL must target a remote TLS-enabled PostgreSQL host");
+  }
+}
+
+function assertPemCertificate(value: string): void {
+  if (
+    !/^-----BEGIN CERTIFICATE-----\n(?:[A-Za-z0-9+/=]+\n)+-----END CERTIFICATE-----\n?$/u.test(
+      value,
+    )
+  ) {
+    throw new Error("POSTGRES_CA_CERT must contain one PEM-encoded certificate");
   }
 }
 
