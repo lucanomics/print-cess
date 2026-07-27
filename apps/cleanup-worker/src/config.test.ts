@@ -12,11 +12,30 @@ describe("parseWorkerConfig", () => {
     expect(parseWorkerConfig(baseEnv)).toEqual({
       endpoint: "https://app.example.test/api/cleanup",
       secret: "w".repeat(32),
+      vercelProtectionBypass: null,
       intervalMs: 5_000,
       batchSize: 25,
       requestTimeoutMs: 10_000,
       maxBackoffMs: 60_000,
     });
+  });
+
+  it("reads an optional Vercel automation bypass secret", () => {
+    expect(
+      parseWorkerConfig({
+        ...baseEnv,
+        VERCEL_AUTOMATION_BYPASS_SECRET: "preview-protection-secret",
+      }),
+    ).toMatchObject({ vercelProtectionBypass: "preview-protection-secret" });
+  });
+
+  it("rejects a bypass secret containing a line break", () => {
+    expect(() =>
+      parseWorkerConfig({
+        ...baseEnv,
+        VERCEL_AUTOMATION_BYPASS_SECRET: "unsafe\nheader",
+      }),
+    ).toThrow(/must not contain line breaks/u);
   });
 
   it("reads overrides for interval, batch size, and timeout", () => {

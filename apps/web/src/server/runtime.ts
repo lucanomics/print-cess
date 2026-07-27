@@ -10,6 +10,7 @@ import { QStashCleanupScheduler } from "./cleanup/qstash";
 import { loadConfig, type ServerConfig } from "./config";
 import type { BlobTransport, CleanupScheduler, SessionStore } from "./contracts";
 import { MemorySessionStore } from "./session-store/memory";
+import { RailwayPostgresSessionStore } from "./session-store/postgres";
 import { RailwayRedisSessionStore } from "./session-store/redis";
 import { UpstashSessionStore } from "./session-store/upstash";
 import { ServiceError } from "./errors";
@@ -33,7 +34,9 @@ export function getRuntime(): ServerRuntime {
     const sessions: SessionStore =
       config.sessionProvider === "railway-redis"
         ? new RailwayRedisSessionStore()
-        : new UpstashSessionStore();
+        : config.sessionProvider === "railway-postgres"
+          ? new RailwayPostgresSessionStore()
+          : new UpstashSessionStore();
     const blobs: BlobTransport =
       config.blobProvider === "railway-s3" ? new S3BlobTransport() : new VercelBlobTransport();
     const cleanup: CleanupScheduler =

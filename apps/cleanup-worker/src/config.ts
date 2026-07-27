@@ -1,6 +1,7 @@
 export type WorkerConfig = {
   endpoint: string;
   secret: string;
+  vercelProtectionBypass: string | null;
   intervalMs: number;
   batchSize: number;
   requestTimeoutMs: number;
@@ -42,6 +43,10 @@ export function parseWorkerConfig(environment: NodeJS.ProcessEnv = process.env):
   return {
     endpoint,
     secret,
+    vercelProtectionBypass: readOptionalSecret(
+      environment.VERCEL_AUTOMATION_BYPASS_SECRET,
+      "VERCEL_AUTOMATION_BYPASS_SECRET",
+    ),
     intervalMs: readPositiveInt(environment.CLEANUP_INTERVAL_MS, DEFAULT_INTERVAL_MS),
     batchSize: readBoundedInt(environment.CLEANUP_BATCH_SIZE, DEFAULT_BATCH_SIZE, 1, 100),
     requestTimeoutMs: readPositiveInt(
@@ -50,6 +55,14 @@ export function parseWorkerConfig(environment: NodeJS.ProcessEnv = process.env):
     ),
     maxBackoffMs: MAX_BACKOFF_MS,
   };
+}
+
+function readOptionalSecret(raw: string | undefined, name: string): string | null {
+  if (raw === undefined || raw === "") return null;
+  if (/[\r\n]/u.test(raw)) {
+    throw new Error(`${name} must not contain line breaks`);
+  }
+  return raw;
 }
 
 function readPositiveInt(raw: string | undefined, fallback: number): number {

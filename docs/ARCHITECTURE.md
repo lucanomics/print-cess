@@ -36,8 +36,8 @@ Local development uses `MemorySessionStore`, `LocalEncryptedBlobTransport`, and
 `InProcessCleanupScheduler`. Local Blob content is still the encrypted envelope; plaintext must
 never be written to Downloads or Documents. External (Preview/Production) adapters are selected
 per interface: the default stack is `UpstashSessionStore`, `VercelBlobTransport`, and
-`QStashCleanupScheduler`, and an alternative Railway stack (`RailwayRedisSessionStore`,
-`S3BlobTransport`, and a persistent cleanup worker) can be selected via the
+`QStashCleanupScheduler`, and Railway alternatives (`RailwayRedisSessionStore` or
+`RailwayPostgresSessionStore`, `S3BlobTransport`, and a persistent cleanup worker) can be selected via the
 `PRINT_CESS_SESSION_PROVIDER` / `PRINT_CESS_BLOB_PROVIDER` / `PRINT_CESS_CLEANUP_PROVIDER`
 selectors. See `RAILWAY_PROVIDERS.md`.
 
