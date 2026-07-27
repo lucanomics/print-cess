@@ -15,10 +15,26 @@ export interface RedisScriptClient {
   zrem(key: string, member: string): Promise<void>;
 }
 
-type NodeRedisClient = ReturnType<typeof createClient>;
-
 const CONNECT_TIMEOUT_MS = 10_000;
 const MAX_RECONNECT_DELAY_MS = 10_000;
+
+function createRedisClient(url: string) {
+  return createClient({
+    url,
+    socket: {
+      connectTimeout: CONNECT_TIMEOUT_MS,
+      // node-redis enables TLS automatically for rediss:// and verifies the
+      // server certificate; do not weaken that here.
+      reconnectStrategy: (retries) => Math.min(MAX_RECONNECT_DELAY_MS, 100 * 2 ** retries),
+    },
+  });
+}
+
+// node-redis infers the client's generics from the options object, so the type
+// has to come from this call site. `ReturnType<typeof createClient>` widens
+// them to their constraints instead, which is a different, unassignable
+// instantiation.
+type NodeRedisClient = ReturnType<typeof createRedisClient>;
 
 // Serverless invocations reuse the same module instance, so cache one connected
 // client per URL instead of opening a socket on every request.
@@ -55,15 +71,7 @@ class NodeRedisScriptClient implements RedisScriptClient {
     const cached = clients.get(this.url);
     if (cached) return cached.ready;
 
-    const client = createClient({
-      url: this.url,
-      socket: {
-        connectTimeout: CONNECT_TIMEOUT_MS,
-        // node-redis enables TLS automatically for rediss:// and verifies the
-        // server certificate; do not weaken that here.
-        reconnectStrategy: (retries) => Math.min(MAX_RECONNECT_DELAY_MS, 100 * 2 ** retries),
-      },
-    });
+    const client = createRedisClient(this.url);
     // A missing error listener turns transient socket errors into unhandled
     // exceptions. Swallow only the event object (never a credential).
     client.on("error", () => {});
