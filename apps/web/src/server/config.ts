@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SESSION_PROVIDERS = ["upstash-redis", "railway-redis"] as const;
+export const SESSION_PROVIDERS = ["upstash-redis", "railway-redis", "railway-postgres"] as const;
 export const BLOB_PROVIDERS = ["vercel-blob", "railway-s3"] as const;
 export const CLEANUP_PROVIDERS = ["qstash", "railway-worker"] as const;
 
@@ -100,6 +100,10 @@ function assertSessionProvider(
     assertTlsRedisUrl(environment, "REDIS_URL");
     return;
   }
+  if (provider === "railway-postgres") {
+    assertPostgresUrl(environment, "POSTGRES_URL");
+    return;
+  }
   requireHttpsUrl(environment, "UPSTASH_REDIS_REST_URL");
   requireSecret(environment, "UPSTASH_REDIS_REST_TOKEN", 20);
 }
@@ -154,6 +158,23 @@ function assertTlsRedisUrl(environment: NodeJS.ProcessEnv, name: string): void {
   }
   if (url.protocol !== "rediss:") {
     throw new Error(`${name} must use a TLS connection (rediss://) outside local development`);
+  }
+}
+
+function assertPostgresUrl(environment: NodeJS.ProcessEnv, name: string): void {
+  const value = environment[name];
+  if (!value) throw new Error(`${name} must be configured in external adapter mode`);
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${name} must be a valid PostgreSQL connection URL`);
+  }
+  if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") {
+    throw new Error(`${name} must use the postgres:// or postgresql:// protocol`);
+  }
+  if (!url.hostname || url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+    throw new Error(`${name} must target a remote TLS-enabled PostgreSQL host`);
   }
 }
 

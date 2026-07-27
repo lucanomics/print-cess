@@ -116,4 +116,31 @@ describe("loadConfig Railway provider selection", () => {
   it("does not demand unused legacy provider credentials", () => {
     expect(() => loadConfig(railwayEnvironment)).not.toThrow();
   });
+
+  it("accepts the no-cost Postgres, Vercel Blob, and Railway worker mix", () => {
+    expect(
+      loadConfig({
+        ...productionEnvironment,
+        PRINT_CESS_SESSION_PROVIDER: "railway-postgres",
+        PRINT_CESS_BLOB_PROVIDER: "vercel-blob",
+        PRINT_CESS_CLEANUP_PROVIDER: "railway-worker",
+        POSTGRES_URL: "postgresql://preview:secret@postgres.example.test:5432/railway",
+        CLEANUP_WORKER_SECRET: "w".repeat(32),
+      }),
+    ).toMatchObject({
+      sessionProvider: "railway-postgres",
+      blobProvider: "vercel-blob",
+      cleanupProvider: "railway-worker",
+    });
+  });
+
+  it("rejects a local PostgreSQL URL for the hosted adapter", () => {
+    expect(() =>
+      loadConfig({
+        ...railwayEnvironment,
+        PRINT_CESS_SESSION_PROVIDER: "railway-postgres",
+        POSTGRES_URL: "postgresql://preview:secret@localhost:5432/railway",
+      }),
+    ).toThrow(/remote TLS-enabled PostgreSQL host/u);
+  });
 });

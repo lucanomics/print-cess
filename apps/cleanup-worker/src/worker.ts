@@ -44,12 +44,16 @@ export async function sweepOnce(config: WorkerConfig, deps: WorkerDeps): Promise
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.requestTimeoutMs);
   try {
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "x-cleanup-worker-secret": config.secret,
+    };
+    if (config.vercelProtectionBypass) {
+      headers["x-vercel-protection-bypass"] = config.vercelProtectionBypass;
+    }
     const response = await deps.fetchImpl(config.endpoint, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-cleanup-worker-secret": config.secret,
-      },
+      headers,
       body: JSON.stringify({ sweep: true, limit: config.batchSize }),
       signal: controller.signal,
     });

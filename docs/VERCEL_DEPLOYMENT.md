@@ -61,9 +61,16 @@ Set each value at the appropriate Vercel environment scope. Never commit real va
 | `BLOB_STORE_ID`                                          | Preview Private Blob store                                     | Separate Production Private Blob store                 |
 | `BLOB_READ_WRITE_TOKEN`                                  | Preview token, at least 20 characters                          | Separate Production token, at least 20 characters      |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`    | HTTPS Preview database URL / token at least 20 characters      | Separate HTTPS database / token at least 20 characters |
+| `POSTGRES_URL`                                           | Existing approved Railway PostgreSQL TLS URL when selected     | Separate approved PostgreSQL URL when selected         |
 | `UPSTASH_DISABLE_TELEMETRY`                              | `1`                                                            | `1`                                                    |
 | `QSTASH_TOKEN`                                           | Preview sender token, at least 20 characters                   | Separate sender token, at least 20 characters          |
 | `QSTASH_CURRENT_SIGNING_KEY` / `QSTASH_NEXT_SIGNING_KEY` | Preview receiver keys, each at least 20 characters             | Separate receiver keys, each at least 20 characters    |
+| `CLEANUP_WORKER_SECRET`                                  | Shared only with the Preview Railway worker, at least 32 chars | Separate Production worker secret                      |
+
+If Vercel Deployment Protection guards the Preview URL, configure a Protection
+Bypass for Automation secret and set the same value only as
+`VERCEL_AUTOMATION_BYPASS_SECRET` on the Railway cleanup worker. The web app
+does not need that secret, and Deployment Protection remains enabled.
 
 The current implementation's Production startup validation requires `BLOB_READ_WRITE_TOKEN`; an
 OIDC token alone does not satisfy that gate. Restrict the token to the project/store, rotate it,

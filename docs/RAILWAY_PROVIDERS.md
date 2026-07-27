@@ -21,11 +21,11 @@ The web app depends only on three provider interfaces (`apps/web/src/server/cont
 `loadConfig` selects a concrete implementation per interface, and `getRuntime`
 wires them. Providers are chosen explicitly and independently:
 
-| Interface        | Env selector                  | Default         | Railway option   |
-| ---------------- | ----------------------------- | --------------- | ---------------- |
-| SessionStore     | `PRINT_CESS_SESSION_PROVIDER` | `upstash-redis` | `railway-redis`  |
-| BlobTransport    | `PRINT_CESS_BLOB_PROVIDER`    | `vercel-blob`   | `railway-s3`     |
-| CleanupScheduler | `PRINT_CESS_CLEANUP_PROVIDER` | `qstash`        | `railway-worker` |
+| Interface        | Env selector                  | Default         | Railway option(s)                   |
+| ---------------- | ----------------------------- | --------------- | ----------------------------------- |
+| SessionStore     | `PRINT_CESS_SESSION_PROVIDER` | `upstash-redis` | `railway-redis`, `railway-postgres` |
+| BlobTransport    | `PRINT_CESS_BLOB_PROVIDER`    | `vercel-blob`   | `railway-s3`                        |
+| CleanupScheduler | `PRINT_CESS_CLEANUP_PROVIDER` | `qstash`        | `railway-worker`                    |
 
 Selection is per-interface, so the stacks can be mixed and migrated one provider
 at a time. In `local` development mode the selectors are ignored and the
@@ -47,6 +47,21 @@ so the atomicity guarantees are unchanged. The client:
 
 The `RedisScriptClient` port also makes the store unit-testable without a live
 server.
+
+### Railway PostgreSQL session store (`session-store/postgres.ts`)
+
+Uses the official `pg` client and an isolated
+`print_cess_preview_state_v1` table. This option exists for a no-additional-
+resource Preview deployment that reuses an already approved Railway PostgreSQL
+database. A transaction and per-session advisory lock protect each lifecycle
+transition, while a partial due-time index supports bounded orphan sweeps.
+Connections require a remote `postgres://` or `postgresql://` URL and verify
+TLS certificates.
+
+Reusing a database is a Preview-only cost optimization, not Production
+isolation. The database owner must explicitly approve the new table and
+cross-project Vercel credential before it is connected. Production still
+requires a separately scoped store and acceptance evidence.
 
 ### Railway S3 blob transport (`blob/s3.ts`)
 
@@ -94,7 +109,9 @@ Two parts:
    polls), backs off with jittered exponential delay capped at 60s on failure,
    treats any non-2xx as a failure, shuts down gracefully on SIGTERM/SIGINT, and
    logs only timestamps, HTTP status, and sweep counts — never the secret,
-   endpoint query, or response bodies.
+   endpoint query, or response bodies. When Vercel Preview Deployment Protection
+   is enabled, `VERCEL_AUTOMATION_BYPASS_SECRET` adds the narrowly scoped
+   `x-vercel-protection-bypass` header without disabling protection.
 
 ### `/api/cleanup` authorization
 
@@ -131,7 +148,26 @@ CLEANUP_WORKER_SECRET=<>= 32 chars>
 
 Worker process: `CLEANUP_ENDPOINT` (exact HTTPS `/api/cleanup`),
 `CLEANUP_WORKER_SECRET`, and optional `CLEANUP_INTERVAL_MS` / `CLEANUP_BATCH_SIZE`
-/ `CLEANUP_REQUEST_TIMEOUT_MS`.
+/ `CLEANUP_REQUEST_TIMEOUT_MS`. Set `VERCEL_AUTOMATION_BYPASS_SECRET` only when
+the target Preview deployment uses Vercel's Protection Bypass for Automation.
+
+For a no-additional-resource Preview that reuses an existing Railway PostgreSQL
+database and Vercel Private Blob store:
+
+```
+PRINT_CESS_ADAPTER_MODE=external
+PRINT_CESS_SESSION_PROVIDER=railway-postgres
+PRINT_CESS_BLOB_PROVIDER=vercel-blob
+PRINT_CESS_CLEANUP_PROVIDER=railway-worker
+
+POSTGRES_URL=postgresql://...
+BLOB_READ_WRITE_TOKEN=...
+CLEANUP_WORKER_SECRET=<>= 32 chars>
+```
+
+This mixed stack creates no Redis or S3 service. It still needs a dedicated
+table in the approved database, an existing private Blob connection, and
+Preview-scoped credentials.
 
 Config fails closed: the selected providers' variables are required, unused
 provider credentials are never demanded, and Preview/Production reject non-exact
@@ -146,9 +182,11 @@ Operator scripts for steps 1–3 live in `scripts/provisioning/` (see its README
 validates every value against the server-side config gate and only ever writes
 `target: ["preview"]`, so Production cannot be modified by accident.
 
-1. Provision **Preview-only, isolated** Railway resources: a Redis instance, a
-   private S3-compatible bucket, and a worker service. Never reuse Production
-   resources or credentials.
+1. Prefer **Preview-only, isolated** Railway resources. For the documented
+   no-additional-resource exception, reuse only an explicitly approved existing
+   PostgreSQL database through the dedicated table above and an existing
+   Preview Blob store; never reuse Production application secrets or document
+   data.
 2. Set the web Preview environment variables (selectors + `REDIS_URL` + `S3_*` +
    `CLEANUP_WORKER_SECRET` + exact HTTPS `PUBLIC_BASE_URL`/`ALLOWED_ORIGINS`).
 3. Deploy the worker service from `apps/cleanup-worker` (`pnpm build`, then
