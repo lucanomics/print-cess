@@ -10,6 +10,7 @@ function baseConfig(overrides: Partial<WorkerConfig> = {}): WorkerConfig {
   return {
     endpoint: ENDPOINT,
     secret: SECRET,
+    vercelProtectionBypass: null,
     intervalMs: 5_000,
     batchSize: 25,
     requestTimeoutMs: 20,
@@ -52,6 +53,34 @@ describe("sweepOnce", () => {
     const headers = seen?.headers as Record<string, string>;
     expect(headers["x-cleanup-worker-secret"]).toBe(SECRET);
     expect(JSON.parse(String(seen?.body))).toEqual({ sweep: true, limit: 25 });
+  });
+
+  it("sends the Vercel protection bypass header only when configured", async () => {
+    let protectedRequest: RequestInit | undefined;
+    const deps = stubDeps({
+      fetchImpl: async (_url, init) => {
+        protectedRequest = init;
+        return jsonResponse(200, {});
+      },
+    });
+    await sweepOnce(baseConfig({ vercelProtectionBypass: "preview-bypass-secret" }), deps);
+    expect(
+      (protectedRequest?.headers as Record<string, string>)["x-vercel-protection-bypass"],
+    ).toBe("preview-bypass-secret");
+
+    let publicRequest: RequestInit | undefined;
+    await sweepOnce(
+      baseConfig(),
+      stubDeps({
+        fetchImpl: async (_url, init) => {
+          publicRequest = init;
+          return jsonResponse(200, {});
+        },
+      }),
+    );
+    expect(
+      (publicRequest?.headers as Record<string, string>)["x-vercel-protection-bypass"],
+    ).toBeUndefined();
   });
 
   it("treats a non-2xx response as an http failure", async () => {
