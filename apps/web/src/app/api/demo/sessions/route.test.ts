@@ -55,7 +55,10 @@ describe("demo kiosk session registration route", () => {
 
   it("uses the stable Vercel branch URL for Preview QR sessions", async () => {
     vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("VERCEL_BRANCH_URL", "print-cess-git-preview.example.vercel.app");
+    vi.stubEnv(
+      "VERCEL_BRANCH_URL",
+      "print-cess-git-preview.example.vercel.app",
+    );
     vi.stubEnv("VERCEL_URL", "print-cess-commit.example.vercel.app");
     const origin = "https://print-cess-git-preview.example.vercel.app";
 
@@ -71,7 +74,10 @@ describe("demo kiosk session registration route", () => {
 
   it("accepts the commit-specific Vercel Preview URL", async () => {
     vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("VERCEL_BRANCH_URL", "print-cess-git-preview.example.vercel.app");
+    vi.stubEnv(
+      "VERCEL_BRANCH_URL",
+      "print-cess-git-preview.example.vercel.app",
+    );
     vi.stubEnv("VERCEL_URL", "print-cess-commit.example.vercel.app");
     const origin = "https://print-cess-commit.example.vercel.app";
 
@@ -79,16 +85,23 @@ describe("demo kiosk session registration route", () => {
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toMatchObject({
-      qrUrl: expect.stringMatching(/^https:\/\/print-cess-commit\.example\.vercel\.app\/s\//u),
+      qrUrl: expect.stringMatching(
+        /^https:\/\/print-cess-commit\.example\.vercel\.app\/s\//u,
+      ),
     });
   });
 
   it("does not trust an unrelated origin merely because it is a Preview", async () => {
     vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("VERCEL_BRANCH_URL", "print-cess-git-preview.example.vercel.app");
+    vi.stubEnv(
+      "VERCEL_BRANCH_URL",
+      "print-cess-git-preview.example.vercel.app",
+    );
     vi.stubEnv("VERCEL_URL", "print-cess-commit.example.vercel.app");
 
-    const response = await POST(createRequest("https://unrelated.example.vercel.app"));
+    const response = await POST(
+      createRequest("https://unrelated.example.vercel.app"),
+    );
 
     expect(response.status).toBe(403);
   });
