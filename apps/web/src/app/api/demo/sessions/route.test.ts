@@ -53,6 +53,21 @@ describe("demo kiosk session registration route", () => {
     });
   });
 
+  it("enables the demo API automatically on Vercel Preview", async () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_BRANCH_URL", "print-cess-git-preview.example.vercel.app");
+    vi.stubEnv("VERCEL_URL", "print-cess-commit.example.vercel.app");
+    const origin = "https://print-cess-git-preview.example.vercel.app";
+
+    const response = await POST(createRequest(origin));
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      qrUrl: expect.stringMatching(/^https:\/\/print-cess-git-preview\.example\.vercel\.app\/s\//u),
+    });
+  });
+
   it("uses the stable Vercel branch URL for Preview QR sessions", async () => {
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("VERCEL_BRANCH_URL", "print-cess-git-preview.example.vercel.app");
