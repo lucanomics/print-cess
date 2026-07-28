@@ -20,8 +20,18 @@ describe("home page", () => {
     expect(redirect).toHaveBeenCalledWith("/demo/kiosk");
   });
 
+  it("opens the kiosk simulator automatically on Vercel Preview", () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "preview");
+
+    HomePage();
+
+    expect(redirect).toHaveBeenCalledWith("/demo/kiosk");
+  });
+
   it("keeps the production status page when demo routes are disabled", () => {
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "production");
 
     const page = HomePage();
 
