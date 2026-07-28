@@ -1,0 +1,113 @@
+name: Repair PR 31 branch
+
+on:
+  pull_request:
+    branches:
+      - fix/development-dependencies-ci
+    types: [opened]
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+
+jobs:
+  repair:
+    if: ${{ github.head_ref == 'repair/pr-31-main-sync' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out target branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/development-dependencies-ci
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Merge main and regenerate lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+
+          set +e
+          git merge --no-commit --no-ff origin/main
+          merge_status=$?
+          set -e
+
+          if [ "$merge_status" -ne 0 ]; then
+            echo "Merge produced conflicts; resolving dependency metadata deterministically."
+          fi
+
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const fs = require('node:fs');
+
+          function readJson(ref, path) {
+            return JSON.parse(execFileSync('git', ['show', `${ref}:${path}`], { encoding: 'utf8' }));
+          }
+
+          const oursWeb = readJson('HEAD', 'apps/web/package.json');
+          const mainWeb = readJson('origin/main', 'apps/web/package.json');
+          const mergedWeb = {
+            ...mainWeb,
+            ...oursWeb,
+            dependencies: mainWeb.dependencies,
+            devDependencies: oursWeb.devDependencies,
+          };
+          fs.writeFileSync('apps/web/package.json', `${JSON.stringify(mergedWeb, null, 2)}\n`);
+
+          const mainUi = readJson('origin/main', 'packages/ui/package.json');
+          fs.writeFileSync('packages/ui/package.json', `${JSON.stringify(mainUi, null, 2)}\n`);
+          NODE
+
+          if git ls-files -u -- pnpm-lock.yaml | grep -q .; then
+            git checkout --ours pnpm-lock.yaml
+          fi
+
+          git add apps/web/package.json packages/ui/package.json pnpm-lock.yaml
+
+          unresolved="$(git diff --name-only --diff-filter=U)"
+          if [ -n "$unresolved" ]; then
+            echo "Unresolved merge conflicts remain:"
+            echo "$unresolved"
+            exit 1
+          fi
+
+          pnpm install --lockfile-only --no-frozen-lockfile
+          pnpm install --frozen-lockfile
+
+          git add -A
+          git commit -m "merge: sync main into dependency update PR"
+          git push origin HEAD:fix/development-dependencies-ci
+
+      - name: Dispatch full checks on repaired branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run ci.yml --ref fix/development-dependencies-ci
+          gh workflow run security.yml --ref fix/development-dependencies-ci
+
+      - name: Close repair pull request
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh pr close "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --comment "One-time repair workflow completed; PR #31 branch was synchronized with main and checks were dispatched." || true
