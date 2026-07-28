@@ -1,0 +1,62 @@
+name: Format PR 40 branch
+
+on:
+  pull_request:
+    branches: [fix/enable-dedicated-preview-qr]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  format:
+    if: ${{ github.head_ref == 'repair/pr40-format' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out target branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/enable-dedicated-preview-qr
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format changed files
+        run: pnpm format
+
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/app/page.tsx \
+            apps/web/src/app/page.test.tsx \
+            apps/web/src/app/demo/kiosk/page.tsx \
+            apps/web/src/app/api/demo/sessions/route.ts \
+            apps/web/src/app/api/demo/sessions/route.test.ts \
+            apps/web/src/server/config.ts \
+            apps/web/src/server/config.test.ts \
+            apps/web/src/server/demo.ts \
+            scripts/provisioning/set-vercel-preview-env.mjs \
+            scripts/provisioning/README.md
+          if git diff --cached --quiet; then
+            echo "No formatting changes required."
+          else
+            git commit -m "style: format dedicated Preview QR fix"
+            git push origin HEAD:fix/enable-dedicated-preview-qr
+          fi
+
+      - name: Close temporary repair PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr close "${{ github.event.pull_request.number }}" --comment "Formatting applied directly to PR #40 branch."
