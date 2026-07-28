@@ -33,7 +33,8 @@ export async function POST(request: Request) {
       await sweepDueOrphans(server, Date.now(), 3).catch(() => undefined);
     });
 
-    const qrUrl = `${server.config.publicBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}`;
+    const activeOrigin = new URL(request.url).origin;
+    const qrUrl = `${activeOrigin}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}`;
     return json(
       {
         protocolVersion: 1,
