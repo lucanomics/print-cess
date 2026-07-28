@@ -68,8 +68,9 @@ function isTrustedVercelPreviewOrigin(origin: string): boolean {
 
   if (parsed.protocol !== "https:" || parsed.origin !== origin) return false;
 
-  const trustedHosts = [process.env.VERCEL_BRANCH_URL, process.env.VERCEL_URL].filter(
-    (value): value is string => Boolean(value),
-  );
+  const trustedHosts = [
+    process.env.VERCEL_BRANCH_URL,
+    process.env.VERCEL_URL,
+  ].filter((value): value is string => Boolean(value));
   return trustedHosts.includes(parsed.host);
 }
