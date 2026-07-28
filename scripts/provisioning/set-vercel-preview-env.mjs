@@ -108,7 +108,9 @@ function parseArguments(argv) {
   }
   if (!options.project || !options.team || !options.input) throw new Error(usage());
   if (options.enableDemo && !options.branch) {
-    throw new Error("--enable-demo requires --branch so demo routes are never enabled for every Preview deployment");
+    throw new Error(
+      "--enable-demo requires --branch so demo routes are never enabled for every Preview deployment",
+    );
   }
   return options;
 }
