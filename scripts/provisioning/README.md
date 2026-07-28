@@ -67,16 +67,21 @@ KIOSK_REGISTRATION_SECRET, ADMIN_DIAGNOSTICS_SECRET, CLEANUP_WORKER_SECRET
 
 ### 4. Inject the Vercel Preview environment
 
+For the permanent kiosk simulator branch, scope the credentials to `preview`
+and explicitly enable demo routes:
+
 ```bash
 VERCEL_TOKEN=... node scripts/provisioning/set-vercel-preview-env.mjs \
   --project <projectId> --team <teamId> --input preview-values.json \
-  --branch preview/provider-validation --dry-run
+  --branch preview --enable-demo --dry-run
 ```
 
 Review the masked dry-run output, then re-run without `--dry-run`. The script
-adds the provider selectors and TTL/demo settings automatically, marks
-credentials as `sensitive`, and scopes everything to Preview (optionally to a
-single git branch so unrelated PRs do not inherit the credentials).
+adds the provider selectors and TTL settings automatically, marks credentials
+as `sensitive`, and scopes everything to Preview. `--enable-demo` is accepted
+only together with `--branch`, so QR demo routes cannot accidentally be exposed
+on every Preview deployment. Omit `--enable-demo` for provider-validation or
+ordinary pull-request branches.
 
 It validates every value against the same rules the server enforces and refuses
 to write if any fail — non-TLS Redis, wildcard or non-exact origins, missing S3
