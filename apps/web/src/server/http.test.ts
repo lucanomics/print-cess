@@ -1,9 +1,59 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { readJson, readSessionId } from "./http";
+import type { ServerConfig } from "./config";
+import { assertAllowedOrigin, readJson, readSessionId } from "./http";
 
 const schema = z.object({ value: z.string() }).strict();
+
+const config: ServerConfig = {
+  mode: "local",
+  sessionProvider: null,
+  blobProvider: null,
+  cleanupProvider: null,
+  publicBaseUrl: "https://configured.example.test",
+  allowedOrigins: ["https://configured.example.test"],
+  sessionTtlMs: 180_000,
+  signedUrlTtlMs: 120_000,
+  demoEnabled: true,
+};
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("assertAllowedOrigin", () => {
+  it("accepts the active same-origin host when demo routes are enabled", () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "true");
+    const request = new Request("https://branch-preview.example.test/api/sessions", {
+      headers: { Origin: "https://branch-preview.example.test" },
+    });
+
+    expect(() => assertAllowedOrigin(request, config)).not.toThrow();
+  });
+
+  it("still rejects cross-origin requests in demo mode", () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "true");
+    const request = new Request("https://branch-preview.example.test/api/sessions", {
+      headers: { Origin: "https://attacker.example.test" },
+    });
+
+    expect(() => assertAllowedOrigin(request, config)).toThrowError(
+      expect.objectContaining({ code: "unauthorized", status: 403 }),
+    );
+  });
+
+  it("keeps the configured allow-list in normal deployments", () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    const request = new Request("https://branch-preview.example.test/api/sessions", {
+      headers: { Origin: "https://branch-preview.example.test" },
+    });
+
+    expect(() => assertAllowedOrigin(request, config)).toThrowError(
+      expect.objectContaining({ code: "unauthorized", status: 403 }),
+    );
+  });
+});
 
 describe("readJson", () => {
   it("parses and validates a bounded JSON body", async () => {
