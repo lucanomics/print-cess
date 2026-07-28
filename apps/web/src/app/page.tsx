@@ -1,8 +1,11 @@
 import { ShieldCheck } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { Wordmark } from "@print-cess/ui";
 
 export default function HomePage() {
+  if (process.env.ENABLE_DEMO_ROUTES === "true") redirect("/demo/kiosk");
+
   return (
     <main className="status-page">
       <Wordmark />
