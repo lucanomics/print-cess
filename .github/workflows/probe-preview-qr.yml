@@ -14,8 +14,9 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - name: Check out diagnostic script
-        uses: actions/checkout@v7
-
       - name: Discover and probe deployed Preview
-        run: node .github/scripts/probe-preview-qr.mjs
+        run: |
+          curl --fail --silent --show-error \
+            https://raw.githubusercontent.com/lucanomics/paradiso-print-cess/repair/probe-preview-qr/.github/scripts/probe-preview-qr.mjs \
+            --output /tmp/probe-preview-qr.mjs
+          node /tmp/probe-preview-qr.mjs
