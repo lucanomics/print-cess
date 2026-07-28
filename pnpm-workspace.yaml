@@ -19,3 +19,4 @@ onlyBuiltDependencies:
 
 minimumReleaseAgeExclude:
   - postcss@8.5.20
+  - jsdom@30.0.0
