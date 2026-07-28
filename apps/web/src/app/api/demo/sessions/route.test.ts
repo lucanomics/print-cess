@@ -67,6 +67,22 @@ describe("demo kiosk session registration route", () => {
     });
   });
 
+  it("keeps the API enabled on the dedicated Preview branch even when the legacy flag is false", async () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_GIT_COMMIT_REF", "preview");
+    vi.stubEnv("VERCEL_BRANCH_URL", "print-cess-git-preview.example.vercel.app");
+    vi.stubEnv("VERCEL_URL", "print-cess-commit.example.vercel.app");
+    const origin = "https://print-cess-git-preview.example.vercel.app";
+
+    const response = await POST(createRequest(origin));
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      qrUrl: expect.stringMatching(/^https:\/\/print-cess-git-preview\.example\.vercel\.app\/s\//u),
+    });
+  });
+
   it("accepts the commit-specific Vercel Preview URL", async () => {
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("VERCEL_BRANCH_URL", "print-cess-git-preview.example.vercel.app");
@@ -100,8 +116,10 @@ describe("demo kiosk session registration route", () => {
     });
   });
 
-  it("stays unavailable when demo routes are disabled", async () => {
+  it("stays unavailable when demo routes are disabled outside the dedicated Preview branch", async () => {
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_GIT_COMMIT_REF", "feature/example");
 
     const response = await POST(createRequest("http://localhost:3000"));
 
