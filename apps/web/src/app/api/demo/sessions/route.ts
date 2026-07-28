@@ -20,7 +20,12 @@ export async function POST(request: Request) {
     if (!origin) {
       throw new ServiceError("unauthorized", "This request origin is not allowed.", 403);
     }
-    assertAllowedOrigin(request, server.config);
+
+    const trustedVercelPreviewOrigin = isTrustedVercelPreviewOrigin(origin);
+    if (!trustedVercelPreviewOrigin) {
+      assertAllowedOrigin(request, server.config);
+    }
+
     enforceRateLimit(
       `demo-create:${request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local"}`,
       20,
@@ -33,7 +38,8 @@ export async function POST(request: Request) {
       await sweepDueOrphans(server, Date.now(), 3).catch(() => undefined);
     });
 
-    const qrUrl = `${server.config.publicBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}`;
+    const qrBaseUrl = trustedVercelPreviewOrigin ? origin : server.config.publicBaseUrl;
+    const qrUrl = `${qrBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}`;
     return json(
       {
         protocolVersion: 1,
@@ -48,4 +54,22 @@ export async function POST(request: Request) {
   } catch (error) {
     return errorResponse(error);
   }
+}
+
+function isTrustedVercelPreviewOrigin(origin: string): boolean {
+  if (process.env.VERCEL_ENV !== "preview") return false;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== "https:" || parsed.origin !== origin) return false;
+
+  const trustedHosts = [process.env.VERCEL_BRANCH_URL, process.env.VERCEL_URL].filter(
+    (value): value is string => Boolean(value),
+  );
+  return trustedHosts.includes(parsed.host);
 }
