@@ -2,6 +2,7 @@ import { after } from "next/server";
 
 import { createSessionRequestSchema } from "@print-cess/protocol";
 
+import { isDemoRouteEnabled } from "@/server/demo";
 import { ServiceError } from "@/server/errors";
 import { assertAllowedOrigin, errorResponse, json, readJson } from "@/server/http";
 import { enforceRateLimit } from "@/server/rate-limit";
@@ -11,7 +12,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    if (process.env.ENABLE_DEMO_ROUTES !== "true") {
+    if (!isDemoRouteEnabled()) {
       throw new ServiceError("not_found", "The requested resource was not found.", 404);
     }
 
