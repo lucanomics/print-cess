@@ -18,10 +18,10 @@ const requestBody = {
   kioskPublicKeyFingerprint: "A".repeat(43),
 };
 
-function createRequest(origin?: string): Request {
+function createRequest(origin?: string, requestOrigin = "http://localhost:3000"): Request {
   const headers = new Headers({ "Content-Type": "application/json" });
   if (origin) headers.set("Origin", origin);
-  return new Request("http://localhost:3000/api/demo/sessions", {
+  return new Request(`${requestOrigin}/api/demo/sessions`, {
     method: "POST",
     headers,
     body: JSON.stringify(requestBody),
@@ -31,8 +31,8 @@ function createRequest(origin?: string): Request {
 describe("demo kiosk session registration route", () => {
   beforeEach(() => {
     vi.stubEnv("PRINT_CESS_ADAPTER_MODE", "local");
-    vi.stubEnv("PUBLIC_BASE_URL", "http://localhost:3000");
-    vi.stubEnv("ALLOWED_ORIGINS", "http://localhost:3000");
+    vi.stubEnv("PUBLIC_BASE_URL", "http://configured.example.test");
+    vi.stubEnv("ALLOWED_ORIGINS", "http://configured.example.test");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "true");
     globalThis.__printCessRuntime = undefined;
   });
@@ -42,14 +42,15 @@ describe("demo kiosk session registration route", () => {
     vi.unstubAllEnvs();
   });
 
-  it("creates a session for the enabled same-origin browser simulator", async () => {
-    const response = await POST(createRequest("http://localhost:3000"));
+  it("creates a session bound to the active same-origin preview URL", async () => {
+    const previewOrigin = "https://kiosk-live.example.test";
+    const response = await POST(createRequest(previewOrigin, previewOrigin));
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toMatchObject({
       protocolVersion: 1,
       status: "waiting",
-      qrUrl: expect.stringMatching(/^http:\/\/localhost:3000\/s\//u),
+      qrUrl: expect.stringMatching(/^https:\/\/kiosk-live\.example\.test\/s\//u),
     });
   });
 
