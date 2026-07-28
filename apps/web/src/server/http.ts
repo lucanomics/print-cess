@@ -8,7 +8,13 @@ import { ServiceError, publicErrorBody } from "./errors";
 
 export function assertAllowedOrigin(request: Request, config: ServerConfig): void {
   const origin = request.headers.get("origin");
-  if (origin && !config.allowedOrigins.includes(origin)) {
+  if (!origin) return;
+
+  if (process.env.ENABLE_DEMO_ROUTES === "true" && origin === new URL(request.url).origin) {
+    return;
+  }
+
+  if (!config.allowedOrigins.includes(origin)) {
     throw new ServiceError("unauthorized", "This request origin is not allowed.", 403);
   }
 }
