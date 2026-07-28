@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isDemoRouteEnabled } from "./demo";
+
 export const SESSION_PROVIDERS = ["upstash-redis", "railway-redis", "railway-postgres"] as const;
 export const BLOB_PROVIDERS = ["vercel-blob", "railway-s3"] as const;
 export const CLEANUP_PROVIDERS = ["qstash", "railway-worker"] as const;
@@ -57,7 +59,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
       .filter(Boolean),
     sessionTtlMs: Number(environment.SESSION_TTL_SECONDS ?? 180) * 1000,
     signedUrlTtlMs: Number(environment.SIGNED_URL_TTL_SECONDS ?? 120) * 1000,
-    demoEnabled: environment.ENABLE_DEMO_ROUTES === "true" || environment.NODE_ENV !== "production",
+    demoEnabled: isDemoRouteEnabled(environment) || environment.NODE_ENV !== "production",
   });
 
   if (environment.NODE_ENV === "production") {
