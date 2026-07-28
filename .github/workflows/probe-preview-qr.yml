@@ -17,6 +17,6 @@ jobs:
       - name: Discover and probe deployed Preview
         run: |
           curl --fail --silent --show-error \
-            https://raw.githubusercontent.com/lucanomics/paradiso-print-cess/repair/probe-preview-qr/.github/scripts/probe-preview-qr.mjs \
+            https://raw.githubusercontent.com/lucanomics/paradiso-print-cess/20a76f594d217cf3445c6a61e3694bc9fce5f65b/.github/scripts/probe-preview-qr.mjs \
             --output /tmp/probe-preview-qr.mjs
           node /tmp/probe-preview-qr.mjs
