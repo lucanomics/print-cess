@@ -1,0 +1,75 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return {
+    ...actual,
+    after: (callback: () => void | Promise<void>) => {
+      void callback();
+    },
+  };
+});
+
+import { POST } from "./route";
+
+const requestBody = {
+  protocolVersion: 1,
+  kioskPublicKey: `B${"A".repeat(86)}`,
+  kioskPublicKeyFingerprint: "A".repeat(43),
+};
+
+function createRequest(origin?: string): Request {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (origin) headers.set("Origin", origin);
+  return new Request("http://localhost:3000/api/demo/sessions", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(requestBody),
+  });
+}
+
+describe("demo kiosk session registration route", () => {
+  beforeEach(() => {
+    vi.stubEnv("PRINT_CESS_ADAPTER_MODE", "local");
+    vi.stubEnv("PUBLIC_BASE_URL", "http://localhost:3000");
+    vi.stubEnv("ALLOWED_ORIGINS", "http://localhost:3000");
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "true");
+    globalThis.__printCessRuntime = undefined;
+  });
+
+  afterEach(() => {
+    globalThis.__printCessRuntime = undefined;
+    vi.unstubAllEnvs();
+  });
+
+  it("creates a session for the enabled same-origin browser simulator", async () => {
+    const response = await POST(createRequest("http://localhost:3000"));
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      protocolVersion: 1,
+      status: "waiting",
+      qrUrl: expect.stringMatching(/^http:\/\/localhost:3000\/s\//u),
+    });
+  });
+
+  it("rejects requests without a browser origin", async () => {
+    const response = await POST(createRequest());
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "unauthorized" },
+    });
+  });
+
+  it("stays unavailable when demo routes are disabled", async () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+
+    const response = await POST(createRequest("http://localhost:3000"));
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "not_found" },
+    });
+  });
+});
