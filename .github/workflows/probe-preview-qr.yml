@@ -12,11 +12,12 @@ jobs:
     if: ${{ github.head_ref == 'repair/probe-preview-qr' }}
     runs-on: ubuntu-latest
     env:
+      GITHUB_TOKEN: ${{ github.token }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Discover and probe deployed Preview
         run: |
-          curl --fail --silent --show-error \
-            https://raw.githubusercontent.com/lucanomics/paradiso-print-cess/20a76f594d217cf3445c6a61e3694bc9fce5f65b/.github/scripts/probe-preview-qr.mjs \
-            --output /tmp/probe-preview-qr.mjs
+          gh api \
+            /repos/lucanomics/paradiso-print-cess/contents/.github/scripts/probe-preview-qr.mjs?ref=20a76f594d217cf3445c6a61e3694bc9fce5f65b \
+            --jq .content | base64 --decode > /tmp/probe-preview-qr.mjs
           node /tmp/probe-preview-qr.mjs
