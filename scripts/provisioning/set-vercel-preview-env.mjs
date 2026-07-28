@@ -15,6 +15,8 @@ import { describeSecret, describeUrl, report, requireEnvironment } from "./lib/s
  *   they never appear in argv, shell history, or stdout.
  * - Values are validated against the same rules the server enforces
  *   (apps/web/src/server/config.ts) so a bad value fails here, not at runtime.
+ * - Demo routes remain disabled unless `--enable-demo` is explicitly supplied
+ *   together with a branch scope.
  * - Reporting is masked.
  *
  * Required environment:
@@ -40,7 +42,8 @@ import { describeSecret, describeUrl, report, requireEnvironment } from "./lib/s
 const API = "https://api.vercel.com";
 
 // Fixed, non-secret values that select the Railway stack and pin the session
-// bounds. Kept here so the operator cannot forget one.
+// bounds. Demo exposure is added separately so it can never be enabled for all
+// Preview deployments by accident.
 const FIXED = {
   PRINT_CESS_ADAPTER_MODE: "external",
   PRINT_CESS_SESSION_PROVIDER: "railway-redis",
@@ -48,7 +51,6 @@ const FIXED = {
   PRINT_CESS_CLEANUP_PROVIDER: "railway-worker",
   SESSION_TTL_SECONDS: "180",
   SIGNED_URL_TTL_SECONDS: "120",
-  ENABLE_DEMO_ROUTES: "false",
   UPSTASH_DISABLE_TELEMETRY: "1",
 };
 
@@ -79,16 +81,20 @@ function usage() {
   return [
     "Usage:",
     "  VERCEL_TOKEN=... node scripts/provisioning/set-vercel-preview-env.mjs \\",
-    "    --project <projectId> --team <teamId> --input <values.json> [--branch <git-branch>] [--dry-run]",
+    "    --project <projectId> --team <teamId> --input <values.json> [--branch <git-branch>] [--enable-demo] [--dry-run]",
   ].join("\n");
 }
 
 function parseArguments(argv) {
-  const options = { dryRun: false };
+  const options = { dryRun: false, enableDemo: false };
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === "--dry-run") {
       options.dryRun = true;
+      continue;
+    }
+    if (flag === "--enable-demo") {
+      options.enableDemo = true;
       continue;
     }
     const value = argv[index + 1];
@@ -101,6 +107,9 @@ function parseArguments(argv) {
     index += 1;
   }
   if (!options.project || !options.team || !options.input) throw new Error(usage());
+  if (options.enableDemo && !options.branch) {
+    throw new Error("--enable-demo requires --branch so demo routes are never enabled for every Preview deployment");
+  }
   return options;
 }
 
@@ -212,12 +221,17 @@ try {
     for (const problem of problems) process.stderr.write(`- ${problem}\n`);
     process.exitCode = 1;
   } else {
-    const payload = { ...FIXED, ...Object.fromEntries(REQUIRED_INPUT.map((k) => [k, values[k]])) };
+    const payload = {
+      ...FIXED,
+      ENABLE_DEMO_ROUTES: options.enableDemo ? "true" : "false",
+      ...Object.fromEntries(REQUIRED_INPUT.map((k) => [k, values[k]])),
+    };
     if (values.S3_FORCE_PATH_STYLE) payload.S3_FORCE_PATH_STYLE = values.S3_FORCE_PATH_STYLE;
 
     report("Target project", options.project);
     report("Target team", options.team);
     report("Environment", `preview${options.branch ? ` (branch ${options.branch})` : ""}`);
+    report("Demo routes", options.enableDemo ? "enabled for scoped branch" : "disabled");
     report("Production", "NOT written");
     process.stdout.write("\n");
 
