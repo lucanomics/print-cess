@@ -20,6 +20,27 @@ describe("home page", () => {
     expect(redirect).toHaveBeenCalledWith("/demo/kiosk");
   });
 
+  it("opens the kiosk simulator on the dedicated Vercel Preview branch", () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_GIT_COMMIT_REF", "preview");
+
+    HomePage();
+
+    expect(redirect).toHaveBeenCalledWith("/demo/kiosk");
+  });
+
+  it("keeps the status page on unrelated Preview branches", () => {
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_GIT_COMMIT_REF", "feature/example");
+
+    const page = HomePage();
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(page.props.className).toBe("status-page");
+  });
+
   it("keeps the production status page when demo routes are disabled", () => {
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
 
