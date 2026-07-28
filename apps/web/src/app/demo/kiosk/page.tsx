@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { KioskSimulator } from "@/components/kiosk/kiosk-simulator";
-import { isHostedDemoEnabled } from "@/server/demo-runtime";
+import { isDemoRouteEnabled } from "@/server/demo";
 
 export default function KioskDemoPage() {
-  if (process.env.NODE_ENV === "production" && !isHostedDemoEnabled()) notFound();
+  if (process.env.NODE_ENV === "production" && !isDemoRouteEnabled()) notFound();
   return <KioskSimulator />;
 }

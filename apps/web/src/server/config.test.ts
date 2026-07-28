@@ -26,6 +26,28 @@ describe("loadConfig", () => {
     });
   });
 
+  it("enables demo behavior on the dedicated Vercel Preview branch", () => {
+    expect(
+      loadConfig({
+        ...productionEnvironment,
+        ENABLE_DEMO_ROUTES: "false",
+        VERCEL_ENV: "preview",
+        VERCEL_GIT_COMMIT_REF: "preview",
+      }),
+    ).toMatchObject({ demoEnabled: true });
+  });
+
+  it("does not enable demo behavior on unrelated Vercel Preview branches", () => {
+    expect(
+      loadConfig({
+        ...productionEnvironment,
+        ENABLE_DEMO_ROUTES: "false",
+        VERCEL_ENV: "preview",
+        VERCEL_GIT_COMMIT_REF: "feature/example",
+      }),
+    ).toMatchObject({ demoEnabled: false });
+  });
+
   it("rejects an insecure production public origin", () => {
     expect(() =>
       loadConfig({ ...productionEnvironment, PUBLIC_BASE_URL: "http://print.example.test" }),

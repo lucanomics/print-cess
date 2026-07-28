@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 
 import { Wordmark } from "@print-cess/ui";
 
-import { isHostedDemoEnabled } from "@/server/demo-runtime";
+import { isDemoRouteEnabled } from "@/server/demo";
 
 export default function HomePage() {
-  if (isHostedDemoEnabled()) redirect("/demo/kiosk");
+  if (isDemoRouteEnabled()) redirect("/demo/kiosk");
 
   return (
     <main className="status-page">

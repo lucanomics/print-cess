@@ -15,15 +15,27 @@ describe("kiosk demo page", () => {
     notFound.mockReset();
   });
 
-  it("renders on Vercel Preview without the manual demo flag", () => {
+  it("renders on the dedicated Vercel Preview branch without the manual demo flag", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
     vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_GIT_COMMIT_REF", "preview");
 
     const page = KioskDemoPage();
 
     expect(notFound).not.toHaveBeenCalled();
     expect(page.type).toBeDefined();
+  });
+
+  it("stays hidden on unrelated Vercel Preview branches", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_GIT_COMMIT_REF", "feature/example");
+
+    KioskDemoPage();
+
+    expect(notFound).toHaveBeenCalledOnce();
   });
 
   it("stays hidden in Production when demo routes are disabled", () => {
