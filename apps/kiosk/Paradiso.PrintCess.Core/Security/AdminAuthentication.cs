@@ -33,16 +33,17 @@ public sealed class AdminAuthenticationThrottle
         int failureLimit = DefaultFailureLimit,
         TimeSpan? lockoutDuration = null)
     {
-        if (failureLimit < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(failureLimit));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(failureLimit, 1);
 
         var duration = lockoutDuration ?? DefaultLockoutDuration;
-        if (duration <= TimeSpan.Zero || duration > TimeSpan.FromHours(1))
-        {
-            throw new ArgumentOutOfRangeException(nameof(lockoutDuration));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+            duration,
+            TimeSpan.Zero,
+            nameof(lockoutDuration));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            duration,
+            TimeSpan.FromHours(1),
+            nameof(lockoutDuration));
 
         _timeProvider = timeProvider ?? TimeProvider.System;
         _failureLimit = failureLimit;
