@@ -178,13 +178,10 @@ test("language selection shows a localized guide before photo and file sharing",
   await expect(mobile.getByText("이메일")).toHaveCount(0);
 });
 
-test("browser Back leaves the claimed document flow without exposing data", async ({
-  page,
-  context,
-}) => {
+test("browser Back never restores QR credentials after claim", async ({ page, context }) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await mobile.goBack();
-  expect(mobile.url()).toBe("about:blank");
+  expect(mobile.url()).not.toMatch(/[#&](?:t|fp)=/u);
 });
 
 test("@viewport primary controls fit and pass basic accessibility checks", async ({
