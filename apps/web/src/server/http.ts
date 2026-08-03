@@ -6,11 +6,29 @@ import { SESSION_ID_PATTERN } from "@print-cess/protocol";
 import type { ServerConfig } from "./config";
 import { ServiceError, publicErrorBody } from "./errors";
 
+const OFFICIAL_VERCEL_PRODUCTION_ORIGINS = new Set([
+  "https://print-cess.vercel.app",
+  "https://paradiso-print-cess-web.vercel.app",
+]);
+
 export function assertAllowedOrigin(request: Request, config: ServerConfig): void {
   const origin = request.headers.get("origin");
-  if (origin && !config.allowedOrigins.includes(origin)) {
+  if (
+    origin &&
+    !config.allowedOrigins.includes(origin) &&
+    !isOfficialVercelProductionOrigin(origin)
+  ) {
     throw new ServiceError("unauthorized", "This request origin is not allowed.", 403);
   }
+}
+
+export function isOfficialVercelProductionOrigin(
+  origin: string,
+  environment: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return (
+    environment.VERCEL_ENV === "production" && OFFICIAL_VERCEL_PRODUCTION_ORIGINS.has(origin)
+  );
 }
 
 export async function readSessionId(context: {
