@@ -27,6 +27,29 @@ describe("browser kiosk and demo route gates", () => {
     expect(isDemoRouteEnabled(environment)).toBe(false);
   });
 
+  it("ignores an accidentally enabled demo flag in Vercel Production", () => {
+    const environment: NodeJS.ProcessEnv = {
+      NODE_ENV: "production",
+      VERCEL_ENV: "production",
+      ENABLE_BROWSER_KIOSK: "false",
+      ENABLE_DEMO_ROUTES: "true",
+    };
+
+    expect(isBrowserKioskEnabled(environment)).toBe(false);
+    expect(isDemoRouteEnabled(environment)).toBe(false);
+  });
+
+  it("fails closed for a non-Vercel Production deployment", () => {
+    const environment: NodeJS.ProcessEnv = {
+      NODE_ENV: "production",
+      ENABLE_BROWSER_KIOSK: "false",
+      ENABLE_DEMO_ROUTES: "true",
+    };
+
+    expect(isBrowserKioskEnabled(environment)).toBe(false);
+    expect(isDemoRouteEnabled(environment)).toBe(false);
+  });
+
   it("keeps the dedicated Preview branch compatible", () => {
     const environment: NodeJS.ProcessEnv = {
       NODE_ENV: "production",
@@ -37,5 +60,6 @@ describe("browser kiosk and demo route gates", () => {
     };
 
     expect(isBrowserKioskEnabled(environment)).toBe(true);
+    expect(isDemoRouteEnabled(environment)).toBe(true);
   });
 });
