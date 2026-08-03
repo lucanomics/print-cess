@@ -26,9 +26,7 @@ export function isOfficialVercelProductionOrigin(
   origin: string,
   environment: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return (
-    environment.VERCEL_ENV === "production" && OFFICIAL_VERCEL_PRODUCTION_ORIGINS.has(origin)
-  );
+  return environment.VERCEL_ENV === "production" && OFFICIAL_VERCEL_PRODUCTION_ORIGINS.has(origin);
 }
 
 export async function readSessionId(context: {
