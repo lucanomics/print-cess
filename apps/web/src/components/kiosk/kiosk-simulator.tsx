@@ -9,7 +9,6 @@ import {
   Printer,
   ShieldCheck,
   Smartphone,
-  WifiOff,
 } from "lucide-react";
 import QRCode from "qrcode";
 
@@ -221,21 +220,13 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
       <Wordmark />
       <div className="kiosk-layout">
         <section className="kiosk-instructions">
-          <h1>
-            휴대전화 카메라로
-            <br />
-            QR코드를 스캔하세요
-          </h1>
-          <p className="kiosk-english">Scan with your phone camera</p>
-          <div className="kiosk-rule" />
-          <p className="kiosk-data">
-            <WifiOff aria-hidden="true" />{" "}
-            <span>
-              <strong>Wi-Fi는 필요하지 않습니다.</strong>
-              <br />
-              휴대전화 모바일 데이터를 사용하세요
+          <h1 className="kiosk-step-heading">
+            <span className="kiosk-step-number" aria-hidden="true">
+              1
             </span>
-          </p>
+            <span>휴대전화 카메라를 여세요</span>
+          </h1>
+          <p className="kiosk-english">Open your phone camera</p>
           <div className="kiosk-facts">
             <p>
               <FileCheck2 aria-hidden="true" />
@@ -266,21 +257,34 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
         </section>
         <section
           className="kiosk-qr"
-          aria-label="Mobile session QR code"
+          aria-label="휴대전화로 스캔할 QR코드"
           data-session-url={session?.qrUrl}
         >
+          <div className="kiosk-qr__instruction">
+            <span className="kiosk-step-number" aria-hidden="true">
+              2
+            </span>
+            <div>
+              <strong>QR코드를 카메라로 비추세요</strong>
+              <small>Point your camera at the QR code</small>
+            </div>
+          </div>
           {session ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={session.qrImage} alt="휴대전화로 스캔할 Print-cess 보안 QR코드" />
           ) : (
             <div className="kiosk-qr__loading" aria-busy="true" />
           )}
-          <p>
+          <div className="kiosk-qr__action">
+            <span className="kiosk-step-number" aria-hidden="true">
+              3
+            </span>
             <Smartphone aria-hidden="true" />
-            카메라를 열고 QR코드를 비추면
-            <br />
-            안전한 연결이 시작됩니다
-          </p>
+            <div>
+              <strong>화면에 나타나는 링크를 누르세요</strong>
+              <small>사진을 찍을 필요는 없습니다 · Tap the link that appears</small>
+            </div>
+          </div>
         </section>
       </div>
     </main>
