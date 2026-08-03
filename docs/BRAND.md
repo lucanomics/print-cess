@@ -15,9 +15,11 @@ No prior parent brand or repository name may remain in content or metadata.
 
 ## Visual language
 
-The product is calm civic-service infrastructure: clear, steady, accessible, and neutral. Wit is
-limited to the name. Do not use crowns, castles, princess imagery, sparkles, ornate scripts,
-luxury motifs, or an excess of pink. Decoration never competes with the next action.
+The product is calm civic-service infrastructure: clear, steady, accessible, and neutral. The
+name's wordplay may appear once in the primary mark through a compact tiara-shaped paper edge,
+but it must remain readable first as a printer. Do not add castles, princess characters, ornate
+scripts, glitter effects, luxury motifs, or an excess of pink. Decoration never competes with the
+next action.
 
 Current code tokens are the canonical starting palette:
 
@@ -29,6 +31,7 @@ Current code tokens are the canonical starting palette:
 | Action teal    | `--pc-teal`                    | `#008a8a`             |
 | Dark teal      | `--pc-teal-dark`               | `#006f72`             |
 | Soft teal      | `--pc-teal-soft`               | `#e3f5f4`             |
+| Warm paper     | `--pc-paper-warm`              | `#fff8ea`             |
 | Border         | `--pc-line`                    | `#d9e5ed`             |
 | Surface/subtle | `--pc-surface` / `--pc-subtle` | `#ffffff` / `#f4f8fa` |
 | Error/success  | `--pc-error` / `--pc-success`  | `#a72c35` / `#087a57` |
@@ -40,13 +43,22 @@ Color never carries meaning alone. Test contrast in every state.
 
 ## Wordmark and icon
 
-The initial mark is code, not an image asset: a simple outline printer icon followed by
-“Print-cess” in strong weight and “by Paradiso” in a quieter weight. Give the complete group the
+The primary mark combines a rounded printer with a raised sheet whose top edge forms three small
+points. This is the only princess reference: it should read as useful equipment before it reads as
+a tiara. The warm paper fill adds a restrained playful note without changing the civic-service
+palette.
+
+The wordmark places the icon before “Print-cess” in strong weight and “by Paradiso” in a quieter
+weight. The hyphen may use action teal as a small visual wink. Give the complete group the
 accessible name “Print-cess by Paradiso”; decorative icon paths are hidden from assistive
 technology.
 
-Do not begin with a complex logo project. Do not use the Ministry of Justice, Jeju Immigration
-Office, another public agency, airline, or travel-service logo without written permission.
+Use `docs/assets/print-cess-mark.svg` for documentation and repository surfaces. The web app's
+file-based icon lives at `apps/web/src/app/icon.svg`; the shared React mark is implemented in
+`packages/ui/src/index.tsx`. Keep these variants visually synchronized.
+
+Do not use the Ministry of Justice, Jeju Immigration Office, another public agency, airline, or
+travel-service logo without written permission.
 
 ## Layout and motion
 

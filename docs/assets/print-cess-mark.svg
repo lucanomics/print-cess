@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Print-cess by Paradiso mark</title>
+  <desc id="desc">A rounded printer whose raised paper edge forms a small tiara.</desc>
+  <rect width="64" height="64" rx="16" fill="#e3f5f4" />
+  <path
+    d="M18 28V15l7 4 7-10 7 10 7-4v13H18Z"
+    fill="#fff8ea"
+    stroke="#071737"
+    stroke-width="2.6"
+    stroke-linejoin="round"
+  />
+  <rect
+    x="7"
+    y="24"
+    width="50"
+    height="29"
+    rx="8"
+    fill="#ffffff"
+    stroke="#071737"
+    stroke-width="2.6"
+  />
+  <path
+    d="M18 39h28v18H18z"
+    fill="#ffffff"
+    stroke="#071737"
+    stroke-width="2.6"
+    stroke-linejoin="round"
+  />
+  <path d="M23 47h18" stroke="#006f72" stroke-width="2.6" stroke-linecap="round" />
+  <circle cx="48" cy="33" r="2.5" fill="#008a8a" />
+</svg>

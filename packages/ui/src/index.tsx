@@ -7,9 +7,12 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
       className={compact ? "pc-wordmark pc-wordmark--compact" : "pc-wordmark"}
       aria-label="Print-cess by Paradiso"
     >
-      <Printer aria-hidden="true" strokeWidth={2.2} />
+      <PrintcessMark />
       <span>
-        <strong>Print-cess</strong> <small>by Paradiso</small>
+        <strong>
+          Print<span className="pc-wordmark__hyphen">-</span>cess
+        </strong>{" "}
+        <small>by Paradiso</small>
       </span>
     </div>
   );

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/print-cess-mark.svg" alt="Print-cess by Paradiso mark" width="96" />
+</p>
+
 # Print-cess by Paradiso
 
 **Secure self-service document printing**
