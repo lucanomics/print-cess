@@ -3,14 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
-  FileDown,
   FileImage,
   Files,
   Headphones,
   Image as ImageIcon,
   LockKeyhole,
-  Mail,
-  MessageCircle,
   Printer,
   TriangleAlert,
 } from "lucide-react";
@@ -53,39 +50,21 @@ import { parseSessionFragment } from "@/lib/session-fragment";
 import { DocumentPreview } from "./document-preview";
 
 type Stage =
-  | "boot"
-  | "language"
-  | "location"
-  | "locationGuide"
-  | "file"
-  | "preview"
-  | "transfer"
-  | "progress"
-  | "complete"
-  | "missing"
-  | "error";
-type Location = "photos" | "files" | "kakao" | "email" | "missing";
+  "boot" | "language" | "file" | "preview" | "transfer" | "progress" | "complete" | "error";
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
-
-const LOCATION_OPTIONS: Array<{ value: Location; key: string; icon: typeof ImageIcon }> = [
-  { value: "photos", key: "locationPhotos", icon: ImageIcon },
-  { value: "files", key: "locationFiles", icon: Files },
-  { value: "kakao", key: "locationKakao", icon: MessageCircle },
-  { value: "email", key: "locationEmail", icon: Mail },
-  { value: "missing", key: "locationMissing", icon: FileDown },
-];
 
 export function MobileFlow({ sessionId }: { sessionId: string }) {
   const [stage, setStage] = useState<Stage>("boot");
   const [locale, setLocale] = useState<SupportedLocale>("en");
-  const [location, setLocation] = useState<Location>();
   const [claimed, setClaimed] = useState<ClaimedSession>();
   const [mobileToken, setMobileToken] = useState("");
   const [file, setFile] = useState<File>();
   const [validated, setValidated] = useState<ValidatedMobileFile>();
   const [errorKey, setErrorKey] = useState("networkError");
+  const [fileErrorKey, setFileErrorKey] = useState<string>();
   const [progressKey, setProgressKey] = useState("encrypting");
   const [reminderStage, setReminderStage] = useState<Stage>();
+  const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const text = useCallback(
     (key: string, values?: Record<string, string | number>) => translate(locale, key, values),
@@ -119,6 +98,8 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       return undefined;
     });
     setFile(undefined);
+    setFileErrorKey(undefined);
+    if (photoInput.current) photoInput.current.value = "";
     if (fileInput.current) fileInput.current.value = "";
   }, []);
 
@@ -186,33 +167,20 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
 
   const chooseFile = useCallback(
     async (selected: File | undefined) => {
-      if (!selected) {
-        await cancelClaim();
-        setErrorKey("cancelled");
-        setStage("error");
-        return;
-      }
+      if (!selected) return;
       try {
+        setFileErrorKey(undefined);
         const result = await validateFileForMobile(selected);
         setFile(selected);
         setValidated(result);
         setStage("preview");
       } catch (error) {
-        await cancelClaim();
-        setErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
-        setStage("error");
+        clearDocument();
+        setFileErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
       }
     },
-    [cancelClaim],
+    [clearDocument],
   );
-
-  useEffect(() => {
-    const input = fileInput.current;
-    if (!input || stage !== "file") return;
-    const handleCancel = () => void chooseFile(undefined);
-    input.addEventListener("cancel", handleCancel);
-    return () => input.removeEventListener("cancel", handleCancel);
-  }, [chooseFile, stage]);
 
   const print = useCallback(async () => {
     if (!claimed || !validated || !mobileToken) return;
@@ -267,22 +235,13 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
     }
   }, [cancelClaim, claimed, clearDocument, mobileToken, sessionId, validated]);
 
-  const step =
-    stage === "language"
-      ? 1
-      : stage === "location" || stage === "locationGuide" || stage === "missing"
-        ? 2
-        : stage === "file"
-          ? 3
-          : stage === "preview"
-            ? 4
-            : 5;
+  const step = stage === "language" ? 1 : stage === "file" ? 2 : stage === "preview" ? 3 : 4;
 
   return (
     <ScreenShell>
       <Wordmark compact />
       {stage !== "boot" && stage !== "error" && stage !== "complete" ? (
-        <ProgressSteps current={step} total={5} label={text("step", { current: step, total: 5 })} />
+        <ProgressSteps current={step} total={4} label={text("step", { current: step, total: 4 })} />
       ) : null}
       {reminderStage === stage && !["boot", "complete", "error"].includes(stage) ? (
         <p className="mobile-reminder" role="status">
@@ -291,39 +250,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       ) : null}
       {stage === "boot" ? <Loading /> : null}
       {stage === "language" ? (
-        <LanguageStep
-          locale={locale}
-          onSelect={setLocale}
-          onContinue={() => setStage("location")}
-        />
-      ) : null}
-      {stage === "location" ? (
-        <LocationStep
-          value={location}
-          text={text}
-          onChange={setLocation}
-          onContinue={() => {
-            if (location === "missing") setStage("missing");
-            else if (location === "kakao" || location === "email") setStage("locationGuide");
-            else setStage("file");
-          }}
-        />
-      ) : null}
-      {stage === "locationGuide" && location ? (
-        <SingleAction
-          title={text(location === "kakao" ? "locationKakao" : "locationEmail")}
-          body={text(location === "kakao" ? "kakaoGuide" : "emailGuide")}
-          action={text("continue")}
-          onAction={() => setStage("file")}
-        />
-      ) : null}
-      {stage === "missing" ? (
-        <SingleAction
-          title={text("missingTitle")}
-          body={text("missingBody")}
-          action={text("continue")}
-          onAction={() => setStage("location")}
-        />
+        <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("file")} />
       ) : null}
       {stage === "file" ? (
         <section className="mobile-step">
@@ -333,15 +260,34 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           <h1>{text("chooseFile")}</h1>
           <p>{text("fileRules")}</p>
           <input
+            ref={photoInput}
+            data-testid="photo-input"
+            hidden
+            type="file"
+            accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+            onChange={(event) => void chooseFile(event.target.files?.[0])}
+          />
+          <input
             ref={fileInput}
-            className="visually-hidden"
+            data-testid="file-input"
+            hidden
             type="file"
             accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
-          <PrimaryButton onClick={() => fileInput.current?.click()}>
-            {text("chooseFile")}
-          </PrimaryButton>
+          {fileErrorKey ? (
+            <p className="mobile-file-error" role="alert">
+              {text(fileErrorKey)}
+            </p>
+          ) : null}
+          <div className="mobile-source-actions">
+            <PrimaryButton onClick={() => photoInput.current?.click()}>
+              <ImageIcon aria-hidden="true" /> {text("locationPhotos")}
+            </PrimaryButton>
+            <SecondaryButton onClick={() => fileInput.current?.click()}>
+              <Files aria-hidden="true" /> {text("locationFiles")}
+            </SecondaryButton>
+          </div>
         </section>
       ) : null}
       {stage === "preview" && file && validated ? (
@@ -433,44 +379,6 @@ function LanguageStep({
         ))}
       </div>
       <PrimaryButton onClick={onContinue}>{translate(locale, "continue")}</PrimaryButton>
-    </section>
-  );
-}
-
-function LocationStep({
-  value,
-  text,
-  onChange,
-  onContinue,
-}: {
-  value: Location | undefined;
-  text: (key: string) => string;
-  onChange: (value: Location) => void;
-  onContinue: () => void;
-}) {
-  return (
-    <section className="mobile-step">
-      <h1>{text("chooseLocation")}</h1>
-      <div className="choice-list">
-        {LOCATION_OPTIONS.map(({ value: candidate, key, icon: Icon }) => (
-          <label
-            key={candidate}
-            className={candidate === value ? "choice-row is-selected" : "choice-row"}
-          >
-            <input
-              type="radio"
-              name="location"
-              checked={candidate === value}
-              onChange={() => onChange(candidate)}
-            />
-            <Icon aria-hidden="true" />
-            <span>{text(key)}</span>
-          </label>
-        ))}
-      </div>
-      <PrimaryButton disabled={!value} onClick={onContinue}>
-        {text("continue")}
-      </PrimaryButton>
     </section>
   );
 }

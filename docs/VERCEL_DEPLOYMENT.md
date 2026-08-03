@@ -3,10 +3,9 @@
 ## Current status
 
 The Vercel project `club-paradiso/paradiso-print-cess-web` is linked to the private GitHub
-repository with Root Directory `apps/web`. A provider-backed deployment of the dedicated `preview`
-branch exists and can create browser-kiosk sessions. The public Production alias still points to an
-older deployment without Production provider variables, so it intentionally remains unavailable as
-a browser kiosk until the Production gates below are closed.
+repository with Root Directory `apps/web`. The public Production alias uses isolated Production
+Blob, Redis, and QStash resources and can create browser-kiosk sessions. Production deployment is
+manual while the remaining physical-site acceptance gates are open.
 
 Automatic `main` deployments are disabled in `apps/web/vercel.json`. Do not remove that circuit
 breaker until provider approval, isolated Production Blob/session/cleanup resources, environment
@@ -19,6 +18,24 @@ enable `/demo/admin` or administrator diagnostics. The optional Windows kiosk is
 Vercel.
 `apps/web/vercel.json` owns the Next.js commands; Vercel resolves the repository-root pnpm lockfile
 and workspace packages while building from `apps/web`.
+
+## Browser kiosk printing
+
+The public browser kiosk decrypts and validates the received document in memory, creates a
+short-lived browser Blob, and opens the browser's system print UI. The completion screen keeps two
+recovery actions visible for 60 seconds: **Open print dialog again** and **Download file**. The
+server-side encrypted object is deleted at terminal completion; the in-memory Blob URL is revoked
+when the screen resets.
+
+A normal browser does not allow a website to bypass the system print confirmation. For unattended
+physical output, configure the kiosk computer's approved default printer and launch its managed
+Chromium browser in kiosk mode with silent kiosk printing enabled. Verify that policy on the exact
+browser version and printer driver before opening the station. Without that managed setting, a
+visitor or operator must confirm the print dialog.
+
+The download action saves a plaintext copy through the browser and can outlive the web session.
+Use it only as a recovery path, configure the kiosk account to clear its download directory between
+users, and verify that cleanup as part of site acceptance.
 
 ## Project setup
 
@@ -44,7 +61,7 @@ credentials and exact `PROVIDER_BASE_URL` exist. The GitHub `vercel-preview` env
 restricted to workflow runs whose `GITHUB_REF` is the `main` branch; the workflow repeats that
 check before installing dependencies.
 
-The expected public hostname `print-cess.vercel.app` is not approved or verified for Production.
+The public browser-kiosk hostname is `paradiso-print-cess-web.vercel.app`.
 
 ## Environment variables
 

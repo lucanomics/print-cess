@@ -14,8 +14,8 @@ At minimum test the oldest and newest institution-supported combinations:
 - target Windows 10/11 image, display scaling, screen, speakers, keyboard, and kiosk policy;
 - cellular paths from at least two carriers while the desktop uses its production-like wired path.
 
-For every combination run language selection, Photos/Gallery, Files/Downloads, KakaoTalk save help,
-email save help, missing-document guidance, PDF/JPG/PNG preview, approve, progress, completion, QR
+For every combination run language selection, Photos/Gallery, Files/Downloads, PDF/JPG/PNG preview,
+approve, progress, completion, QR
 expiry/reuse, network loss, locked/damaged/oversize document, refresh/back, and reduced-motion paths.
 Record OS/browser version, viewport/scaling, assistive technology, commit/deployment, tester, UTC time,
 result, and sanitized issue link.

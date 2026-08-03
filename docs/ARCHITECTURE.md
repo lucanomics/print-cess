@@ -121,20 +121,20 @@ document content and remains until conditional Blob deletion is finalized.
 All transitions below are allowed; every unlisted transition is rejected. Transition and revision
 checks occur atomically. Terminal states cannot be reactivated.
 
-| Current state       | Allowed next states                                   | Entry/exit rule                                                               |
-| ------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `waiting`           | `claimed`, `expired`, `cancelled`                     | Only the first valid upload token may claim.                                  |
-| `claimed`           | `upload_authorized`, `expired`, `cancelled`, `failed` | Claim owns the session; a second phone is rejected.                           |
-| `upload_authorized` | `uploading`, `expired`, `cancelled`, `failed`         | One random pathname is reserved and cleanup is scheduled.                     |
-| `uploading`         | `uploaded`, `expired`, `cancelled`, `failed`          | Optional progress state; no second object/path may be authorized.             |
-| `uploaded`          | `consumed`, `expired`, `cancelled`, `failed`          | ETag and bounded envelope size are committed.                                 |
-| `consumed`          | `validating`, `failed`, `expired`                     | Consume succeeds once with the kiosk token; an abandoned lease may expire.    |
-| `validating`        | `printing`, `failed`                                  | Authenticated decryption precedes file validation; validation precedes print. |
-| `printing`          | `completed`, `failed`                                 | Enter once. An ambiguous submission fails closed without retry.               |
-| `completed`         | none                                                  | Terminal; immediate cleanup and 15-second completion screen.                  |
-| `failed`            | none                                                  | Terminal; cleanup, neutral error code, no internal details.                   |
-| `expired`           | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                |
-| `cancelled`         | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                |
+| Current state       | Allowed next states                                   | Entry/exit rule                                                                                |
+| ------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `waiting`           | `claimed`, `expired`, `cancelled`                     | Only the first valid upload token may claim.                                                   |
+| `claimed`           | `upload_authorized`, `expired`, `cancelled`, `failed` | Claim owns the session; a second phone is rejected.                                            |
+| `upload_authorized` | `uploading`, `expired`, `cancelled`, `failed`         | One random pathname is reserved and cleanup is scheduled.                                      |
+| `uploading`         | `uploaded`, `expired`, `cancelled`, `failed`          | Optional progress state; no second object/path may be authorized.                              |
+| `uploaded`          | `consumed`, `expired`, `cancelled`, `failed`          | ETag and bounded envelope size are committed.                                                  |
+| `consumed`          | `validating`, `failed`, `expired`                     | Consume succeeds once with the kiosk token; an abandoned lease may expire.                     |
+| `validating`        | `printing`, `failed`                                  | Authenticated decryption precedes file validation; validation precedes print.                  |
+| `printing`          | `completed`, `failed`                                 | Enter once. An ambiguous submission fails closed without retry.                                |
+| `completed`         | none                                                  | Terminal; immediate cleanup and a bounded completion screen (60 seconds in the browser kiosk). |
+| `failed`            | none                                                  | Terminal; cleanup, neutral error code, no internal details.                                    |
+| `expired`           | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                                 |
+| `cancelled`         | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                                 |
 
 Cancellation is not permitted after consume. An abandoned `consumed` lease may expire before
 validation starts; once validation starts, processing reaches `printing` or fails closed.

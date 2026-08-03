@@ -141,6 +141,31 @@ p {
   color: var(--pc-teal-dark);
 }
 
+.mobile-source-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+.mobile-source-actions .pc-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+.mobile-source-actions svg {
+  width: 24px;
+  height: 24px;
+}
+.mobile-file-error {
+  padding: 12px 14px;
+  border: 1px solid #e5a3a3;
+  border-radius: 10px;
+  background: #fff4f4;
+  color: var(--pc-error) !important;
+  font-size: 16px !important;
+}
+
 .mobile-preview {
   display: grid;
   place-items: center;

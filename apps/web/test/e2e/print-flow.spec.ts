@@ -31,9 +31,7 @@ async function openMobileAtLanguage(
   return { mobile, sessionUrl };
 }
 
-async function reachFilePicker(mobile: Page, location = "Files / Downloads"): Promise<void> {
-  await mobile.getByRole("button", { name: "Continue" }).click();
-  await mobile.getByLabel(location).check();
+async function reachFilePicker(mobile: Page): Promise<void> {
   await mobile.getByRole("button", { name: "Continue" }).click();
   await expect(mobile.getByRole("heading", { name: "Choose one document" })).toBeVisible();
 }
@@ -44,7 +42,7 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
 }) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await reachFilePicker(mobile);
-  await mobile.locator('input[type="file"]').setInputFiles({
+  await mobile.getByTestId("file-input").setInputFiles({
     name: "synthetic-ticket.png",
     mimeType: "image/png",
     buffer: Buffer.from(await createSyntheticPng(800, 1100)),
@@ -52,9 +50,12 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   await expect(mobile.getByRole("heading", { name: "Check your document" })).toBeVisible();
   await expect(mobile.getByRole("img", { name: "Selected document preview" })).toBeVisible();
   await mobile.getByRole("button", { name: "Print one A4 copy" }).click();
-  await expect(page.getByRole("heading", { name: "출력물을 가져가세요" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "인쇄 준비가 완료됐습니다" })).toBeVisible({
     timeout: 60_000,
   });
+  const download = page.getByRole("link", { name: "파일 다운로드" });
+  await expect(download).toHaveAttribute("download", "print-cess-document.png");
+  await expect(download).toHaveAttribute("href", /^blob:/u);
   await expect(mobile.getByRole("heading", { name: "Printing is complete" })).toBeVisible({
     timeout: 60_000,
   });
@@ -114,7 +115,7 @@ test("a claim network interruption produces a recovery instruction", async ({ pa
 test("large files are rejected before encryption", async ({ page, context }) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await reachFilePicker(mobile);
-  await mobile.locator('input[type="file"]').setInputFiles({
+  await mobile.getByTestId("file-input").setInputFiles({
     name: "too-large.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from(createBoundaryBytes(1)),
@@ -122,23 +123,19 @@ test("large files are rejected before encryption", async ({ page, context }) => 
   await expect(mobile.getByText(/larger than 10 MB/u)).toBeVisible();
 });
 
-test("cancelling file selection releases the claimed session", async ({ page, context }) => {
-  const { mobile, sessionUrl } = await openMobileAtLanguage(page, context);
+test("cancelling a file picker keeps the claimed session ready", async ({ page, context }) => {
+  const { mobile } = await openMobileAtLanguage(page, context);
   await reachFilePicker(mobile);
-  await mobile.locator('input[type="file"]').dispatchEvent("cancel");
-  await expect(mobile.getByText("No file was selected.")).toBeVisible();
-
-  const replacement = await context.newPage();
-  await replacement.goto(sessionUrl);
-  await expect(
-    replacement.getByText("This QR code has expired. Scan the new QR code on the kiosk."),
-  ).toBeVisible();
+  await mobile.getByTestId("file-input").dispatchEvent("cancel");
+  await expect(mobile.getByRole("heading", { name: "Choose one document" })).toBeVisible();
+  await expect(mobile.getByRole("button", { name: "Photos / Gallery" })).toBeVisible();
+  await expect(mobile.getByRole("button", { name: "Files / Downloads" })).toBeVisible();
 });
 
 test("a locked PDF is rejected with a safe alternative", async ({ page, context }) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await reachFilePicker(mobile);
-  await mobile.locator('input[type="file"]').setInputFiles({
+  await mobile.getByTestId("file-input").setInputFiles({
     name: "synthetic-locked.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from(await createSyntheticPdf(1, "fixture-only-password")),
@@ -149,7 +146,7 @@ test("a locked PDF is rejected with a safe alternative", async ({ page, context 
 test("a synthetic PDF is validated and previewed", async ({ page, context }) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await reachFilePicker(mobile);
-  await mobile.locator('input[type="file"]').setInputFiles({
+  await mobile.getByTestId("file-input").setInputFiles({
     name: "synthetic-confirmation.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from(await createSyntheticPdf(2)),
@@ -160,14 +157,14 @@ test("a synthetic PDF is validated and previewed", async ({ page, context }) => 
   await expect(mobile.locator("canvas")).toBeVisible({ timeout: 30_000 });
 });
 
-test("language selection and KakaoTalk guidance are self-service", async ({ page, context }) => {
+test("language selection leads directly to photo and file sharing", async ({ page, context }) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await mobile.getByLabel("한국어").check();
   await mobile.getByRole("button", { name: "계속" }).click();
-  await mobile.getByLabel("카카오톡").check();
-  await mobile.getByRole("button", { name: "계속" }).click();
-  await expect(mobile.getByRole("heading", { name: "카카오톡" })).toBeVisible();
-  await expect(mobile.getByText(/공유를 누른 뒤 파일 또는 다운로드에 저장/u)).toBeVisible();
+  await expect(mobile.getByRole("button", { name: "사진 / 갤러리" })).toBeVisible();
+  await expect(mobile.getByRole("button", { name: "파일 / 다운로드" })).toBeVisible();
+  await expect(mobile.getByText("카카오톡")).toHaveCount(0);
+  await expect(mobile.getByText("이메일")).toHaveCount(0);
 });
 
 test("browser Back leaves the claimed document flow without exposing data", async ({

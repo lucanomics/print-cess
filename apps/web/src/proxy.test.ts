@@ -9,6 +9,7 @@ describe("Content Security Policy", () => {
     expect(policy).toContain(
       "connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com https://blob.vercel-storage.com",
     );
+    expect(policy).toContain("frame-src 'self' blob:");
     expect(policy).not.toContain("https://*.vercel.com");
   });
 });

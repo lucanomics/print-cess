@@ -9,6 +9,7 @@ export function buildContentSecurityPolicy(nonce: string, isDevelopment: boolean
     "form-action 'self'",
     "object-src 'none'",
     "font-src 'self'",
+    "frame-src 'self' blob:",
     "img-src 'self' blob: data:",
     "media-src 'self' blob:",
     "connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com https://blob.vercel-storage.com",

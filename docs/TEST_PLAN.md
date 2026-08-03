@@ -109,11 +109,10 @@ Skip with an explicit “credentials unavailable” result rather than silently 
 At minimum:
 
 - all eight language selections and English fallback;
-- Photos/Gallery, Files/Downloads, KakaoTalk save guidance, Email save guidance, and no-document
-  route;
+- direct Photos/Gallery and Files/Downloads selection with no account or app-specific detours;
 - PDF/JPEG/PNG selection, local preview, summary, one A4-copy approval;
-- local encryption/direct upload, kiosk simulator state sequence, completion, deletion, 15-second
-  reset;
+- local encryption/direct upload, kiosk simulator state sequence, print invocation, download
+  recovery, deletion, and 60-second browser-kiosk reset;
 - QR expiry/reuse/second phone, missing fragment, fingerprint mismatch;
 - cancel, back, refresh, duplicate tap, connection interruption/recovery;
 - locked/damaged/11-page/unsupported/oversized/excess-dimension files;
