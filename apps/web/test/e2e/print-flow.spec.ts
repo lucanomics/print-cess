@@ -169,9 +169,9 @@ test("language selection shows a localized guide before photo and file sharing",
   const { mobile } = await openMobileAtLanguage(page, context);
   await mobile.getByLabel("한국어").check();
   await mobile.getByRole("button", { name: "계속" }).click();
-  await expect(mobile.getByRole("heading", { name: "이렇게 인쇄하세요" })).toBeVisible();
-  await expect(mobile.getByText("1. QR코드 스캔")).toBeVisible();
-  await mobile.getByRole("button", { name: "내 문서 선택하기" }).click();
+  await expect(mobile.getByRole("heading", { name: "인쇄 방법" })).toBeVisible();
+  await expect(mobile.getByText("1. QR코드 스캔하기")).toBeVisible();
+  await mobile.getByRole("button", { name: "인쇄할 문서 선택" }).click();
   await expect(mobile.getByRole("button", { name: "사진 / 갤러리" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "파일 / 다운로드" })).toBeVisible();
   await expect(mobile.getByText("카카오톡")).toHaveCount(0);
