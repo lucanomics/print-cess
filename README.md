@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/assets/print-cess-mark.svg" alt="Print-cess by Paradiso mark" width="96" />
+  <img src="docs/assets/print-cess-mark.svg" alt="Print-cess by Club Paradiso mark" width="96" />
 </p>
 
-# Print-cess by Paradiso
+# Print-cess by Club Paradiso
 
 **Secure self-service document printing**
 
