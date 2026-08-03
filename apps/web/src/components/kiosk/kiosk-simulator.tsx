@@ -225,7 +225,8 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
     );
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
 
-  const countdownLabel = status === "preparing" || status === "waiting" ? "QR코드 변경까지" : "작업 만료까지";
+  const countdownLabel =
+    status === "preparing" || status === "waiting" ? "QR코드 변경까지" : "작업 만료까지";
 
   return (
     <main className="kiosk-shell">
