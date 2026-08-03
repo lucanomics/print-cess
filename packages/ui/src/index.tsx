@@ -1,9 +1,4 @@
-import type {
-  ButtonHTMLAttributes,
-  CSSProperties,
-  PropsWithChildren,
-  ReactNode,
-} from "react";
+import type { ButtonHTMLAttributes, CSSProperties, PropsWithChildren, ReactNode } from "react";
 import { Check } from "lucide-react";
 
 export function PrintcessMark({ className = "" }: { className?: string }) {
