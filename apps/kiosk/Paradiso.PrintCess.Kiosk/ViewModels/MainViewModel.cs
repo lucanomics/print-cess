@@ -10,7 +10,7 @@ namespace Paradiso.PrintCess.Kiosk.ViewModels;
 public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly DispatcherTimer _timer;
-    private readonly string _productName = "Print-cess by Paradiso";
+    private readonly string _productName = "Print-cess by Club Paradiso";
     private KioskUiState _state = KioskUiState.Preparing;
     private DateTimeOffset? _deadline;
     private ImageSource? _qrCodeImage;
