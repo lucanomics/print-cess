@@ -440,7 +440,7 @@ function UnavailableScreen({ onReset }: { onReset: () => void }) {
       <Wordmark />
       <ShieldCheck aria-hidden="true" />
       <h1>인쇄 서비스를 잠시 사용할 수 없습니다</h1>
-      <p>Error code: P-01</p>
+      <p>잠시 후 다시 시도해주세요.</p>
       <span>업로드된 파일은 삭제됩니다.</span>
       <button type="button" onClick={onReset}>
         개발 시뮬레이터 초기화
