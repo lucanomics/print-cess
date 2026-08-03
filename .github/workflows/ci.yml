@@ -44,12 +44,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Print exact Prettier diff
-        run: |
-          pnpm exec prettier packages/i18n/src/public.ts --write
-          git diff -- packages/i18n/src/public.ts
-          exit 1
-
       - name: Check formatting
         run: pnpm format:check
 
