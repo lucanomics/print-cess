@@ -235,14 +235,17 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
         <section className="kiosk-instructions">
           <h1
             className="kiosk-step-heading"
-            aria-label="휴대전화 카메라를 여세요. QR코드를 스캔하세요"
+            aria-label="휴대전화에서 카메라를 여세요. QR코드를 스캔하세요"
           >
             <span className="kiosk-step-number" aria-hidden="true">
               1
             </span>
-            <span>휴대전화 카메라를 여세요</span>
+            <span className="kiosk-step-heading__text">
+              <span>휴대전화에서</span>
+              <span>카메라를 여세요</span>
+            </span>
           </h1>
-          <p className="kiosk-english">Open your phone camera</p>
+          <p className="kiosk-english">Open the camera on your phone</p>
           <div className="kiosk-facts">
             <p>
               <FileCheck2 aria-hidden="true" />
