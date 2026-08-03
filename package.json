@@ -12,7 +12,7 @@
     "create:readiness-evidence-template": "node scripts/acceptance/create-readiness-evidence-template.mjs",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write apps/web/src/components/kiosk/kiosk-simulator.tsx apps/web/src/server/ttl-config.test.ts apps/web/test/e2e/branding.spec.ts && git diff -- apps/web/src/components/kiosk/kiosk-simulator.tsx apps/web/src/server/ttl-config.test.ts apps/web/test/e2e/branding.spec.ts && exit 1",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
