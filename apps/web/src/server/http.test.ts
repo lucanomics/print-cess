@@ -1,9 +1,68 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { readJson, readSessionId } from "./http";
+import type { ServerConfig } from "./config";
+import { assertAllowedOrigin, readJson, readSessionId } from "./http";
 
 const schema = z.object({ value: z.string() }).strict();
+
+const originConfig = {
+  mode: "external",
+  sessionProvider: "upstash-redis",
+  blobProvider: "vercel-blob",
+  cleanupProvider: "qstash",
+  publicBaseUrl: "https://print-cess.vercel.app",
+  allowedOrigins: ["https://print-cess.vercel.app"],
+  sessionTtlMs: 180_000,
+  signedUrlTtlMs: 120_000,
+  demoEnabled: false,
+} satisfies ServerConfig;
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("assertAllowedOrigin", () => {
+  it("accepts origins explicitly configured by the deployment", () => {
+    const request = new Request("https://print-cess.vercel.app/api", {
+      headers: { Origin: "https://print-cess.vercel.app" },
+    });
+
+    expect(() => assertAllowedOrigin(request, originConfig)).not.toThrow();
+  });
+
+  it.each([
+    "https://print-cess.vercel.app",
+    "https://paradiso-print-cess-web.vercel.app",
+  ])("accepts the official Production alias %s", (origin) => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
+    const config = { ...originConfig, allowedOrigins: ["https://configured.example.test"] };
+
+    expect(() => assertAllowedOrigin(request, config)).not.toThrow();
+  });
+
+  it("does not trust the Production aliases outside Vercel Production", () => {
+    vi.stubEnv("VERCEL_ENV", "preview");
+    const origin = "https://paradiso-print-cess-web.vercel.app";
+    const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
+    const config = { ...originConfig, allowedOrigins: ["https://configured.example.test"] };
+
+    expect(() => assertAllowedOrigin(request, config)).toThrow(
+      expect.objectContaining({ code: "unauthorized", status: 403 }),
+    );
+  });
+
+  it("rejects unrelated Vercel hosts in Production", () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    const origin = "https://unrelated-project.vercel.app";
+    const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
+
+    expect(() => assertAllowedOrigin(request, originConfig)).toThrow(
+      expect.objectContaining({ code: "unauthorized", status: 403 }),
+    );
+  });
+});
 
 describe("readJson", () => {
   it("parses and validates a bounded JSON body", async () => {
