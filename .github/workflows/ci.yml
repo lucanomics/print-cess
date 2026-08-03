@@ -44,8 +44,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check formatting
-        run: pnpm format:check
+      - name: Print exact PostgreSQL formatting diff
+        run: |
+          pnpm exec prettier apps/web/src/server/session-store/postgres-client.ts --write
+          git diff -- apps/web/src/server/session-store/postgres-client.ts
+          exit 1
 
       - name: Lint
         run: pnpm lint
