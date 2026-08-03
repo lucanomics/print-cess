@@ -4,9 +4,7 @@ import { loadConfig } from "./config";
 
 describe("session lifetime configuration", () => {
   it("uses a two-minute public QR window and a three-minute claimed session window", () => {
-    expect(
-      loadConfig({ NODE_ENV: "test", PRINT_CESS_ADAPTER_MODE: "local" }),
-    ).toMatchObject({
+    expect(loadConfig({ NODE_ENV: "test", PRINT_CESS_ADAPTER_MODE: "local" })).toMatchObject({
       qrTtlMs: 120_000,
       sessionTtlMs: 180_000,
     });
