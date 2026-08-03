@@ -19,22 +19,34 @@
 }
 .kiosk-layout {
   display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(500px, 1.18fr);
-  gap: clamp(36px, 4vw, 72px);
+  grid-template-columns: minmax(0, 0.92fr) minmax(500px, 1.08fr);
+  gap: clamp(32px, 3vw, 60px);
   align-items: center;
 }
 .kiosk-instructions {
+  --kiosk-heading-gap: clamp(18px, 1.8vw, 30px);
+  --kiosk-heading-number-size: clamp(78px, 6.2vw, 96px);
   min-width: 0;
 }
 .kiosk-step-heading {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: clamp(18px, 1.8vw, 30px);
-  align-items: center;
+  grid-template-columns: var(--kiosk-heading-number-size) minmax(0, 1fr);
+  gap: var(--kiosk-heading-gap);
+  align-items: start;
   margin: 0;
-  font-size: clamp(54px, 4.8vw, 82px);
-  line-height: 1.12;
+  font-size: clamp(44px, 3.6vw, 72px);
+  line-height: 1.04;
   letter-spacing: -0.055em;
+}
+.kiosk-step-heading__text {
+  display: grid;
+  gap: 0.04em;
+  min-width: 0;
+  word-break: keep-all;
+}
+.kiosk-step-heading__text > span {
+  display: block;
+  white-space: nowrap;
 }
 .kiosk-step-number {
   display: grid;
@@ -50,12 +62,13 @@
   line-height: 1;
 }
 .kiosk-step-heading .kiosk-step-number {
-  width: clamp(78px, 6.2vw, 96px);
-  height: clamp(78px, 6.2vw, 96px);
+  width: var(--kiosk-heading-number-size);
+  height: var(--kiosk-heading-number-size);
+  margin-top: 0.06em;
   font-size: clamp(40px, 3.4vw, 52px);
 }
 .kiosk-english {
-  margin: 18px 0 0 clamp(96px, 8vw, 126px);
+  margin: 14px 0 0 calc(var(--kiosk-heading-number-size) + var(--kiosk-heading-gap));
   font-size: clamp(25px, 2.2vw, 38px);
   color: var(--pc-text);
 }
@@ -299,18 +312,22 @@
   .kiosk-shell > .pc-wordmark {
     margin-bottom: 32px;
   }
+  .kiosk-instructions {
+    --kiosk-heading-gap: 14px;
+    --kiosk-heading-number-size: 56px;
+  }
   .kiosk-step-heading {
-    grid-template-columns: 64px minmax(0, 1fr);
-    font-size: clamp(38px, 11vw, 56px);
+    font-size: clamp(28px, 9vw, 48px);
   }
   .kiosk-step-heading .kiosk-step-number,
   .kiosk-step-number {
-    width: 62px;
-    height: 62px;
-    font-size: 32px;
+    width: 56px;
+    height: 56px;
+    font-size: 30px;
   }
   .kiosk-english {
-    margin-left: 82px;
+    margin-left: calc(var(--kiosk-heading-number-size) + var(--kiosk-heading-gap));
+    font-size: clamp(18px, 5vw, 26px);
   }
   .kiosk-facts {
     grid-template-columns: 1fr;
