@@ -5,6 +5,7 @@
   --pc-teal: #008a8a;
   --pc-teal-dark: #006f72;
   --pc-teal-soft: #e3f5f4;
+  --pc-paper-warm: #fff8ea;
   --pc-line: #d9e5ed;
   --pc-surface: #ffffff;
   --pc-subtle: #f4f8fa;
@@ -50,10 +51,36 @@ input:focus-visible {
   gap: 12px;
   color: var(--pc-ink);
 }
-.pc-wordmark svg {
+.pc-wordmark .pc-mark {
   width: 40px;
   height: 40px;
+  flex: none;
+  overflow: visible;
   color: var(--pc-ink);
+}
+.pc-mark__paper,
+.pc-mark__body,
+.pc-mark__sheet {
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+}
+.pc-mark__paper {
+  fill: var(--pc-paper-warm);
+}
+.pc-mark__body {
+  fill: var(--pc-teal-soft);
+}
+.pc-mark__sheet {
+  fill: white;
+}
+.pc-mark__detail {
+  stroke: var(--pc-teal-dark);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+.pc-mark__status {
+  fill: var(--pc-teal);
 }
 .pc-wordmark > span {
   display: inline-flex;
@@ -64,11 +91,14 @@ input:focus-visible {
   font-size: 30px;
   letter-spacing: -0.04em;
 }
+.pc-wordmark__hyphen {
+  color: var(--pc-teal);
+}
 .pc-wordmark small {
   font-size: 18px;
   font-weight: 500;
 }
-.pc-wordmark--compact svg {
+.pc-wordmark--compact .pc-mark {
   width: 32px;
   height: 32px;
 }

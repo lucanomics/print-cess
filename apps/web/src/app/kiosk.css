@@ -190,7 +190,7 @@
   width: 44px;
   height: 44px;
 }
-.kiosk-result span {
+.kiosk-result > span {
   font-size: 23px;
   color: var(--pc-muted);
 }
