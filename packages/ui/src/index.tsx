@@ -23,14 +23,14 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
     <div
       className={compact ? "pc-wordmark pc-wordmark--compact" : "pc-wordmark"}
-      aria-label="Print-cess by Paradiso"
+      aria-label="Print-cess by Club Paradiso"
     >
       <PrintcessMark />
       <span>
         <strong>
           Print<span className="pc-wordmark__hyphen">-</span>cess
         </strong>{" "}
-        <small>by Paradiso</small>
+        <small>by Club Paradiso</small>
       </span>
     </div>
   );
