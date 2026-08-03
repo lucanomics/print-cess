@@ -59,11 +59,7 @@ export function readPostgresTlsServerName(
 ): string {
   const raw = environment.POSTGRES_TLS_SERVER_NAME ?? DEFAULT_TLS_SERVER_NAME;
   const value = raw.trim();
-  if (
-    value !== raw ||
-    !DNS_SERVER_NAME_PATTERN.test(value) ||
-    isIP(value) !== 0
-  ) {
+  if (value !== raw || !DNS_SERVER_NAME_PATTERN.test(value) || isIP(value) !== 0) {
     throw new Error("POSTGRES_TLS_SERVER_NAME must be one valid DNS host name");
   }
   return value;
