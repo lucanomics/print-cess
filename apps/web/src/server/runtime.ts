@@ -72,12 +72,12 @@ export async function createPrintSession(input: {
     kioskPublicKey: input.kioskPublicKey,
     kioskPublicKeyFingerprint: input.kioskPublicKeyFingerprint,
     createdAt: now,
-    expiresAt: now + runtime.config.sessionTtlMs,
+    expiresAt: now + runtime.config.qrTtlMs,
     uploadTokenHash: await hashToken(uploadToken, "upload"),
     kioskTokenHash: await hashToken(kioskToken, "kiosk"),
     revision: 0,
   };
-  await runtime.sessions.create(session, runtime.config.sessionTtlMs);
+  await runtime.sessions.create(session, runtime.config.qrTtlMs);
   return { session, uploadToken, kioskToken };
 }
 

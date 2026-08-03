@@ -59,7 +59,7 @@ type RegisteredSession = {
 export function KioskSimulator({ automaticPrinting = false }: { automaticPrinting?: boolean }) {
   const [session, setSession] = useState<RegisteredSession>();
   const [status, setStatus] = useState<KioskStatus>("preparing");
-  const [remaining, setRemaining] = useState(180);
+  const [remaining, setRemaining] = useState(120);
   const [completionRemaining, setCompletionRemaining] = useState(60);
   const [artifact, setArtifact] = useState<PrintArtifact>();
   const [generation, setGeneration] = useState(0);
@@ -77,6 +77,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
     replaceArtifact(undefined);
     setSession(undefined);
     setStatus("preparing");
+    setRemaining(120);
     setCompletionRemaining(60);
     setGeneration((value) => value + 1);
   }, [replaceArtifact]);
@@ -122,6 +123,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
           color: { dark: "#071737", light: "#ffffff" },
         });
         if (!active) return;
+        setRemaining(Math.max(0, Math.ceil((body.expiresAt - Date.now()) / 1000)));
         setSession({ ...body, qrImage, privateKey: keyPair.privateKey, fingerprint });
         setStatus("waiting");
       } catch (error) {
@@ -159,7 +161,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
             cache: "no-store",
           });
           if (!response.ok) return;
-          const body = (await response.json()) as { status: string };
+          const body = (await response.json()) as { status: string; expiresAt?: number };
           if (!active) return;
           if (body.status === "expired" || body.status === "cancelled") {
             reset();
@@ -168,6 +170,14 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
           if (body.status === "failed") {
             setStatus("failed");
             return;
+          }
+          if (typeof body.expiresAt === "number" && Number.isFinite(body.expiresAt)) {
+            setSession((current) =>
+              current && current.sessionId === session.sessionId
+                ? { ...current, expiresAt: body.expiresAt as number }
+                : current,
+            );
+            setRemaining(Math.max(0, Math.ceil((body.expiresAt - Date.now()) / 1000)));
           }
           if (body.status === "claimed") setStatus("claimed");
           if (body.status === "upload_authorized" || body.status === "uploading")
@@ -215,6 +225,9 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
     );
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
 
+  const countdownLabel =
+    status === "preparing" || status === "waiting" ? "QR코드 변경까지" : "작업 만료까지";
+
   return (
     <main className="kiosk-shell">
       <Wordmark />
@@ -254,7 +267,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
             </span>
             <strong>{statusLabel(status)}</strong>
             <span className="kiosk-countdown">
-              세션 만료까지 <b>{formatTime(remaining)}</b>
+              {countdownLabel} <b>{formatTime(remaining)}</b>
             </span>
           </div>
         </section>
