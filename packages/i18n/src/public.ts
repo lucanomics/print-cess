@@ -5,10 +5,7 @@ export {
   type SupportedLocale,
 } from "./index";
 
-import {
-  translate as translateBase,
-  type SupportedLocale,
-} from "./index";
+import { translate as translateBase, type SupportedLocale } from "./index";
 
 const KOREAN_COPY_OVERRIDES: Record<string, string> = {
   chooseLocation: "인쇄할 문서는 어디에 있나요?",
