@@ -220,7 +220,10 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
       <Wordmark />
       <div className="kiosk-layout">
         <section className="kiosk-instructions">
-          <h1 className="kiosk-step-heading">
+          <h1
+            className="kiosk-step-heading"
+            aria-label="휴대전화 카메라를 여세요. QR코드를 스캔하세요"
+          >
             <span className="kiosk-step-number" aria-hidden="true">
               1
             </span>
