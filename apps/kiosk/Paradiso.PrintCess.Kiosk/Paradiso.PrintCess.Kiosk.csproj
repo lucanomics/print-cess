@@ -4,7 +4,7 @@
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>Paradiso.PrintCess.Kiosk</RootNamespace>
     <AssemblyName>Print-cess Kiosk</AssemblyName>
-    <Product>Print-cess by Paradiso</Product>
+    <Product>Print-cess by Club Paradiso</Product>
     <Description>Secure self-service document printing</Description>
     <Company>Paradiso</Company>
     <Authors>Paradiso</Authors>

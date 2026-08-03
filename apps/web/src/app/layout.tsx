@@ -8,7 +8,7 @@ import "./kiosk.css";
 import "./admin.css";
 
 export const metadata: Metadata = {
-  title: "Print-cess by Paradiso",
+  title: "Print-cess by Club Paradiso",
   description: "Secure self-service document printing",
   robots: { index: false, follow: false },
 };
