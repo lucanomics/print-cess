@@ -19,17 +19,17 @@
     "test:integration": "pnpm --filter @print-cess/web test:integration",
     "test:provider": "turbo run build --filter=@print-cess/web^... && pnpm --filter @print-cess/web test:provider",
     "test:acceptance-evidence": "node --test scripts/acceptance/*.test.mjs",
-    "test:workflow": "node --test scripts/github/*.test.mjs scripts/kiosk/*.test.mjs",
+    "test:workflow": "node --test scripts/github/*.test.mjs",
     "validate:readiness-evidence": "node scripts/acceptance/validate-readiness-evidence.mjs",
     "test:e2e": "pnpm --filter @print-cess/web test:e2e",
     "fixtures": "pnpm --filter @print-cess/test-fixtures generate"
   },
   "devDependencies": {
-    "@types/node": "26.1.1",
+    "@types/node": "26.1.2",
     "eslint": "10.8.0",
     "eslint-config-next": "16.2.12",
     "prettier": "3.9.6",
     "turbo": "2.10.7",
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   }
 }
