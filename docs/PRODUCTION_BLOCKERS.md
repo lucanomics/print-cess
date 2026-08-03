@@ -1,8 +1,9 @@
 # Production blockers
 
 Status: **Production is prohibited.** The Vercel project is linked but automatic deployments are
-disabled. No successful Preview/Production deployment, stable GitHub Release, signed kiosk
-artifact, physical site installation, or institutional approval exists.
+disabled. A provider-backed dedicated Preview exists, but no approved Production kiosk deployment,
+stable GitHub Release, signed kiosk artifact, physical site installation, or institutional approval
+exists.
 
 Every item below needs an accountable owner, dated evidence, and formal acceptance. A checked-in
 configuration file or green mock test does not close an institutional gate.

@@ -75,7 +75,7 @@ export function KioskSimulator() {
         const kioskPublicKey = await exportPublicKeyBase64Url(keyPair.publicKey);
         const fingerprint = await fingerprintPublicKey(kioskPublicKey);
         preparationStep = "session-registration";
-        const response = await fetch("/api/demo/sessions", {
+        const response = await fetch("/api/kiosk/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

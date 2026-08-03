@@ -2,19 +2,21 @@
 
 ## Current status
 
-The Vercel CLI authenticated as `lucanomics` under `club-paradiso`, created and linked project
-`paradiso-print-cess`, connected the private GitHub repository, and set the Project Root Directory
-to `apps/web`. The first automatic build used the repository root, failed framework detection, and
-never produced a live application. The root-directory setting was corrected; no successful Preview
-or Production deployment was made.
+The Vercel project `club-paradiso/paradiso-print-cess-web` is linked to the private GitHub
+repository with Root Directory `apps/web`. A provider-backed deployment of the dedicated `preview`
+branch exists and can create browser-kiosk sessions. The public Production alias still points to an
+older deployment without Production provider variables, so it intentionally remains unavailable as
+a browser kiosk until the Production gates below are closed.
 
-Automatic Git deployments are disabled in `apps/web/vercel.json`, and the live project currently
-uses an ignore-build command while approved Preview resources are absent. Do not remove both circuit
-breakers until provider approval, isolated Blob/Redis/QStash resources, environment variables, and
-the manual provider suite are ready. No approved Blob store, Redis, QStash, or Authenticode
-credential was found. The local adapter remains the tested development baseline.
+Automatic `main` deployments are disabled in `apps/web/vercel.json`. Do not remove that circuit
+breaker until provider approval, isolated Production Blob/session/cleanup resources, environment
+variables, and the manual provider suite are ready. Preview credentials must never be copied into
+Production. The local adapter remains the tested development baseline.
 
-Only the Next.js application is deployable to Vercel. The Windows kiosk is never deployed there.
+Only the Next.js application is deployable to Vercel. When `ENABLE_BROWSER_KIOSK=true`, the public
+root redirects to `/kiosk`, which creates sessions through `/api/kiosk/sessions`; this flag does not
+enable `/demo/admin` or administrator diagnostics. The optional Windows kiosk is never deployed to
+Vercel.
 `apps/web/vercel.json` owns the Next.js commands; Vercel resolves the repository-root pnpm lockfile
 and workspace packages while building from `apps/web`.
 
@@ -55,6 +57,7 @@ Set each value at the appropriate Vercel environment scope. Never commit real va
 | `PRINT_CESS_ADAPTER_MODE`                                | `external` for a hosted Preview                                | `external`                                             |
 | `SESSION_TTL_SECONDS`                                    | `180`                                                          | `180`                                                  |
 | `SIGNED_URL_TTL_SECONDS`                                 | At most `120` and always capped by session expiry              | Same; reduce after latency test                        |
+| `ENABLE_BROWSER_KIOSK`                                   | `true` only on the dedicated kiosk Preview                     | `true` for the approved public browser kiosk           |
 | `ENABLE_DEMO_ROUTES`                                     | Explicitly controlled; synthetic use only                      | `false`                                                |
 | `KIOSK_REGISTRATION_SECRET`                              | Independent random value, at least 32 characters               | Independent random value, at least 32 characters       |
 | `ADMIN_DIAGNOSTICS_SECRET`                               | Independent random value, at least 32 characters               | Independent random value, at least 32 characters       |
@@ -188,7 +191,8 @@ Production remains prohibited.
 
 - HTTPS only; exact CORS allow-list; no wildcard credentials.
 - Strict CSP and security headers as specified in `SECURITY.md`.
-- Demo and administrator simulators disabled in Production.
+- Public browser kiosk enabled only with `ENABLE_BROWSER_KIOSK=true`; demo and administrator
+  simulators remain disabled in Production.
 - Production source maps private and provider request logging reviewed/redacted.
 - Function/body/time limits chosen so only small JSON can enter a Route Handler.
 - Firewall allow-list established only after the exact Vercel, Blob, Redis, and QStash hostnames are

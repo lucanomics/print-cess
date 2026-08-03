@@ -12,12 +12,22 @@ describe("home page", () => {
     redirect.mockReset();
   });
 
-  it("opens the kiosk simulator from the deployment root when demo routes are enabled", () => {
+  it("opens the public browser kiosk from the deployment root", () => {
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "true");
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+
+    HomePage();
+
+    expect(redirect).toHaveBeenCalledWith("/kiosk");
+  });
+
+  it("keeps the legacy demo flag compatible with the browser kiosk", () => {
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "false");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "true");
 
     HomePage();
 
-    expect(redirect).toHaveBeenCalledWith("/demo/kiosk");
+    expect(redirect).toHaveBeenCalledWith("/kiosk");
   });
 
   it("opens the kiosk simulator on the dedicated Vercel Preview branch", () => {
@@ -27,11 +37,12 @@ describe("home page", () => {
 
     HomePage();
 
-    expect(redirect).toHaveBeenCalledWith("/demo/kiosk");
+    expect(redirect).toHaveBeenCalledWith("/kiosk");
   });
 
   it("keeps the status page on unrelated Preview branches", () => {
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "false");
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("VERCEL_GIT_COMMIT_REF", "feature/example");
 
@@ -43,6 +54,7 @@ describe("home page", () => {
 
   it("keeps the production status page when demo routes are disabled", () => {
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "false");
     vi.stubEnv("VERCEL_ENV", "production");
 
     const page = HomePage();

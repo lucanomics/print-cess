@@ -4,7 +4,7 @@
 
 휴대전화에서 보내고 바로 출력하는 안전한 셀프 인쇄.
 
-This private repository contains the mobile transfer service, browser simulators, shared
+This private repository contains the mobile transfer service, public browser kiosk, shared
 protocol, and Windows kiosk for a no-login, one-document, one-copy print flow. Development uses
 encrypted local adapters; production integrations require separately approved Vercel and Upstash
 resources.
@@ -29,7 +29,7 @@ cp .env.example apps/web/.env.local
 pnpm dev
 ```
 
-Open `http://localhost:3000/demo/kiosk`, scan the generated QR with a phone on the same reachable
+Open `http://localhost:3000/kiosk`, scan the generated QR with a phone on the same reachable
 development URL, or open its mobile link in another browser tab. Local mode stores ciphertext
 only under an application-owned development directory.
 
@@ -43,7 +43,7 @@ those defaults.
 ## Repository
 
 ```text
-apps/web       Next.js mobile flow, simulators, and Route Handlers
+apps/web       Next.js public browser kiosk, mobile flow, and Route Handlers
 apps/kiosk     .NET 8 WPF kiosk, core, infrastructure, and tests
 packages       protocol, cryptography, translations, UI, and fixtures
 docs           architecture, security, privacy, deployment, and operations

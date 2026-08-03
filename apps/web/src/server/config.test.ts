@@ -26,6 +26,16 @@ describe("loadConfig", () => {
     });
   });
 
+  it("does not expose administrator demo behavior with the public browser kiosk flag", () => {
+    expect(
+      loadConfig({
+        ...productionEnvironment,
+        ENABLE_BROWSER_KIOSK: "true",
+        ENABLE_DEMO_ROUTES: "false",
+      }),
+    ).toMatchObject({ demoEnabled: false });
+  });
+
   it("enables demo behavior on the dedicated Vercel Preview branch", () => {
     expect(
       loadConfig({

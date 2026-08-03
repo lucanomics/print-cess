@@ -8,7 +8,7 @@ import {
 } from "@print-cess/test-fixtures";
 
 async function openSession(page: Page): Promise<string> {
-  await page.goto("/demo/kiosk");
+  await page.goto("/kiosk");
   await expect(page.getByRole("heading", { name: /QR코드를 스캔하세요/u })).toBeVisible();
   const qr = page.locator(".kiosk-qr");
   // A cold Next.js development server can compile this API route while all

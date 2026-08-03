@@ -10,7 +10,7 @@ vi.mock("next/server", async (importOriginal) => {
   };
 });
 
-import { POST } from "./route";
+import { POST } from "../../kiosk/sessions/route";
 
 const requestBody = {
   protocolVersion: 1,
@@ -21,19 +21,20 @@ const requestBody = {
 function createRequest(origin?: string): Request {
   const headers = new Headers({ "Content-Type": "application/json" });
   if (origin) headers.set("Origin", origin);
-  return new Request("http://localhost:3000/api/demo/sessions", {
+  return new Request("http://localhost:3000/api/kiosk/sessions", {
     method: "POST",
     headers,
     body: JSON.stringify(requestBody),
   });
 }
 
-describe("demo kiosk session registration route", () => {
+describe("browser kiosk session registration route", () => {
   beforeEach(() => {
     vi.stubEnv("PRINT_CESS_ADAPTER_MODE", "local");
     vi.stubEnv("PUBLIC_BASE_URL", "http://localhost:3000");
     vi.stubEnv("ALLOWED_ORIGINS", "http://localhost:3000");
-    vi.stubEnv("ENABLE_DEMO_ROUTES", "true");
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "true");
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
     globalThis.__printCessRuntime = undefined;
   });
 
@@ -68,6 +69,7 @@ describe("demo kiosk session registration route", () => {
   });
 
   it("keeps the API enabled on the dedicated Preview branch even when the legacy flag is false", async () => {
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "false");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("VERCEL_GIT_COMMIT_REF", "preview");
@@ -116,7 +118,8 @@ describe("demo kiosk session registration route", () => {
     });
   });
 
-  it("stays unavailable when demo routes are disabled outside the dedicated Preview branch", async () => {
+  it("stays unavailable when browser kiosk routes are disabled outside the dedicated Preview branch", async () => {
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "false");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("VERCEL_GIT_COMMIT_REF", "feature/example");

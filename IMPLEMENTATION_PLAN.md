@@ -24,7 +24,7 @@ documents are prohibited.
 | Local Node.js              | 24.14.0                                                                | The repository and CI select Node.js 24.18.0; local results obtained on 24.14.0 are not equivalent to that CI lane.    |
 | Local pnpm                 | 11.9.0                                                                 | The repository pins pnpm 11.15.1 through `packageManager`.                                                             |
 | Local .NET SDK             | Workspace-local 8.0.423 (runtime 8.0.29), under ignored `work/`        | Portable tests and Windows cross-target compilation/publish run on macOS; Windows runtime and printer behavior do not. |
-| Vercel CLI/authentication  | Authenticated `lucanomics`; linked `club-paradiso/paradiso-print-cess` | Project root is `apps/web`; automatic Git builds remain disabled and no successful deployment exists.                  |
+| Vercel CLI/authentication  | Authenticated `lucanomics`; linked `club-paradiso/paradiso-print-cess` | Project root is `apps/web`; a provider-backed dedicated Preview exists, while automatic Git builds remain disabled.    |
 | Vercel/Upstash credentials | Vercel OIDC context only; no approved Blob store/Redis/QStash set      | Local adapters remain the executable baseline; the manual Preview provider gate cannot run yet.                        |
 | Physical printer           | Not attached to this macOS environment                                 | A GitHub Windows runner proves compilation and mock behavior, not driver, spooler, paper, or physical output behavior. |
 
@@ -51,8 +51,9 @@ documents are prohibited.
    outage tests remain a Production gate.
 9. The kiosk decrypts in memory, validates again, and submits once to the configured printer. An
    ambiguous spool submission is never automatically retried.
-10. Demo routes default off in Production. Metrics default off everywhere and, if approved, contain
-    only short-lived aggregates without persistent session identifiers.
+10. The public browser kiosk is independently gated from demo and administrator routes. Demo routes
+    default off in Production. Metrics default off everywhere and, if approved, contain only
+    short-lived aggregates without persistent session identifiers.
 11. Production server configuration rejects local adapters, non-exact/non-HTTPS origins, missing
     provider credentials, and undersized registration/administrator/provider secrets. The kiosk
     allows mock printing only in explicit loopback Development mode and accepts encrypted Blob
@@ -69,7 +70,7 @@ The detailed component and failure model is in `docs/ARCHITECTURE.md`. The norma
 3. Implement local memory/session, encrypted-blob, and in-process cleanup adapters.
 4. Implement Redis atomic transitions, Vercel Blob scoped signed URLs, QStash verification, and
    orphan tracking behind the same interfaces.
-5. Implement the mobile flow, browser kiosk simulator, development-only administrator simulator,
+5. Implement the mobile flow, public browser kiosk, development-only administrator simulator,
    internationalization, accessibility, and audio-provider boundary.
 6. Implement kiosk Core, Infrastructure, WPF UI, validation, mock print engine, Windows print
    engine, session reset, and crash recovery.
