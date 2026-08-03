@@ -37,7 +37,10 @@ describe("assertAllowedOrigin", () => {
   ])("accepts the official Production alias %s", (origin) => {
     vi.stubEnv("VERCEL_ENV", "production");
     const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
-    const config = { ...originConfig, allowedOrigins: ["https://configured.example.test"] };
+    const config = {
+      ...originConfig,
+      allowedOrigins: ["https://configured.example.test"],
+    };
 
     expect(() => assertAllowedOrigin(request, config)).not.toThrow();
   });
@@ -46,7 +49,10 @@ describe("assertAllowedOrigin", () => {
     vi.stubEnv("VERCEL_ENV", "preview");
     const origin = "https://paradiso-print-cess-web.vercel.app";
     const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
-    const config = { ...originConfig, allowedOrigins: ["https://configured.example.test"] };
+    const config = {
+      ...originConfig,
+      allowedOrigins: ["https://configured.example.test"],
+    };
 
     expect(() => assertAllowedOrigin(request, config)).toThrow(
       expect.objectContaining({ code: "unauthorized", status: 403 }),
