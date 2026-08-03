@@ -31,28 +31,22 @@ describe("assertAllowedOrigin", () => {
     expect(() => assertAllowedOrigin(request, originConfig)).not.toThrow();
   });
 
-  it.each([
-    "https://print-cess.vercel.app",
-    "https://paradiso-print-cess-web.vercel.app",
-  ])("accepts the official Production alias %s", (origin) => {
-    vi.stubEnv("VERCEL_ENV", "production");
-    const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
-    const config = {
-      ...originConfig,
-      allowedOrigins: ["https://configured.example.test"],
-    };
+  it.each(["https://print-cess.vercel.app", "https://paradiso-print-cess-web.vercel.app"])(
+    "accepts the official Production alias %s",
+    (origin) => {
+      vi.stubEnv("VERCEL_ENV", "production");
+      const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
+      const config = { ...originConfig, allowedOrigins: ["https://configured.example.test"] };
 
-    expect(() => assertAllowedOrigin(request, config)).not.toThrow();
-  });
+      expect(() => assertAllowedOrigin(request, config)).not.toThrow();
+    },
+  );
 
   it("does not trust the Production aliases outside Vercel Production", () => {
     vi.stubEnv("VERCEL_ENV", "preview");
     const origin = "https://paradiso-print-cess-web.vercel.app";
     const request = new Request(`${origin}/api`, { headers: { Origin: origin } });
-    const config = {
-      ...originConfig,
-      allowedOrigins: ["https://configured.example.test"],
-    };
+    const config = { ...originConfig, allowedOrigins: ["https://configured.example.test"] };
 
     expect(() => assertAllowedOrigin(request, config)).toThrow(
       expect.objectContaining({ code: "unauthorized", status: 403 }),
