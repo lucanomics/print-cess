@@ -68,8 +68,7 @@
   font-size: clamp(40px, 3.4vw, 52px);
 }
 .kiosk-english {
-  margin: 14px 0 0
-    calc(var(--kiosk-heading-number-size) + var(--kiosk-heading-gap));
+  margin: 14px 0 0 calc(var(--kiosk-heading-number-size) + var(--kiosk-heading-gap));
   font-size: clamp(25px, 2.2vw, 38px);
   color: var(--pc-text);
 }
