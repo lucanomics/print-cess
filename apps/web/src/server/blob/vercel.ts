@@ -1,4 +1,4 @@
-import { issueSignedToken, presignUrl } from "@vercel/blob";
+import { BlobNotFoundError, head as headBlob, issueSignedToken, presignUrl } from "@vercel/blob";
 
 import type { BlobMetadata, BlobTransport, SignedBlobOperation } from "../contracts";
 import { ServiceError } from "../errors";
@@ -51,27 +51,21 @@ export class VercelBlobTransport implements BlobTransport {
   }
 
   public async head(pathname: string): Promise<BlobMetadata> {
-    const expiresAt = Date.now() + 30_000;
-    const token = await issueSignedToken({ pathname, operations: ["head"], validUntil: expiresAt });
-    const { presignedUrl } = await presignUrl(token, {
-      access: "private",
-      operation: "head",
-      pathname,
-      validUntil: expiresAt,
-    });
-    const response = await fetch(presignedUrl, {
-      method: "HEAD",
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok)
-      throw new ServiceError("not_found", "The encrypted upload was not found.", 404);
-    const size = Number(response.headers.get("content-length"));
-    const etag = response.headers.get("etag");
-    if (!Number.isSafeInteger(size) || size < 1 || !etag) {
-      throw new ServiceError("unavailable", "Blob metadata is incomplete.", 503);
+    try {
+      const { size, etag } = await headBlob(pathname, {
+        abortSignal: AbortSignal.timeout(15_000),
+      });
+      if (!Number.isSafeInteger(size) || size < 1 || !etag) {
+        throw new ServiceError("unavailable", "Blob metadata is incomplete.", 503);
+      }
+      return { size, etag };
+    } catch (error) {
+      if (error instanceof ServiceError) throw error;
+      if (error instanceof BlobNotFoundError) {
+        throw new ServiceError("not_found", "The encrypted upload was not found.", 404);
+      }
+      throw new ServiceError("unavailable", "Blob metadata lookup failed.", 503);
     }
-    return { size, etag };
   }
 
   public async delete(pathname: string, expectedEtag?: string): Promise<void> {

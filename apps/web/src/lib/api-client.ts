@@ -86,18 +86,15 @@ export async function uploadCiphertext(
     body: Uint8Array.from(bytes).buffer,
     signal: AbortSignal.timeout(120_000),
   });
-  const body = (await response.json().catch(() => ({}))) as { etag?: string };
   if (!response.ok)
     throw new ApiClientError("networkError", "Encrypted upload failed", response.status);
-  const etag = body.etag ?? response.headers.get("etag");
-  if (!etag) throw new ApiClientError("networkError", "Encrypted upload metadata was missing", 502);
-  return { etag, size: bytes.byteLength };
+  return { size: bytes.byteLength };
 }
 
 export async function completeUpload(
   sessionId: string,
   mobileToken: string,
-  metadata: { etag: string; size: number },
+  metadata: { size: number },
 ) {
   return apiJson<{ status: string }>(`/api/sessions/${sessionId}/upload/complete`, {
     method: "POST",

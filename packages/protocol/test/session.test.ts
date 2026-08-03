@@ -88,13 +88,10 @@ describe("protocol v1 session schema", () => {
   it("keeps ciphertext metadata within the binary envelope bounds", () => {
     expect(
       uploadCompleteRequestSchema.safeParse({
-        etag: "etag",
         size: ENVELOPE_OVERHEAD_BYTES + 1,
       }).success,
     ).toBe(true);
-    expect(
-      uploadCompleteRequestSchema.safeParse({ etag: "etag", size: MAX_ENVELOPE_BYTES }).success,
-    ).toBe(true);
+    expect(uploadCompleteRequestSchema.safeParse({ size: MAX_ENVELOPE_BYTES }).success).toBe(true);
 
     for (const size of [
       ENVELOPE_OVERHEAD_BYTES,
@@ -102,7 +99,7 @@ describe("protocol v1 session schema", () => {
       ENVELOPE_OVERHEAD_BYTES + 1.5,
       String(ENVELOPE_OVERHEAD_BYTES + 1),
     ]) {
-      expect(uploadCompleteRequestSchema.safeParse({ etag: "etag", size }).success).toBe(false);
+      expect(uploadCompleteRequestSchema.safeParse({ size }).success).toBe(false);
     }
   });
 
@@ -119,11 +116,7 @@ describe("protocol v1 session schema", () => {
     ["claim", claimSessionRequestSchema, { mobileTokenHash: DIGEST, claimIdHash: DIGEST }],
     ["authorize upload", authorizeUploadRequestSchema, { operationIdHash: DIGEST }],
     ["consume", consumeSessionRequestSchema, { consumeIdHash: DIGEST }],
-    [
-      "complete upload",
-      uploadCompleteRequestSchema,
-      { etag: "etag", size: ENVELOPE_OVERHEAD_BYTES + 1 },
-    ],
+    ["complete upload", uploadCompleteRequestSchema, { size: ENVELOPE_OVERHEAD_BYTES + 1 }],
     ["kiosk transition", kioskTransitionRequestSchema, { status: "validating" }],
   ] as const)("rejects unknown %s request members", (_name, schema, input) => {
     expect(schema.safeParse({ ...input, unexpected: true }).success).toBe(false);

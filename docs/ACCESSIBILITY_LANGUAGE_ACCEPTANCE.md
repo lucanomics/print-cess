@@ -14,8 +14,8 @@ At minimum test the oldest and newest institution-supported combinations:
 - target Windows 10/11 image, display scaling, screen, speakers, keyboard, and kiosk policy;
 - cellular paths from at least two carriers while the desktop uses its production-like wired path.
 
-For every combination run language selection, Photos/Gallery, Files/Downloads, KakaoTalk save help,
-email save help, missing-document guidance, PDF/JPG/PNG preview, approve, progress, completion, QR
+For every combination run language selection, Photos/Gallery, Files/Downloads, PDF/JPG/PNG preview,
+approve, progress, completion, QR
 expiry/reuse, network loss, locked/damaged/oversize document, refresh/back, and reduced-motion paths.
 Record OS/browser version, viewport/scaling, assistive technology, commit/deployment, tester, UTC time,
 result, and sanitized issue link.
@@ -41,16 +41,21 @@ blocking error, contrast failure, or inability to finish the primary flow is rel
 
 One qualified native reviewer per locale must review all visible text and speech in context:
 
-| Locale  | Language   | Reviewer/sign-off required |
-| ------- | ---------- | -------------------------- |
-| `en`    | English    | Yes                        |
-| `ko`    | 한국어     | Yes                        |
-| `zh-CN` | 简体中文   | Yes                        |
-| `vi`    | Tiếng Việt | Yes                        |
-| `mn`    | Монгол     | Yes                        |
-| `th`    | ไทย        | Yes                        |
-| `ru`    | Русский    | Yes                        |
-| `ne`    | नेपाली     | Yes                        |
+| Locale  | Language         | Reviewer/sign-off required |
+| ------- | ---------------- | -------------------------- |
+| `en`    | English          | Yes                        |
+| `ko`    | 한국어           | Yes                        |
+| `zh-CN` | 简体中文         | Yes                        |
+| `id`    | Bahasa Indonesia | Yes                        |
+| `fil`   | Filipino         | Yes                        |
+| `vi`    | Tiếng Việt       | Yes                        |
+| `mn`    | Монгол           | Yes                        |
+| `th`    | ไทย              | Yes                        |
+| `ru`    | Русский          | Yes                        |
+| `ne`    | नेपाली           | Yes                        |
+| `km`    | ខ្មែរ            | Yes                        |
+| `ar`    | العربية          | Yes                        |
+| `uk`    | Українська       | Yes                        |
 
 Reviewers must confirm plain meaning, respectful neutral tone, action consistency, file-location
 instructions, the exact `A4 한 부 인쇄` intent, no implication of government endorsement, no
@@ -61,11 +66,11 @@ listening check on the target kiosk.
 
 ## Approval record
 
-Acceptance is complete only when the product/accessibility owner and all eight language reviewers
+Acceptance is complete only when the product/accessibility owner and all thirteen language reviewers
 sign a dated matrix tied to a commit and Preview deployment, every blocking issue is closed and
 retested, and the target-device evidence is attached to the institution's private system of record.
 Export only opaque reviewer/attestation references and hashes into the `accessibilityLanguage` stage
 described in `READINESS_EVIDENCE.md`; the validator requires distinct qualified reviewers for all
-eight locales and the complete device/accessibility matrix. It checks completeness, not reviewer
+thirteen locales and the complete device/accessibility matrix. It checks completeness, not reviewer
 identity or authority.
 No native-speaker or physical-device approval was available during the current implementation.

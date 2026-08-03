@@ -2,21 +2,40 @@
 
 ## Current status
 
-The Vercel CLI authenticated as `lucanomics` under `club-paradiso`, created and linked project
-`paradiso-print-cess`, connected the private GitHub repository, and set the Project Root Directory
-to `apps/web`. The first automatic build used the repository root, failed framework detection, and
-never produced a live application. The root-directory setting was corrected; no successful Preview
-or Production deployment was made.
+The Vercel project `club-paradiso/paradiso-print-cess-web` is linked to the private GitHub
+repository with Root Directory `apps/web`. The public Production alias uses isolated Production
+Blob, Redis, and QStash resources and can create browser-kiosk sessions. Production deployment is
+manual while the remaining physical-site acceptance gates are open.
 
-Automatic Git deployments are disabled in `apps/web/vercel.json`, and the live project currently
-uses an ignore-build command while approved Preview resources are absent. Do not remove both circuit
-breakers until provider approval, isolated Blob/Redis/QStash resources, environment variables, and
-the manual provider suite are ready. No approved Blob store, Redis, QStash, or Authenticode
-credential was found. The local adapter remains the tested development baseline.
+Automatic `main` deployments are disabled in `apps/web/vercel.json`. Do not remove that circuit
+breaker until provider approval, isolated Production Blob/session/cleanup resources, environment
+variables, and the manual provider suite are ready. Preview credentials must never be copied into
+Production. The local adapter remains the tested development baseline.
 
-Only the Next.js application is deployable to Vercel. The Windows kiosk is never deployed there.
+Only the Next.js application is deployable to Vercel. When `ENABLE_BROWSER_KIOSK=true`, the public
+root redirects to `/kiosk`, which creates sessions through `/api/kiosk/sessions`; this flag does not
+enable `/demo/admin` or administrator diagnostics. The optional Windows kiosk is never deployed to
+Vercel.
 `apps/web/vercel.json` owns the Next.js commands; Vercel resolves the repository-root pnpm lockfile
 and workspace packages while building from `apps/web`.
+
+## Browser kiosk printing
+
+The public browser kiosk decrypts and validates the received document in memory, creates a
+short-lived browser Blob, and opens the browser's system print UI. The completion screen keeps two
+recovery actions visible for 60 seconds: **Open print dialog again** and **Download file**. The
+server-side encrypted object is deleted at terminal completion; the in-memory Blob URL is revoked
+when the screen resets.
+
+A normal browser does not allow a website to bypass the system print confirmation. The approved
+macOS station uses the checked-in launcher and LaunchAgent from `docs/MACOS_BROWSER_KIOSK.md`, with
+an explicit default printer, the `/kiosk?printing=auto` route, and Chrome's
+`--kiosk --kiosk-printing` switches. The managed route hides the reprint button to prevent a second
+silent job. Without that managed launcher, a visitor or operator must confirm the print dialog.
+
+The download action saves a plaintext copy through the browser and can outlive the web session.
+Use it only as a recovery path. The site operator clears the kiosk account's Downloads folder
+manually under the agreed local procedure.
 
 ## Project setup
 
@@ -42,7 +61,7 @@ credentials and exact `PROVIDER_BASE_URL` exist. The GitHub `vercel-preview` env
 restricted to workflow runs whose `GITHUB_REF` is the `main` branch; the workflow repeats that
 check before installing dependencies.
 
-The expected public hostname `print-cess.vercel.app` is not approved or verified for Production.
+The public browser-kiosk hostname is `paradiso-print-cess-web.vercel.app`.
 
 ## Environment variables
 
@@ -55,12 +74,14 @@ Set each value at the appropriate Vercel environment scope. Never commit real va
 | `PRINT_CESS_ADAPTER_MODE`                                | `external` for a hosted Preview                                | `external`                                             |
 | `SESSION_TTL_SECONDS`                                    | `180`                                                          | `180`                                                  |
 | `SIGNED_URL_TTL_SECONDS`                                 | At most `120` and always capped by session expiry              | Same; reduce after latency test                        |
+| `ENABLE_BROWSER_KIOSK`                                   | `true` only on the dedicated kiosk Preview                     | `true` for the approved public browser kiosk           |
 | `ENABLE_DEMO_ROUTES`                                     | Explicitly controlled; synthetic use only                      | `false`                                                |
 | `KIOSK_REGISTRATION_SECRET`                              | Independent random value, at least 32 characters               | Independent random value, at least 32 characters       |
 | `ADMIN_DIAGNOSTICS_SECRET`                               | Independent random value, at least 32 characters               | Independent random value, at least 32 characters       |
 | `BLOB_STORE_ID`                                          | Preview Private Blob store                                     | Separate Production Private Blob store                 |
 | `BLOB_READ_WRITE_TOKEN`                                  | Preview token, at least 20 characters                          | Separate Production token, at least 20 characters      |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`    | HTTPS Preview database URL / token at least 20 characters      | Separate HTTPS database / token at least 20 characters |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN`                  | Vercel Marketplace aliases accepted when `UPSTASH_*` is unset  | Automatically injected by the Production integration   |
 | `POSTGRES_URL`                                           | Existing approved Railway PostgreSQL TLS URL when selected     | Separate approved PostgreSQL URL when selected         |
 | `POSTGRES_CA_CERT`                                       | Root CA PEM for the selected Railway PostgreSQL service        | Root CA PEM for the selected Production database       |
 | `UPSTASH_DISABLE_TELEMETRY`                              | `1`                                                            | `1`                                                    |
@@ -141,8 +162,11 @@ The phone performs the PUT directly and the kiosk performs the GET directly. Rou
 only authorization/status JSON. They reject document-like content types and request bodies. The
 10,485,911-byte envelope must never be base64-encoded into JSON or proxied through a function.
 
-The upload completion request records the expected ETag and size once. Before decryption, the kiosk
-checks the direct GET response against that committed metadata. Credential-backed tests must prove
+The upload completion request reports the expected size once. The server reads and records the
+provider-authoritative ETag and size through the authenticated Blob SDK before decryption, and the kiosk
+checks the direct GET byte length before AES-GCM authenticated decryption. The browser cannot read the
+Blob ETag because the cross-origin response does not expose that header; the server retains it for
+conditional cleanup. Credential-backed tests must prove
 wrong path, wrong method, expiry, replay/no-overwrite, wrong content type, oversize, wrong ETag
 delete, and repeated delete behavior.
 
@@ -188,7 +212,10 @@ Production remains prohibited.
 
 - HTTPS only; exact CORS allow-list; no wildcard credentials.
 - Strict CSP and security headers as specified in `SECURITY.md`.
-- Demo and administrator simulators disabled in Production.
+- CSP `connect-src` includes the exact `https://vercel.com` origin used by private Blob presigned
+  operations, plus Vercel Blob delivery hosts; it does not allow `*.vercel.com`.
+- Public browser kiosk enabled only with `ENABLE_BROWSER_KIOSK=true`; demo and administrator
+  simulators remain disabled in Production.
 - Production source maps private and provider request logging reviewed/redacted.
 - Function/body/time limits chosen so only small JSON can enter a Route Handler.
 - Firewall allow-list established only after the exact Vercel, Blob, Redis, and QStash hostnames are

@@ -59,7 +59,6 @@ export const createSessionRequestSchema = z
 
 export const uploadCompleteRequestSchema = z
   .object({
-    etag: z.string().min(1).max(256),
     size: z
       .number()
       .int()

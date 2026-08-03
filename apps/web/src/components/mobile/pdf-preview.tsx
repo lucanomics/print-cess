@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function PdfPreview({ bytes }: { bytes: Uint8Array }) {
+export function PdfPreview({
+  bytes,
+  pdfPreview,
+  firstPagePreview,
+}: {
+  bytes: Uint8Array;
+  pdfPreview: string;
+  firstPagePreview: string;
+}) {
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -48,8 +56,8 @@ export function PdfPreview({ bytes }: { bytes: Uint8Array }) {
   }, [bytes]);
 
   return failed ? (
-    <div className="mobile-preview__fallback">PDF preview</div>
+    <div className="mobile-preview__fallback">{pdfPreview}</div>
   ) : (
-    <canvas ref={canvasReference} aria-label="First page preview" />
+    <canvas ref={canvasReference} aria-label={firstPagePreview} />
   );
 }

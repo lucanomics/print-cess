@@ -3,15 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
-  FileDown,
+  FileCheck2,
   FileImage,
   Files,
   Headphones,
   Image as ImageIcon,
   LockKeyhole,
-  Mail,
-  MessageCircle,
   Printer,
+  ScanLine,
   TriangleAlert,
 } from "lucide-react";
 
@@ -55,37 +54,27 @@ import { DocumentPreview } from "./document-preview";
 type Stage =
   | "boot"
   | "language"
-  | "location"
-  | "locationGuide"
+  | "guide"
   | "file"
   | "preview"
   | "transfer"
   | "progress"
   | "complete"
-  | "missing"
   | "error";
-type Location = "photos" | "files" | "kakao" | "email" | "missing";
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
-
-const LOCATION_OPTIONS: Array<{ value: Location; key: string; icon: typeof ImageIcon }> = [
-  { value: "photos", key: "locationPhotos", icon: ImageIcon },
-  { value: "files", key: "locationFiles", icon: Files },
-  { value: "kakao", key: "locationKakao", icon: MessageCircle },
-  { value: "email", key: "locationEmail", icon: Mail },
-  { value: "missing", key: "locationMissing", icon: FileDown },
-];
 
 export function MobileFlow({ sessionId }: { sessionId: string }) {
   const [stage, setStage] = useState<Stage>("boot");
   const [locale, setLocale] = useState<SupportedLocale>("en");
-  const [location, setLocation] = useState<Location>();
   const [claimed, setClaimed] = useState<ClaimedSession>();
   const [mobileToken, setMobileToken] = useState("");
   const [file, setFile] = useState<File>();
   const [validated, setValidated] = useState<ValidatedMobileFile>();
   const [errorKey, setErrorKey] = useState("networkError");
+  const [fileErrorKey, setFileErrorKey] = useState<string>();
   const [progressKey, setProgressKey] = useState("encrypting");
   const [reminderStage, setReminderStage] = useState<Stage>();
+  const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const text = useCallback(
     (key: string, values?: Record<string, string | number>) => translate(locale, key, values),
@@ -111,6 +100,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
   }, [locale]);
 
   const clearDocument = useCallback(() => {
@@ -119,6 +109,8 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       return undefined;
     });
     setFile(undefined);
+    setFileErrorKey(undefined);
+    if (photoInput.current) photoInput.current.value = "";
     if (fileInput.current) fileInput.current.value = "";
   }, []);
 
@@ -186,33 +178,20 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
 
   const chooseFile = useCallback(
     async (selected: File | undefined) => {
-      if (!selected) {
-        await cancelClaim();
-        setErrorKey("cancelled");
-        setStage("error");
-        return;
-      }
+      if (!selected) return;
       try {
+        setFileErrorKey(undefined);
         const result = await validateFileForMobile(selected);
         setFile(selected);
         setValidated(result);
         setStage("preview");
       } catch (error) {
-        await cancelClaim();
-        setErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
-        setStage("error");
+        clearDocument();
+        setFileErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
       }
     },
-    [cancelClaim],
+    [clearDocument],
   );
-
-  useEffect(() => {
-    const input = fileInput.current;
-    if (!input || stage !== "file") return;
-    const handleCancel = () => void chooseFile(undefined);
-    input.addEventListener("cancel", handleCancel);
-    return () => input.removeEventListener("cancel", handleCancel);
-  }, [chooseFile, stage]);
 
   const print = useCallback(async () => {
     if (!claimed || !validated || !mobileToken) return;
@@ -270,13 +249,23 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   const step =
     stage === "language"
       ? 1
-      : stage === "location" || stage === "locationGuide" || stage === "missing"
+      : stage === "guide"
         ? 2
         : stage === "file"
           ? 3
           : stage === "preview"
             ? 4
             : 5;
+  const reminderKey =
+    stage === "language"
+      ? "languageReminder"
+      : stage === "guide"
+        ? "guideReminder"
+        : stage === "preview"
+          ? "previewHelp"
+          : stage === "transfer" || stage === "progress"
+            ? "keepPageOpen"
+            : "fileRules";
 
   return (
     <ScreenShell>
@@ -286,45 +275,14 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       ) : null}
       {reminderStage === stage && !["boot", "complete", "error"].includes(stage) ? (
         <p className="mobile-reminder" role="status">
-          {text(stage === "preview" ? "previewHelp" : "fileRules")}
+          {text(reminderKey)}
         </p>
       ) : null}
-      {stage === "boot" ? <Loading /> : null}
+      {stage === "boot" ? <Loading text={text("preparingSession")} /> : null}
       {stage === "language" ? (
-        <LanguageStep
-          locale={locale}
-          onSelect={setLocale}
-          onContinue={() => setStage("location")}
-        />
+        <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("guide")} />
       ) : null}
-      {stage === "location" ? (
-        <LocationStep
-          value={location}
-          text={text}
-          onChange={setLocation}
-          onContinue={() => {
-            if (location === "missing") setStage("missing");
-            else if (location === "kakao" || location === "email") setStage("locationGuide");
-            else setStage("file");
-          }}
-        />
-      ) : null}
-      {stage === "locationGuide" && location ? (
-        <SingleAction
-          title={text(location === "kakao" ? "locationKakao" : "locationEmail")}
-          body={text(location === "kakao" ? "kakaoGuide" : "emailGuide")}
-          action={text("continue")}
-          onAction={() => setStage("file")}
-        />
-      ) : null}
-      {stage === "missing" ? (
-        <SingleAction
-          title={text("missingTitle")}
-          body={text("missingBody")}
-          action={text("continue")}
-          onAction={() => setStage("location")}
-        />
-      ) : null}
+      {stage === "guide" ? <GuideStep text={text} onContinue={() => setStage("file")} /> : null}
       {stage === "file" ? (
         <section className="mobile-step">
           <StatusIcon>
@@ -333,22 +291,50 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           <h1>{text("chooseFile")}</h1>
           <p>{text("fileRules")}</p>
           <input
+            ref={photoInput}
+            data-testid="photo-input"
+            hidden
+            type="file"
+            accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+            onChange={(event) => void chooseFile(event.target.files?.[0])}
+          />
+          <input
             ref={fileInput}
-            className="visually-hidden"
+            data-testid="file-input"
+            hidden
             type="file"
             accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
-          <PrimaryButton onClick={() => fileInput.current?.click()}>
-            {text("chooseFile")}
-          </PrimaryButton>
+          {fileErrorKey ? (
+            <p className="mobile-file-error" role="alert">
+              {text(fileErrorKey)}
+            </p>
+          ) : null}
+          <div className="mobile-source-actions">
+            <PrimaryButton onClick={() => photoInput.current?.click()}>
+              <ImageIcon aria-hidden="true" /> {text("locationPhotos")}
+            </PrimaryButton>
+            <SecondaryButton onClick={() => fileInput.current?.click()}>
+              <Files aria-hidden="true" /> {text("locationFiles")}
+            </SecondaryButton>
+          </div>
         </section>
       ) : null}
       {stage === "preview" && file && validated ? (
         <section className="mobile-step mobile-step--preview">
           <h1>{text("checkDocument")}</h1>
           <p>{text("previewHelp")}</p>
-          <DocumentPreview file={file} validated={validated} />
+          <DocumentPreview
+            file={file}
+            validated={validated}
+            labels={{
+              documentPreview: text("documentPreview"),
+              selectedDocumentPreview: text("selectedDocumentPreview"),
+              pdfPreview: text("pdfPreview"),
+              firstPagePreview: text("firstPagePreview"),
+            }}
+          />
           <div className="mobile-summary">
             <p>
               <Printer aria-hidden="true" /> {text("printSummary")}
@@ -371,7 +357,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         </section>
       ) : null}
       {stage === "transfer" || stage === "progress" ? (
-        <ProgressState text={text(progressKey)} />
+        <ProgressState text={text(progressKey)} keepPageOpen={text("keepPageOpen")} />
       ) : null}
       {stage === "complete" ? (
         <SingleAction
@@ -395,11 +381,11 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   );
 }
 
-function Loading() {
+function Loading({ text }: { text: string }) {
   return (
     <section className="mobile-step" aria-busy="true">
       <div className="mobile-spinner" />
-      <p>Preparing secure session…</p>
+      <p>{text}</p>
     </section>
   );
 }
@@ -414,7 +400,7 @@ function LanguageStep({
   onContinue: () => void;
 }) {
   return (
-    <section className="mobile-step">
+    <section className="mobile-step mobile-step--language">
       <h1>{translate(locale, "selectLanguage")}</h1>
       <div className="language-grid">
         {SUPPORTED_LOCALES.map((candidate) => (
@@ -432,45 +418,48 @@ function LanguageStep({
           </label>
         ))}
       </div>
-      <PrimaryButton onClick={onContinue}>{translate(locale, "continue")}</PrimaryButton>
+      <div className="mobile-language-action">
+        <PrimaryButton onClick={onContinue}>{translate(locale, "continue")}</PrimaryButton>
+      </div>
     </section>
   );
 }
 
-function LocationStep({
-  value,
+function GuideStep({
   text,
-  onChange,
   onContinue,
 }: {
-  value: Location | undefined;
-  text: (key: string) => string;
-  onChange: (value: Location) => void;
+  text: (key: string, values?: Record<string, string | number>) => string;
   onContinue: () => void;
 }) {
+  const steps = [
+    { icon: ScanLine, title: "guideScanTitle", body: "guideScanBody", completed: true },
+    { icon: ImageIcon, title: "guideChooseTitle", body: "guideChooseBody", completed: false },
+    { icon: FileCheck2, title: "guideCheckTitle", body: "guideCheckBody", completed: false },
+    { icon: Printer, title: "guideCollectTitle", body: "guideCollectBody", completed: false },
+  ] as const;
+
   return (
-    <section className="mobile-step">
-      <h1>{text("chooseLocation")}</h1>
-      <div className="choice-list">
-        {LOCATION_OPTIONS.map(({ value: candidate, key, icon: Icon }) => (
-          <label
-            key={candidate}
-            className={candidate === value ? "choice-row is-selected" : "choice-row"}
-          >
-            <input
-              type="radio"
-              name="location"
-              checked={candidate === value}
-              onChange={() => onChange(candidate)}
-            />
-            <Icon aria-hidden="true" />
-            <span>{text(key)}</span>
-          </label>
-        ))}
+    <section className="mobile-step mobile-step--guide">
+      <div className="mobile-guide__heading">
+        <h1>{text("guideTitle")}</h1>
+        <p>{text("guideIntro")}</p>
       </div>
-      <PrimaryButton disabled={!value} onClick={onContinue}>
-        {text("continue")}
-      </PrimaryButton>
+      <ol className="mobile-guide" aria-label={text("guideTitle")}>
+        {steps.map(({ icon: Icon, title, body, completed }) => (
+          <li key={title} className={completed ? "is-complete" : undefined}>
+            <span className="mobile-guide__icon" aria-hidden="true">
+              <Icon />
+              {completed ? <CheckCircle2 className="mobile-guide__check" /> : null}
+            </span>
+            <span>
+              <strong>{text(title)}</strong>
+              <small>{text(body)}</small>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <PrimaryButton onClick={onContinue}>{text("guideStart")}</PrimaryButton>
     </section>
   );
 }
@@ -501,12 +490,12 @@ function SingleAction({
   );
 }
 
-function ProgressState({ text }: { text: string }) {
+function ProgressState({ text, keepPageOpen }: { text: string; keepPageOpen: string }) {
   return (
     <section className="mobile-step mobile-step--single" aria-live="polite">
       <div className="mobile-spinner" />
       <h1>{text}</h1>
-      <p>Keep this page open.</p>
+      <p>{keepPageOpen}</p>
     </section>
   );
 }

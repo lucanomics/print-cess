@@ -93,7 +93,8 @@ document content and remains until conditional Blob deletion is finalized.
    short-lived exact-path PUT URL only after an atomic `upload_authorized` transition and schedules
    cleanup at this point.
 7. The phone PUTs `application/octet-stream` directly to Private Blob. It then registers the exact
-   returned ETag and size through a small JSON request. The original filename is never sent.
+   expected ciphertext size through a small JSON request. The server reads the provider-authoritative
+   ETag and size; the original filename is never sent.
 8. The phone polls a redacted public status view until terminal or expired.
 
 ## Kiosk flow
@@ -105,7 +106,7 @@ document content and remains until conditional Blob deletion is finalized.
 3. Poll with the independent kiosk token. Atomically consume `uploaded -> consumed` before any
    download or print work.
 4. Receive an exact-path, GET-only, short-lived Private Blob URL and download directly into a
-   bounded ciphertext buffer. Verify size and committed ETag.
+   bounded ciphertext buffer. Verify size, then authenticate the envelope during AES-GCM decryption.
 5. Parse the envelope, derive the key, authenticate/decrypt in memory, then validate magic bytes,
    actual type, length, PDF structure/page count/encryption/actions, or image decode/dimensions.
 6. Check the configured printer and its capabilities. Submit exactly once with A4, one copy,
@@ -120,20 +121,20 @@ document content and remains until conditional Blob deletion is finalized.
 All transitions below are allowed; every unlisted transition is rejected. Transition and revision
 checks occur atomically. Terminal states cannot be reactivated.
 
-| Current state       | Allowed next states                                   | Entry/exit rule                                                               |
-| ------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `waiting`           | `claimed`, `expired`, `cancelled`                     | Only the first valid upload token may claim.                                  |
-| `claimed`           | `upload_authorized`, `expired`, `cancelled`, `failed` | Claim owns the session; a second phone is rejected.                           |
-| `upload_authorized` | `uploading`, `expired`, `cancelled`, `failed`         | One random pathname is reserved and cleanup is scheduled.                     |
-| `uploading`         | `uploaded`, `expired`, `cancelled`, `failed`          | Optional progress state; no second object/path may be authorized.             |
-| `uploaded`          | `consumed`, `expired`, `cancelled`, `failed`          | ETag and bounded envelope size are committed.                                 |
-| `consumed`          | `validating`, `failed`, `expired`                     | Consume succeeds once with the kiosk token; an abandoned lease may expire.    |
-| `validating`        | `printing`, `failed`                                  | Authenticated decryption precedes file validation; validation precedes print. |
-| `printing`          | `completed`, `failed`                                 | Enter once. An ambiguous submission fails closed without retry.               |
-| `completed`         | none                                                  | Terminal; immediate cleanup and 15-second completion screen.                  |
-| `failed`            | none                                                  | Terminal; cleanup, neutral error code, no internal details.                   |
-| `expired`           | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                |
-| `cancelled`         | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                |
+| Current state       | Allowed next states                                   | Entry/exit rule                                                                                |
+| ------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `waiting`           | `claimed`, `expired`, `cancelled`                     | Only the first valid upload token may claim.                                                   |
+| `claimed`           | `upload_authorized`, `expired`, `cancelled`, `failed` | Claim owns the session; a second phone is rejected.                                            |
+| `upload_authorized` | `uploading`, `expired`, `cancelled`, `failed`         | One random pathname is reserved and cleanup is scheduled.                                      |
+| `uploading`         | `uploaded`, `expired`, `cancelled`, `failed`          | Optional progress state; no second object/path may be authorized.                              |
+| `uploaded`          | `consumed`, `expired`, `cancelled`, `failed`          | ETag and bounded envelope size are committed.                                                  |
+| `consumed`          | `validating`, `failed`, `expired`                     | Consume succeeds once with the kiosk token; an abandoned lease may expire.                     |
+| `validating`        | `printing`, `failed`                                  | Authenticated decryption precedes file validation; validation precedes print.                  |
+| `printing`          | `completed`, `failed`                                 | Enter once. An ambiguous submission fails closed without retry.                                |
+| `completed`         | none                                                  | Terminal; immediate cleanup and a bounded completion screen (60 seconds in the browser kiosk). |
+| `failed`            | none                                                  | Terminal; cleanup, neutral error code, no internal details.                                    |
+| `expired`           | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                                 |
+| `cancelled`         | none                                                  | Terminal; cleanup and fresh kiosk key/session.                                                 |
 
 Cancellation is not permitted after consume. An abandoned `consumed` lease may expire before
 validation starts; once validation starts, processing reaches `printing` or fails closed.
@@ -145,7 +146,8 @@ validation starts; once validation starts, processing reaches `printing` or fail
 - Every mutating request carries the expected state/revision or is implemented as a Lua script that
   checks both before writing.
 - Upload authorization is once per session and binds one random pathname. PUT is no-overwrite.
-- Upload completion accepts the expected pathname implicitly from Redis, records one ETag/size, and
+- Upload completion accepts the expected pathname implicitly from Redis, compares the client-reported
+  size with provider metadata, records the provider-authoritative ETag/size, and
   cannot replace them.
 - Consume changes state before returning the GET URL. A repeated consume returns conflict and never
   creates a second print opportunity.

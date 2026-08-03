@@ -92,7 +92,8 @@ Run through public interfaces with the memory/local adapters:
 - authorization reserves one random non-filename path and safely replays one deduplicated cleanup
   deadline after a failed/lost scheduling acknowledgement;
 - ciphertext goes direct to mock/local Blob, never through a Route Handler;
-- upload completion commits one expected size/ETag and rejects replacement/oversize;
+- upload completion compares the expected size, commits provider-authoritative size/ETag, and rejects
+  replacement/oversize;
 - consume returns one GET authorization and repeated consume conflicts;
 - invalid/expired/cancelled/terminal sessions cannot advance;
 - cleanup verifies authorization/signature boundary, is idempotent, and handles every race/failure;
@@ -107,12 +108,11 @@ Skip with an explicit “credentials unavailable” result rather than silently 
 
 At minimum:
 
-- all eight language selections and English fallback;
-- Photos/Gallery, Files/Downloads, KakaoTalk save guidance, Email save guidance, and no-document
-  route;
+- all thirteen language selections and English fallback;
+- direct Photos/Gallery and Files/Downloads selection with no account or app-specific detours;
 - PDF/JPEG/PNG selection, local preview, summary, one A4-copy approval;
-- local encryption/direct upload, kiosk simulator state sequence, completion, deletion, 15-second
-  reset;
+- local encryption/direct upload, kiosk simulator state sequence, print invocation, download
+  recovery, deletion, and 60-second browser-kiosk reset;
 - QR expiry/reuse/second phone, missing fragment, fingerprint mismatch;
 - cancel, back, refresh, duplicate tap, connection interruption/recovery;
 - locked/damaged/11-page/unsupported/oversized/excess-dimension files;

@@ -47,4 +47,16 @@ describe("kiosk demo page", () => {
 
     expect(notFound).toHaveBeenCalledOnce();
   });
+
+  it("remains available as a compatibility path when the public browser kiosk is enabled", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "true");
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "production");
+
+    const page = KioskDemoPage();
+
+    expect(notFound).not.toHaveBeenCalled();
+    expect(page.type).toBeDefined();
+  });
 });

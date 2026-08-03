@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, PropsWithChildren, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, PropsWithChildren, ReactNode } from "react";
 import { Check } from "lucide-react";
 
 export function PrintcessMark({ className = "" }: { className?: string }) {
@@ -78,7 +78,11 @@ export function ProgressSteps({
       aria-valuemax={total}
       aria-valuenow={current}
     >
-      <div className="pc-progress__track" aria-hidden="true">
+      <div
+        className="pc-progress__track"
+        aria-hidden="true"
+        style={{ "--pc-progress-total": total } as CSSProperties}
+      >
         {Array.from({ length: total }, (_, index) => (
           <span
             key={index}

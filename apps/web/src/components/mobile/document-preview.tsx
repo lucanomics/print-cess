@@ -8,9 +8,16 @@ import { PdfPreview } from "./pdf-preview";
 export function DocumentPreview({
   file,
   validated,
+  labels,
 }: {
   file: File;
   validated: ValidatedMobileFile;
+  labels: {
+    documentPreview: string;
+    selectedDocumentPreview: string;
+    pdfPreview: string;
+    firstPagePreview: string;
+  };
 }) {
   const source = useMemo(
     () => (validated.fileKind === "pdf" ? undefined : URL.createObjectURL(file)),
@@ -24,12 +31,16 @@ export function DocumentPreview({
   }, [source]);
 
   return (
-    <div className="mobile-preview" aria-label="Document preview">
+    <div className="mobile-preview" aria-label={labels.documentPreview}>
       {validated.fileKind === "pdf" ? (
-        <PdfPreview bytes={validated.bytes} />
+        <PdfPreview
+          bytes={validated.bytes}
+          pdfPreview={labels.pdfPreview}
+          firstPagePreview={labels.firstPagePreview}
+        />
       ) : source ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={source} alt="Selected document preview" />
+        <img src={source} alt={labels.selectedDocumentPreview} />
       ) : null}
     </div>
   );

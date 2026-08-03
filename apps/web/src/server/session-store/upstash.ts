@@ -196,12 +196,14 @@ export class UpstashSessionStore implements SessionStore {
   readonly #redis: Redis;
 
   public constructor(environment: NodeJS.ProcessEnv = process.env) {
-    if (!environment.UPSTASH_REDIS_REST_URL || !environment.UPSTASH_REDIS_REST_TOKEN) {
+    const url = environment.UPSTASH_REDIS_REST_URL ?? environment.KV_REST_API_URL;
+    const token = environment.UPSTASH_REDIS_REST_TOKEN ?? environment.KV_REST_API_TOKEN;
+    if (!url || !token) {
       throw new Error("Upstash Redis credentials are required in external adapter mode");
     }
     this.#redis = new Redis({
-      url: environment.UPSTASH_REDIS_REST_URL,
-      token: environment.UPSTASH_REDIS_REST_TOKEN,
+      url,
+      token,
       enableTelemetry: false,
     });
   }

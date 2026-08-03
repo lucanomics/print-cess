@@ -42,6 +42,17 @@ describe("UpstashSessionStore persisted session validation", () => {
     redis.zrem.mockReset();
   });
 
+  it("accepts the Vercel Marketplace KV credential names", () => {
+    expect(
+      () =>
+        new UpstashSessionStore({
+          NODE_ENV: "test",
+          KV_REST_API_URL: "https://redis.example.test",
+          KV_REST_API_TOKEN: "test-token",
+        }),
+    ).not.toThrow();
+  });
+
   it.each([validSession, JSON.stringify(validSession)])(
     "accepts a valid object or serialized session",
     async (stored) => {

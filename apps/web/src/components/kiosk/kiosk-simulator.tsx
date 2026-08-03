@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
+  Download,
   FileCheck2,
   LockKeyhole,
   Printer,
@@ -28,6 +29,12 @@ import {
   parsePngDimensions,
   validatePdf,
 } from "@/lib/file-validation";
+import {
+  createPrintArtifact,
+  printArtifact,
+  revokePrintArtifact,
+  type PrintArtifact,
+} from "@/lib/kiosk-print";
 
 type KioskStatus =
   | "preparing"
@@ -50,21 +57,38 @@ type RegisteredSession = {
   fingerprint: string;
 };
 
-export function KioskSimulator() {
+export function KioskSimulator({ automaticPrinting = false }: { automaticPrinting?: boolean }) {
   const [session, setSession] = useState<RegisteredSession>();
   const [status, setStatus] = useState<KioskStatus>("preparing");
   const [remaining, setRemaining] = useState(180);
-  const [completionRemaining, setCompletionRemaining] = useState(15);
+  const [completionRemaining, setCompletionRemaining] = useState(60);
+  const [artifact, setArtifact] = useState<PrintArtifact>();
   const [generation, setGeneration] = useState(0);
   const processing = useRef(false);
+  const artifactRef = useRef<PrintArtifact | undefined>(undefined);
+
+  const replaceArtifact = useCallback((nextArtifact: PrintArtifact | undefined) => {
+    revokePrintArtifact(artifactRef.current);
+    artifactRef.current = nextArtifact;
+    setArtifact(nextArtifact);
+  }, []);
 
   const reset = useCallback(() => {
     processing.current = false;
+    replaceArtifact(undefined);
     setSession(undefined);
     setStatus("preparing");
-    setCompletionRemaining(15);
+    setCompletionRemaining(60);
     setGeneration((value) => value + 1);
-  }, []);
+  }, [replaceArtifact]);
+
+  useEffect(
+    () => () => {
+      revokePrintArtifact(artifactRef.current);
+      artifactRef.current = undefined;
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -75,7 +99,7 @@ export function KioskSimulator() {
         const kioskPublicKey = await exportPublicKeyBase64Url(keyPair.publicKey);
         const fingerprint = await fingerprintPublicKey(kioskPublicKey);
         preparationStep = "session-registration";
-        const response = await fetch("/api/demo/sessions", {
+        const response = await fetch("/api/kiosk/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -152,7 +176,7 @@ export function KioskSimulator() {
           if (body.status === "uploaded" && !processing.current) {
             processing.current = true;
             setStatus("uploaded");
-            await consumeAndPrint(session, setStatus);
+            await consumeAndPrint(session, setStatus, replaceArtifact);
             if (active) {
               playCompletionTone();
             }
@@ -166,23 +190,30 @@ export function KioskSimulator() {
       active = false;
       window.clearInterval(poll);
     };
-  }, [reset, session, status]);
+  }, [replaceArtifact, reset, session, status]);
 
   useEffect(() => {
     if (status !== "completed") return;
-    const deadline = Date.now() + 15_000;
+    const deadline = Date.now() + 60_000;
     const tick = () => {
       setCompletionRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
     };
     const interval = window.setInterval(tick, 250);
-    const timeout = window.setTimeout(reset, 15_000);
+    const timeout = window.setTimeout(reset, 60_000);
     return () => {
       window.clearInterval(interval);
       window.clearTimeout(timeout);
     };
   }, [reset, status]);
 
-  if (status === "completed") return <CompletedScreen remaining={completionRemaining} />;
+  if (status === "completed" && artifact)
+    return (
+      <CompletedScreen
+        artifact={artifact}
+        automaticPrinting={automaticPrinting}
+        remaining={completionRemaining}
+      />
+    );
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
 
   return (
@@ -259,6 +290,7 @@ export function KioskSimulator() {
 async function consumeAndPrint(
   session: RegisteredSession,
   setStatus: (status: KioskStatus) => void,
+  setArtifact: (artifact: PrintArtifact | undefined) => void,
 ) {
   let envelope: Uint8Array<ArrayBufferLike> = new Uint8Array();
   let plaintext: Uint8Array<ArrayBufferLike> = new Uint8Array();
@@ -286,8 +318,7 @@ async function consumeAndPrint(
     });
     if (!download.ok) throw new Error("download failed");
     envelope = new Uint8Array(await download.arrayBuffer());
-    if (envelope.byteLength !== operation.size || download.headers.get("etag") !== operation.etag)
-      throw new Error("metadata mismatch");
+    if (envelope.byteLength !== operation.size) throw new Error("metadata mismatch");
     const decrypted = await decryptDocument(
       envelope,
       {
@@ -305,9 +336,11 @@ async function consumeAndPrint(
     if (detected === "pdf") await validatePdf(plaintext);
     else if (detected === "png") parsePngDimensions(plaintext);
     else parseJpegDimensions(plaintext);
+    const artifact = createPrintArtifact(plaintext, decrypted.fileKind);
+    setArtifact(artifact);
     setStatus("printing");
     await kioskTransition(session, "printing");
-    await new Promise((resolve) => window.setTimeout(resolve, 900));
+    await printArtifact(artifact).catch(() => undefined);
     await kioskTransition(session, "completed");
     setStatus("completed");
   } catch {
@@ -365,16 +398,38 @@ function playCompletionTone() {
   }
 }
 
-function CompletedScreen({ remaining }: { remaining: number }) {
+function CompletedScreen({
+  artifact,
+  automaticPrinting,
+  remaining,
+}: {
+  artifact: PrintArtifact;
+  automaticPrinting: boolean;
+  remaining: number;
+}) {
   return (
-    <main className="kiosk-result kiosk-result--success">
+    <main
+      className="kiosk-result kiosk-result--success"
+      data-printing-mode={automaticPrinting ? "automatic" : "interactive"}
+    >
       <Wordmark />
       <CheckCircle2 aria-hidden="true" />
-      <h1>출력물을 가져가세요</h1>
+      <h1>{automaticPrinting ? "자동 인쇄가 시작됐습니다" : "인쇄 준비가 완료됐습니다"}</h1>
       <p>
-        <Printer aria-hidden="true" /> 프린터 출력구를 확인하세요
+        <Printer aria-hidden="true" />
+        {automaticPrinting ? "프린터 출력구를 확인하세요" : "인쇄 창을 확인하세요"}
       </p>
-      <span>암호화된 파일 삭제 완료 · {remaining}초 후 새 QR</span>
+      <div className="kiosk-result__actions">
+        {automaticPrinting ? null : (
+          <button type="button" onClick={() => void printArtifact(artifact)}>
+            <Printer aria-hidden="true" /> 인쇄 창 다시 열기
+          </button>
+        )}
+        <a href={artifact.url} download={artifact.filename} className="kiosk-download">
+          <Download aria-hidden="true" /> 파일 다운로드
+        </a>
+      </div>
+      <span>서버 파일 삭제 완료 · {remaining}초 후 새 QR</span>
     </main>
   );
 }

@@ -29,7 +29,8 @@ export default defineConfig({
     env: {
       ...process.env,
       PRINT_CESS_ADAPTER_MODE: "local",
-      ENABLE_DEMO_ROUTES: "true",
+      ENABLE_BROWSER_KIOSK: "true",
+      ENABLE_DEMO_ROUTES: "false",
       PUBLIC_BASE_URL: "http://127.0.0.1:3000",
       ALLOWED_ORIGINS: "http://127.0.0.1:3000",
       ADMIN_DIAGNOSTICS_SECRET: "print-cess-e2e-admin-only",
