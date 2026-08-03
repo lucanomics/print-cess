@@ -54,9 +54,7 @@ export function createPostgresExecutor(
   return executor;
 }
 
-export function readPostgresTlsServerName(
-  environment: NodeJS.ProcessEnv = process.env,
-): string {
+export function readPostgresTlsServerName(environment: NodeJS.ProcessEnv = process.env): string {
   const raw = environment.POSTGRES_TLS_SERVER_NAME ?? DEFAULT_TLS_SERVER_NAME;
   const value = raw.trim();
   if (value !== raw || !DNS_SERVER_NAME_PATTERN.test(value) || isIP(value) !== 0) {
