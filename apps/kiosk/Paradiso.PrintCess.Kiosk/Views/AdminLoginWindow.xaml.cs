@@ -10,18 +10,22 @@ namespace Paradiso.PrintCess.Kiosk.Views;
 public partial class AdminLoginWindow : Window
 {
     private readonly IAdminAuthenticator _authenticator;
+    private readonly AdminAuthenticationThrottle _throttle;
     private readonly PrintRecoveryReport _recoveryReport;
     private readonly IPrintSubmissionJournal? _journal;
     private readonly IKioskAdminRuntime? _runtime;
+    private bool _authenticationInProgress;
 
     public AdminLoginWindow(
         IAdminAuthenticator authenticator,
+        AdminAuthenticationThrottle throttle,
         PrintRecoveryReport recoveryReport,
         IPrintSubmissionJournal? journal,
         IKioskAdminRuntime? runtime)
     {
         InitializeComponent();
         _authenticator = authenticator;
+        _throttle = throttle;
         _recoveryReport = recoveryReport;
         _journal = journal;
         _runtime = runtime;
@@ -29,6 +33,11 @@ public partial class AdminLoginWindow : Window
 
     private async void OnAuthenticate(object sender, RoutedEventArgs e)
     {
+        if (_authenticationInProgress)
+        {
+            return;
+        }
+
         if (!_authenticator.IsConfigured)
         {
             ErrorMessage.Text = "관리자 인증이 구성되지 않았습니다. 오류 코드: ADMIN-NOT-CONFIGURED";
@@ -36,18 +45,31 @@ public partial class AdminLoginWindow : Window
             return;
         }
 
-        using var securePassword = PasswordInput.SecurePassword;
-        var password = CopyPassword(securePassword);
-        PasswordInput.Clear();
+        if (!_throttle.TryBegin(out _))
+        {
+            ErrorMessage.Text = "인증 시도가 너무 많습니다. 잠시 후 다시 시도하세요. 오류 코드: ADMIN-RATE-LIMITED";
+            PasswordInput.Clear();
+            return;
+        }
+
+        _authenticationInProgress = true;
+        char[]? password = null;
         try
         {
+            using var securePassword = PasswordInput.SecurePassword;
+            password = CopyPassword(securePassword);
+            PasswordInput.Clear();
             var result = await _authenticator.AuthenticateAsync(password, CancellationToken.None);
             if (!result.Succeeded)
             {
-                ErrorMessage.Text = $"인증할 수 없습니다. 오류 코드: {result.SafeCode}";
+                _throttle.RecordFailure();
+                ErrorMessage.Text = _throttle.TryBegin(out _)
+                    ? $"인증할 수 없습니다. 오류 코드: {result.SafeCode}"
+                    : "인증 시도가 너무 많습니다. 잠시 후 다시 시도하세요. 오류 코드: ADMIN-RATE-LIMITED";
                 return;
             }
 
+            _throttle.RecordSuccess();
             var diagnostics = new AdminStatusWindow(_recoveryReport, _journal, _runtime)
             {
                 Owner = Owner,
@@ -57,7 +79,11 @@ public partial class AdminLoginWindow : Window
         }
         finally
         {
-            Array.Clear(password);
+            if (password is not null)
+            {
+                Array.Clear(password);
+            }
+            _authenticationInProgress = false;
         }
     }
 
