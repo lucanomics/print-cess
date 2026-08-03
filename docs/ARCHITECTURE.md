@@ -106,7 +106,7 @@ document content and remains until conditional Blob deletion is finalized.
 3. Poll with the independent kiosk token. Atomically consume `uploaded -> consumed` before any
    download or print work.
 4. Receive an exact-path, GET-only, short-lived Private Blob URL and download directly into a
-   bounded ciphertext buffer. Verify size and committed ETag.
+   bounded ciphertext buffer. Verify size, then authenticate the envelope during AES-GCM decryption.
 5. Parse the envelope, derive the key, authenticate/decrypt in memory, then validate magic bytes,
    actual type, length, PDF structure/page count/encryption/actions, or image decode/dimensions.
 6. Check the configured printer and its capabilities. Submit exactly once with A4, one copy,

@@ -28,7 +28,6 @@ import {
   parsePngDimensions,
   validatePdf,
 } from "@/lib/file-validation";
-import { normalizeEntityTag } from "@/lib/entity-tag";
 
 type KioskStatus =
   | "preparing"
@@ -287,15 +286,7 @@ async function consumeAndPrint(
     });
     if (!download.ok) throw new Error("download failed");
     envelope = new Uint8Array(await download.arrayBuffer());
-    const downloadedEtag = normalizeEntityTag(download.headers.get("etag"));
-    const expectedEtag = normalizeEntityTag(operation.etag);
-    if (
-      envelope.byteLength !== operation.size ||
-      !downloadedEtag ||
-      !expectedEtag ||
-      downloadedEtag !== expectedEtag
-    )
-      throw new Error("metadata mismatch");
+    if (envelope.byteLength !== operation.size) throw new Error("metadata mismatch");
     const decrypted = await decryptDocument(
       envelope,
       {
