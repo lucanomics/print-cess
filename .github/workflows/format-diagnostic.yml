@@ -1,0 +1,36 @@
+name: Format diagnostic
+
+on:
+  push:
+    branches:
+      - fix/korean-ui-copy
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Print exact Prettier diff
+        run: |
+          pnpm exec prettier packages/i18n/src/public.ts --write
+          git diff -- packages/i18n/src/public.ts
+          exit 1
