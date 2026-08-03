@@ -7,8 +7,8 @@ import {
   createSyntheticPng,
 } from "@print-cess/test-fixtures";
 
-async function openSession(page: Page): Promise<string> {
-  await page.goto("/kiosk");
+async function openSession(page: Page, kioskPath = "/kiosk"): Promise<string> {
+  await page.goto(kioskPath);
   await expect(page.getByRole("heading", { name: /QR코드를 스캔하세요/u })).toBeVisible();
   const qr = page.locator(".kiosk-qr");
   // A cold Next.js development server can compile this API route while all
@@ -21,8 +21,9 @@ async function openSession(page: Page): Promise<string> {
 async function openMobileAtLanguage(
   kiosk: Page,
   context: BrowserContext,
+  kioskPath = "/kiosk",
 ): Promise<{ mobile: Page; sessionUrl: string }> {
-  const sessionUrl = await openSession(kiosk);
+  const sessionUrl = await openSession(kiosk, kioskPath);
   const mobile = await context.newPage();
   await mobile.goto(sessionUrl);
   await expect(mobile.getByRole("heading", { name: "Choose your language" })).toBeVisible({
@@ -40,7 +41,7 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   page,
   context,
 }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
+  const { mobile } = await openMobileAtLanguage(page, context, "/kiosk?printing=auto");
   await reachFilePicker(mobile);
   await mobile.getByTestId("file-input").setInputFiles({
     name: "synthetic-ticket.png",
@@ -50,9 +51,11 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   await expect(mobile.getByRole("heading", { name: "Check your document" })).toBeVisible();
   await expect(mobile.getByRole("img", { name: "Selected document preview" })).toBeVisible();
   await mobile.getByRole("button", { name: "Print one A4 copy" }).click();
-  await expect(page.getByRole("heading", { name: "인쇄 준비가 완료됐습니다" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "자동 인쇄가 시작됐습니다" })).toBeVisible({
     timeout: 60_000,
   });
+  await expect(page.getByText("프린터 출력구를 확인하세요")).toBeVisible();
+  await expect(page.getByRole("button", { name: "인쇄 창 다시 열기" })).toHaveCount(0);
   const download = page.getByRole("link", { name: "파일 다운로드" });
   await expect(download).toHaveAttribute("download", "print-cess-document.png");
   await expect(download).toHaveAttribute("href", /^blob:/u);

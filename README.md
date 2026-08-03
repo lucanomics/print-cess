@@ -9,9 +9,9 @@ protocol, and Windows kiosk for a no-login, one-document, one-copy print flow. D
 encrypted local adapters; production integrations require separately approved Vercel and Upstash
 resources.
 
-The complete setup, security boundaries, test commands, Windows deployment procedure, and
-remaining production blockers are documented in `docs/`. Never use real personal documents in
-development, Preview, fixtures, or CI.
+The complete setup, security boundaries, test commands, macOS browser-kiosk procedure, Windows
+deployment procedure, and remaining production blockers are documented in `docs/`. Never use real
+personal documents in development, Preview, fixtures, or CI.
 
 ## Required tools
 
@@ -32,6 +32,10 @@ pnpm dev
 Open `http://localhost:3000/kiosk`, scan the generated QR with a phone on the same reachable
 development URL, or open its mobile link in another browser tab. Local mode stores ciphertext
 only under an application-owned development directory.
+
+For unattended Production printing on a Mac, configure an explicit default printer and follow
+`docs/MACOS_BROWSER_KIOSK.md`. The checked-in LaunchAgent opens the live URL with Chrome's kiosk and
+silent-printing switches in a dedicated browser profile.
 
 The checked-in environment example is for local development. Hosted Preview/Production fails
 closed unless exact HTTPS origins and the required Blob, Redis, QStash, kiosk-registration, and

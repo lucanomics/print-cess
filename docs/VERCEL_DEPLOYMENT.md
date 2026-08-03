@@ -27,15 +27,15 @@ recovery actions visible for 60 seconds: **Open print dialog again** and **Downl
 server-side encrypted object is deleted at terminal completion; the in-memory Blob URL is revoked
 when the screen resets.
 
-A normal browser does not allow a website to bypass the system print confirmation. For unattended
-physical output, configure the kiosk computer's approved default printer and launch its managed
-Chromium browser in kiosk mode with silent kiosk printing enabled. Verify that policy on the exact
-browser version and printer driver before opening the station. Without that managed setting, a
-visitor or operator must confirm the print dialog.
+A normal browser does not allow a website to bypass the system print confirmation. The approved
+macOS station uses the checked-in launcher and LaunchAgent from `docs/MACOS_BROWSER_KIOSK.md`, with
+an explicit default printer, the `/kiosk?printing=auto` route, and Chrome's
+`--kiosk --kiosk-printing` switches. The managed route hides the reprint button to prevent a second
+silent job. Without that managed launcher, a visitor or operator must confirm the print dialog.
 
 The download action saves a plaintext copy through the browser and can outlive the web session.
-Use it only as a recovery path, configure the kiosk account to clear its download directory between
-users, and verify that cleanup as part of site acceptance.
+Use it only as a recovery path. The site operator clears the kiosk account's Downloads folder
+manually under the agreed local procedure.
 
 ## Project setup
 

@@ -19,7 +19,7 @@
     "test:integration": "pnpm --filter @print-cess/web test:integration",
     "test:provider": "turbo run build --filter=@print-cess/web^... && pnpm --filter @print-cess/web test:provider",
     "test:acceptance-evidence": "node --test scripts/acceptance/*.test.mjs",
-    "test:workflow": "node --test scripts/github/*.test.mjs",
+    "test:workflow": "node --test scripts/github/*.test.mjs scripts/kiosk/*.test.mjs",
     "validate:readiness-evidence": "node scripts/acceptance/validate-readiness-evidence.mjs",
     "test:e2e": "pnpm --filter @print-cess/web test:e2e",
     "fixtures": "pnpm --filter @print-cess/test-fixtures generate"

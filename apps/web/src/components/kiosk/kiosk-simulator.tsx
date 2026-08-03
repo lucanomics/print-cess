@@ -57,7 +57,7 @@ type RegisteredSession = {
   fingerprint: string;
 };
 
-export function KioskSimulator() {
+export function KioskSimulator({ automaticPrinting = false }: { automaticPrinting?: boolean }) {
   const [session, setSession] = useState<RegisteredSession>();
   const [status, setStatus] = useState<KioskStatus>("preparing");
   const [remaining, setRemaining] = useState(180);
@@ -207,7 +207,13 @@ export function KioskSimulator() {
   }, [reset, status]);
 
   if (status === "completed" && artifact)
-    return <CompletedScreen artifact={artifact} remaining={completionRemaining} />;
+    return (
+      <CompletedScreen
+        artifact={artifact}
+        automaticPrinting={automaticPrinting}
+        remaining={completionRemaining}
+      />
+    );
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
 
   return (
@@ -392,19 +398,33 @@ function playCompletionTone() {
   }
 }
 
-function CompletedScreen({ artifact, remaining }: { artifact: PrintArtifact; remaining: number }) {
+function CompletedScreen({
+  artifact,
+  automaticPrinting,
+  remaining,
+}: {
+  artifact: PrintArtifact;
+  automaticPrinting: boolean;
+  remaining: number;
+}) {
   return (
-    <main className="kiosk-result kiosk-result--success">
+    <main
+      className="kiosk-result kiosk-result--success"
+      data-printing-mode={automaticPrinting ? "automatic" : "interactive"}
+    >
       <Wordmark />
       <CheckCircle2 aria-hidden="true" />
-      <h1>인쇄 준비가 완료됐습니다</h1>
+      <h1>{automaticPrinting ? "자동 인쇄가 시작됐습니다" : "인쇄 준비가 완료됐습니다"}</h1>
       <p>
-        <Printer aria-hidden="true" /> 인쇄 창을 확인하세요
+        <Printer aria-hidden="true" />
+        {automaticPrinting ? "프린터 출력구를 확인하세요" : "인쇄 창을 확인하세요"}
       </p>
       <div className="kiosk-result__actions">
-        <button type="button" onClick={() => void printArtifact(artifact)}>
-          <Printer aria-hidden="true" /> 인쇄 창 다시 열기
-        </button>
+        {automaticPrinting ? null : (
+          <button type="button" onClick={() => void printArtifact(artifact)}>
+            <Printer aria-hidden="true" /> 인쇄 창 다시 열기
+          </button>
+        )}
         <a href={artifact.url} download={artifact.filename} className="kiosk-download">
           <Download aria-hidden="true" /> 파일 다운로드
         </a>
