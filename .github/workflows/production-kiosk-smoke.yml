@@ -15,13 +15,19 @@ concurrency:
 
 jobs:
   smoke:
-    name: Live session registration
+    name: Live session registration (${{ matrix.base-url }})
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        base-url:
+          - https://print-cess.vercel.app
+          - https://paradiso-print-cess-web.vercel.app
     steps:
       - name: Verify the live kiosk and session API
         env:
-          BASE_URL: https://print-cess.vercel.app
+          BASE_URL: ${{ matrix.base-url }}
         run: |
           set -euo pipefail
 
@@ -37,14 +43,14 @@ jobs:
               "$BASE_URL/api/kiosk/sessions" || true)"
 
             if [[ "$page_code" == "200" && "$api_code" == "201" ]] && grep --quiet '"status":"waiting"' /tmp/session.json; then
-              echo "Production kiosk session registration succeeded."
+              echo "$BASE_URL kiosk session registration succeeded."
               exit 0
             fi
 
             error_code="$(node -e 'try { const value = JSON.parse(require("fs").readFileSync("/tmp/session.json", "utf8")); process.stdout.write(value?.error?.code ?? "none"); } catch { process.stdout.write("unreadable"); }')"
-            echo "Attempt $attempt: kiosk=$page_code session=$api_code error=$error_code"
+            echo "Attempt $attempt: host=$BASE_URL kiosk=$page_code session=$api_code error=$error_code"
             sleep 10
           done
 
-          echo "Production kiosk did not create a waiting session after repeated checks."
+          echo "$BASE_URL did not create a waiting session after repeated checks."
           exit 1
