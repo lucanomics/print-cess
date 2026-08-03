@@ -147,7 +147,8 @@ only authorization/status JSON. They reject document-like content types and requ
 
 The upload completion request reports the expected size once. The server reads and records the
 provider-authoritative ETag and size through the authenticated Blob SDK before decryption, and the kiosk
-checks the direct GET response against that committed metadata. Credential-backed tests must prove
+checks the direct GET response against that committed metadata after normalizing strong and weak ETag
+syntax. Credential-backed tests must prove
 wrong path, wrong method, expiry, replay/no-overwrite, wrong content type, oversize, wrong ETag
 delete, and repeated delete behavior.
 
