@@ -107,8 +107,15 @@ function assertSessionProvider(
     requirePemCertificate(environment, "POSTGRES_CA_CERT");
     return;
   }
-  requireHttpsUrl(environment, "UPSTASH_REDIS_REST_URL");
-  requireSecret(environment, "UPSTASH_REDIS_REST_TOKEN", 20);
+  requireHttpsValue(
+    environment.UPSTASH_REDIS_REST_URL ?? environment.KV_REST_API_URL,
+    "UPSTASH_REDIS_REST_URL or KV_REST_API_URL",
+  );
+  requireSecretValue(
+    environment.UPSTASH_REDIS_REST_TOKEN ?? environment.KV_REST_API_TOKEN,
+    "UPSTASH_REDIS_REST_TOKEN or KV_REST_API_TOKEN",
+    20,
+  );
 }
 
 function assertBlobProvider(environment: NodeJS.ProcessEnv, provider: BlobProvider | null): void {
@@ -144,7 +151,10 @@ function assertExactHttpsOrigin(value: string, name: string): void {
 }
 
 function requireHttpsUrl(environment: NodeJS.ProcessEnv, name: string): void {
-  const value = environment[name];
+  requireHttpsValue(environment[name], name);
+}
+
+function requireHttpsValue(value: string | undefined, name: string): void {
   if (!value || new URL(value).protocol !== "https:") {
     throw new Error(`${name} must be configured with HTTPS in production`);
   }
@@ -200,7 +210,10 @@ function requirePemCertificate(environment: NodeJS.ProcessEnv, name: string): vo
 }
 
 function requireSecret(environment: NodeJS.ProcessEnv, name: string, minimumLength: number): void {
-  const value = environment[name];
+  requireSecretValue(environment[name], name, minimumLength);
+}
+
+function requireSecretValue(value: string | undefined, name: string, minimumLength: number): void {
   if (!value || value.length < minimumLength) {
     throw new Error(`${name} must contain at least ${minimumLength} characters in production`);
   }

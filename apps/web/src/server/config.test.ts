@@ -78,6 +78,18 @@ describe("loadConfig", () => {
     });
   });
 
+  it("accepts the Vercel Marketplace names for Upstash Redis", () => {
+    expect(
+      loadConfig({
+        ...productionEnvironment,
+        UPSTASH_REDIS_REST_URL: undefined,
+        UPSTASH_REDIS_REST_TOKEN: undefined,
+        KV_REST_API_URL: "https://redis.example.test",
+        KV_REST_API_TOKEN: "r".repeat(20),
+      }),
+    ).toMatchObject({ sessionProvider: "upstash-redis" });
+  });
+
   it("leaves provider selectors null in local mode", () => {
     expect(loadConfig({ NODE_ENV: "test", PRINT_CESS_ADAPTER_MODE: "local" })).toMatchObject({
       mode: "local",

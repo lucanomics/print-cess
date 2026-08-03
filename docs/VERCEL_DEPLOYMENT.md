@@ -64,6 +64,7 @@ Set each value at the appropriate Vercel environment scope. Never commit real va
 | `BLOB_STORE_ID`                                          | Preview Private Blob store                                     | Separate Production Private Blob store                 |
 | `BLOB_READ_WRITE_TOKEN`                                  | Preview token, at least 20 characters                          | Separate Production token, at least 20 characters      |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`    | HTTPS Preview database URL / token at least 20 characters      | Separate HTTPS database / token at least 20 characters |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN`                  | Vercel Marketplace aliases accepted when `UPSTASH_*` is unset  | Automatically injected by the Production integration   |
 | `POSTGRES_URL`                                           | Existing approved Railway PostgreSQL TLS URL when selected     | Separate approved PostgreSQL URL when selected         |
 | `POSTGRES_CA_CERT`                                       | Root CA PEM for the selected Railway PostgreSQL service        | Root CA PEM for the selected Production database       |
 | `UPSTASH_DISABLE_TELEMETRY`                              | `1`                                                            | `1`                                                    |
