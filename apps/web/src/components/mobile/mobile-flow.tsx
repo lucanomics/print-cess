@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  FileCheck2,
   FileImage,
   Files,
   Headphones,
   Image as ImageIcon,
   LockKeyhole,
   Printer,
+  ScanLine,
   TriangleAlert,
 } from "lucide-react";
 
@@ -50,7 +52,15 @@ import { parseSessionFragment } from "@/lib/session-fragment";
 import { DocumentPreview } from "./document-preview";
 
 type Stage =
-  "boot" | "language" | "file" | "preview" | "transfer" | "progress" | "complete" | "error";
+  | "boot"
+  | "language"
+  | "guide"
+  | "file"
+  | "preview"
+  | "transfer"
+  | "progress"
+  | "complete"
+  | "error";
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
 
 export function MobileFlow({ sessionId }: { sessionId: string }) {
@@ -90,6 +100,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
   }, [locale]);
 
   const clearDocument = useCallback(() => {
@@ -235,23 +246,43 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
     }
   }, [cancelClaim, claimed, clearDocument, mobileToken, sessionId, validated]);
 
-  const step = stage === "language" ? 1 : stage === "file" ? 2 : stage === "preview" ? 3 : 4;
+  const step =
+    stage === "language"
+      ? 1
+      : stage === "guide"
+        ? 2
+        : stage === "file"
+          ? 3
+          : stage === "preview"
+            ? 4
+            : 5;
+  const reminderKey =
+    stage === "language"
+      ? "languageReminder"
+      : stage === "guide"
+        ? "guideReminder"
+        : stage === "preview"
+          ? "previewHelp"
+          : stage === "transfer" || stage === "progress"
+            ? "keepPageOpen"
+            : "fileRules";
 
   return (
     <ScreenShell>
       <Wordmark compact />
       {stage !== "boot" && stage !== "error" && stage !== "complete" ? (
-        <ProgressSteps current={step} total={4} label={text("step", { current: step, total: 4 })} />
+        <ProgressSteps current={step} total={5} label={text("step", { current: step, total: 5 })} />
       ) : null}
       {reminderStage === stage && !["boot", "complete", "error"].includes(stage) ? (
         <p className="mobile-reminder" role="status">
-          {text(stage === "preview" ? "previewHelp" : "fileRules")}
+          {text(reminderKey)}
         </p>
       ) : null}
-      {stage === "boot" ? <Loading /> : null}
+      {stage === "boot" ? <Loading text={text("preparingSession")} /> : null}
       {stage === "language" ? (
-        <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("file")} />
+        <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("guide")} />
       ) : null}
+      {stage === "guide" ? <GuideStep text={text} onContinue={() => setStage("file")} /> : null}
       {stage === "file" ? (
         <section className="mobile-step">
           <StatusIcon>
@@ -294,7 +325,16 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         <section className="mobile-step mobile-step--preview">
           <h1>{text("checkDocument")}</h1>
           <p>{text("previewHelp")}</p>
-          <DocumentPreview file={file} validated={validated} />
+          <DocumentPreview
+            file={file}
+            validated={validated}
+            labels={{
+              documentPreview: text("documentPreview"),
+              selectedDocumentPreview: text("selectedDocumentPreview"),
+              pdfPreview: text("pdfPreview"),
+              firstPagePreview: text("firstPagePreview"),
+            }}
+          />
           <div className="mobile-summary">
             <p>
               <Printer aria-hidden="true" /> {text("printSummary")}
@@ -317,7 +357,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         </section>
       ) : null}
       {stage === "transfer" || stage === "progress" ? (
-        <ProgressState text={text(progressKey)} />
+        <ProgressState text={text(progressKey)} keepPageOpen={text("keepPageOpen")} />
       ) : null}
       {stage === "complete" ? (
         <SingleAction
@@ -341,11 +381,11 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   );
 }
 
-function Loading() {
+function Loading({ text }: { text: string }) {
   return (
     <section className="mobile-step" aria-busy="true">
       <div className="mobile-spinner" />
-      <p>Preparing secure session…</p>
+      <p>{text}</p>
     </section>
   );
 }
@@ -360,7 +400,7 @@ function LanguageStep({
   onContinue: () => void;
 }) {
   return (
-    <section className="mobile-step">
+    <section className="mobile-step mobile-step--language">
       <h1>{translate(locale, "selectLanguage")}</h1>
       <div className="language-grid">
         {SUPPORTED_LOCALES.map((candidate) => (
@@ -378,7 +418,48 @@ function LanguageStep({
           </label>
         ))}
       </div>
-      <PrimaryButton onClick={onContinue}>{translate(locale, "continue")}</PrimaryButton>
+      <div className="mobile-language-action">
+        <PrimaryButton onClick={onContinue}>{translate(locale, "continue")}</PrimaryButton>
+      </div>
+    </section>
+  );
+}
+
+function GuideStep({
+  text,
+  onContinue,
+}: {
+  text: (key: string, values?: Record<string, string | number>) => string;
+  onContinue: () => void;
+}) {
+  const steps = [
+    { icon: ScanLine, title: "guideScanTitle", body: "guideScanBody", completed: true },
+    { icon: ImageIcon, title: "guideChooseTitle", body: "guideChooseBody", completed: false },
+    { icon: FileCheck2, title: "guideCheckTitle", body: "guideCheckBody", completed: false },
+    { icon: Printer, title: "guideCollectTitle", body: "guideCollectBody", completed: false },
+  ] as const;
+
+  return (
+    <section className="mobile-step mobile-step--guide">
+      <div className="mobile-guide__heading">
+        <h1>{text("guideTitle")}</h1>
+        <p>{text("guideIntro")}</p>
+      </div>
+      <ol className="mobile-guide" aria-label={text("guideTitle")}>
+        {steps.map(({ icon: Icon, title, body, completed }) => (
+          <li key={title} className={completed ? "is-complete" : undefined}>
+            <span className="mobile-guide__icon" aria-hidden="true">
+              <Icon />
+              {completed ? <CheckCircle2 className="mobile-guide__check" /> : null}
+            </span>
+            <span>
+              <strong>{text(title)}</strong>
+              <small>{text(body)}</small>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <PrimaryButton onClick={onContinue}>{text("guideStart")}</PrimaryButton>
     </section>
   );
 }
@@ -409,12 +490,12 @@ function SingleAction({
   );
 }
 
-function ProgressState({ text }: { text: string }) {
+function ProgressState({ text, keepPageOpen }: { text: string; keepPageOpen: string }) {
   return (
     <section className="mobile-step mobile-step--single" aria-live="polite">
       <div className="mobile-spinner" />
       <h1>{text}</h1>
-      <p>Keep this page open.</p>
+      <p>{keepPageOpen}</p>
     </section>
   );
 }

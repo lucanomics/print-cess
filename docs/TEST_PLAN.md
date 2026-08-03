@@ -108,7 +108,7 @@ Skip with an explicit “credentials unavailable” result rather than silently 
 
 At minimum:
 
-- all eight language selections and English fallback;
+- all thirteen language selections and English fallback;
 - direct Photos/Gallery and Files/Downloads selection with no account or app-specific detours;
 - PDF/JPEG/PNG selection, local preview, summary, one A4-copy approval;
 - local encryption/direct upload, kiosk simulator state sequence, print invocation, download

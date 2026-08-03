@@ -35,7 +35,7 @@ The validator rejects a dossier unless it records all of the following:
 - exact Authenticode identity, SHA-256 timestamp, certificate custody approval, malware scan, and
   independent target-device re-verification;
 - the five required device classes, two approved mobile carriers, twelve accessibility checks, and
-  distinct qualified native reviewers for all eight locales;
+  distinct qualified native reviewers for all thirteen locales;
 - an authorized Preview-only drill with the ten required roles, seven exercise steps, bounded RTO/RPO,
   credential replacement, cleanup recovery, signed rollback, no uncertain reprint, and owned gaps;
 - nine institutional approval decisions, review dates, immutable record hashes, launch window, named

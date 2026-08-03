@@ -110,8 +110,9 @@ GitHub-control, or institutional records; therefore they do not close any checkb
 
 ## Content, accessibility, and operations
 
-- [ ] **Native-speaker review.** English, Korean, Simplified Chinese, Vietnamese, Mongolian, Thai,
-      Russian, and Nepali copy/audio are placeholders until reviewed for accuracy and safe instruction.
+- [ ] **Native-speaker review.** English, Korean, Simplified Chinese, Indonesian, Filipino,
+      Vietnamese, Thai, Nepali, Khmer, Arabic, Russian, Mongolian, and Ukrainian copy/audio are
+      placeholders until reviewed for accuracy and safe instruction.
 - [ ] **Accessibility and low-literacy acceptance.** Test screen readers, focus/keyboard, contrast,
       reduced motion, touch targets, audio fallback/replay, QR comprehension, and 30-second reminder on
       representative iPhone/Android and kiosk hardware.

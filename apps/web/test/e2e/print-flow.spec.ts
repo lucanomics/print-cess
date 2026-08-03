@@ -34,6 +34,8 @@ async function openMobileAtLanguage(
 
 async function reachFilePicker(mobile: Page): Promise<void> {
   await mobile.getByRole("button", { name: "Continue" }).click();
+  await expect(mobile.getByRole("heading", { name: "How to print" })).toBeVisible();
+  await mobile.getByRole("button", { name: "Choose my document" }).click();
   await expect(mobile.getByRole("heading", { name: "Choose one document" })).toBeVisible();
 }
 
@@ -160,10 +162,16 @@ test("a synthetic PDF is validated and previewed", async ({ page, context }) => 
   await expect(mobile.locator("canvas")).toBeVisible({ timeout: 30_000 });
 });
 
-test("language selection leads directly to photo and file sharing", async ({ page, context }) => {
+test("language selection shows a localized guide before photo and file sharing", async ({
+  page,
+  context,
+}) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await mobile.getByLabel("한국어").check();
   await mobile.getByRole("button", { name: "계속" }).click();
+  await expect(mobile.getByRole("heading", { name: "이렇게 인쇄하세요" })).toBeVisible();
+  await expect(mobile.getByText("1. QR코드 스캔")).toBeVisible();
+  await mobile.getByRole("button", { name: "내 문서 선택하기" }).click();
   await expect(mobile.getByRole("button", { name: "사진 / 갤러리" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "파일 / 다운로드" })).toBeVisible();
   await expect(mobile.getByText("카카오톡")).toHaveCount(0);
@@ -192,6 +200,26 @@ test("@viewport primary controls fit and pass basic accessibility checks", async
     await expect(mobile.locator(".pc-screen-shell button:focus")).toBeVisible();
   }
   await expect(mobile.locator("body")).not.toHaveCSS("overflow-x", "scroll");
+  const accessibility = await new AxeBuilder({ page: mobile }).analyze();
+  expect(accessibility.violations).toEqual([]);
+});
+
+test("@viewport Arabic picture guide is right-to-left and fits the screen", async ({
+  page,
+  context,
+}) => {
+  const { mobile } = await openMobileAtLanguage(page, context);
+  await mobile.getByLabel("العربية").check();
+  await mobile.getByRole("button", { name: "متابعة" }).click();
+  await expect(mobile.getByRole("heading", { name: "طريقة طباعة المستند" })).toBeVisible();
+  await expect(mobile.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(mobile.locator("html")).toHaveAttribute("lang", "ar");
+  expect(
+    await mobile.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+  await expect(mobile.getByRole("button", { name: "اختيار مستندي" })).toBeVisible();
   const accessibility = await new AxeBuilder({ page: mobile }).analyze();
   expect(accessibility.violations).toEqual([]);
 });

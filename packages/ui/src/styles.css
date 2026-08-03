@@ -46,6 +46,7 @@ input:focus-visible {
 
 .pc-wordmark {
   display: flex;
+  direction: ltr;
   align-items: center;
   gap: 12px;
   color: var(--pc-ink);
@@ -122,7 +123,7 @@ input:focus-visible {
 }
 .pc-progress__track {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--pc-progress-total, 4), 1fr);
   align-items: center;
   position: relative;
 }

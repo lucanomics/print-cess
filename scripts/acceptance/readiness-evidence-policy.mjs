@@ -68,7 +68,21 @@ export const REQUIRED_ACCESSIBILITY_CHECKS = [
   "voiceover",
   "windows-screen-reader",
 ];
-export const REQUIRED_LOCALES = ["en", "ko", "mn", "ne", "ru", "th", "vi", "zh-CN"];
+export const REQUIRED_LOCALES = [
+  "en",
+  "ko",
+  "mn",
+  "ne",
+  "ru",
+  "th",
+  "vi",
+  "id",
+  "fil",
+  "km",
+  "ar",
+  "uk",
+  "zh-CN",
+];
 export const REQUIRED_DRILL_ROLES = [
   "application-security-lead",
   "communications-owner",
