@@ -192,6 +192,8 @@ Production remains prohibited.
 
 - HTTPS only; exact CORS allow-list; no wildcard credentials.
 - Strict CSP and security headers as specified in `SECURITY.md`.
+- CSP `connect-src` includes the exact `https://vercel.com` origin used by private Blob presigned
+  operations, plus Vercel Blob delivery hosts; it does not allow `*.vercel.com`.
 - Public browser kiosk enabled only with `ENABLE_BROWSER_KIOSK=true`; demo and administrator
   simulators remain disabled in Production.
 - Production source maps private and provider request logging reviewed/redacted.
