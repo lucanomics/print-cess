@@ -1,5 +1,28 @@
-import type { ButtonHTMLAttributes, CSSProperties, PropsWithChildren, ReactNode } from "react";
-import { Check, Printer } from "lucide-react";
+import type {
+  ButtonHTMLAttributes,
+  CSSProperties,
+  PropsWithChildren,
+  ReactNode,
+} from "react";
+import { Check } from "lucide-react";
+
+export function PrintcessMark({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={`pc-mark ${className}`.trim()}
+      viewBox="0 0 64 64"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path className="pc-mark__paper" d="M18 28V15l7 4 7-10 7 10 7-4v13H18Z" />
+      <rect className="pc-mark__body" x="7" y="24" width="50" height="29" rx="8" />
+      <path className="pc-mark__sheet" d="M18 39h28v18H18z" />
+      <path className="pc-mark__detail" d="M23 47h18" />
+      <circle className="pc-mark__status" cx="48" cy="33" r="2.5" />
+    </svg>
+  );
+}
 
 export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
