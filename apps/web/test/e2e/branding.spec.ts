@@ -21,7 +21,5 @@ test("shows three simple QR steps without network jargon", async ({ page }) => {
 test("shows the two-minute QR renewal window", async ({ page }) => {
   await page.goto("/kiosk");
 
-  await expect(page.locator(".kiosk-countdown")).toHaveText(
-    /QR코드 변경까지 (?:02:00|01:5\d)/u,
-  );
+  await expect(page.locator(".kiosk-countdown")).toHaveText(/QR코드 변경까지 (?:02:00|01:5\d)/u);
 });
