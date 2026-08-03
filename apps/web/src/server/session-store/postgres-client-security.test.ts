@@ -4,12 +4,15 @@ import { readPostgresTlsServerName } from "./postgres-client";
 
 describe("PostgreSQL TLS server identity", () => {
   it("verifies Railway's documented certificate identity by default", () => {
-    expect(readPostgresTlsServerName({})).toBe("localhost");
+    expect(readPostgresTlsServerName({ NODE_ENV: "test" })).toBe("localhost");
   });
 
   it("accepts an explicitly approved DNS certificate identity", () => {
     expect(
-      readPostgresTlsServerName({ POSTGRES_TLS_SERVER_NAME: "database.internal.example" }),
+      readPostgresTlsServerName({
+        NODE_ENV: "test",
+        POSTGRES_TLS_SERVER_NAME: "database.internal.example",
+      }),
     ).toBe("database.internal.example");
   });
 
@@ -21,8 +24,8 @@ describe("PostgreSQL TLS server identity", () => {
     "database/internal",
     "-database.internal",
   ])("rejects an invalid TLS certificate identity: %s", (value) => {
-    expect(() => readPostgresTlsServerName({ POSTGRES_TLS_SERVER_NAME: value })).toThrow(
-      /valid DNS host name/u,
-    );
+    expect(() =>
+      readPostgresTlsServerName({ NODE_ENV: "test", POSTGRES_TLS_SERVER_NAME: value }),
+    ).toThrow(/valid DNS host name/u);
   });
 });
