@@ -92,7 +92,8 @@ Run through public interfaces with the memory/local adapters:
 - authorization reserves one random non-filename path and safely replays one deduplicated cleanup
   deadline after a failed/lost scheduling acknowledgement;
 - ciphertext goes direct to mock/local Blob, never through a Route Handler;
-- upload completion commits one expected size/ETag and rejects replacement/oversize;
+- upload completion compares the expected size, commits provider-authoritative size/ETag, and rejects
+  replacement/oversize;
 - consume returns one GET authorization and repeated consume conflicts;
 - invalid/expired/cancelled/terminal sessions cannot advance;
 - cleanup verifies authorization/signature boundary, is idempotent, and handles every race/failure;

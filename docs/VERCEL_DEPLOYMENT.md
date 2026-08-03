@@ -145,7 +145,8 @@ The phone performs the PUT directly and the kiosk performs the GET directly. Rou
 only authorization/status JSON. They reject document-like content types and request bodies. The
 10,485,911-byte envelope must never be base64-encoded into JSON or proxied through a function.
 
-The upload completion request records the expected ETag and size once. Before decryption, the kiosk
+The upload completion request reports the expected size once. The server reads and records the
+provider-authoritative ETag and size before decryption, and the kiosk
 checks the direct GET response against that committed metadata. Credential-backed tests must prove
 wrong path, wrong method, expiry, replay/no-overwrite, wrong content type, oversize, wrong ETag
 delete, and repeated delete behavior.

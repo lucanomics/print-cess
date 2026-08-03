@@ -22,12 +22,7 @@ export async function POST(request: Request, context: { params: Promise<{ sessio
     );
     const body = await readJson(request, uploadCompleteRequestSchema);
     const provider = await server.blobs.head(current.encryptedBlobPath);
-    if (
-      provider.etag !== body.etag ||
-      provider.size !== body.size ||
-      provider.size < 152 ||
-      provider.size > MAX_ENVELOPE_BYTES
-    ) {
+    if (provider.size !== body.size || provider.size < 152 || provider.size > MAX_ENVELOPE_BYTES) {
       throw new ServiceError("conflict", "The uploaded ciphertext metadata does not match.", 409);
     }
     const session = await server.sessions.markUploaded(sessionId, tokenHash, provider, Date.now());

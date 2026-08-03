@@ -93,7 +93,8 @@ document content and remains until conditional Blob deletion is finalized.
    short-lived exact-path PUT URL only after an atomic `upload_authorized` transition and schedules
    cleanup at this point.
 7. The phone PUTs `application/octet-stream` directly to Private Blob. It then registers the exact
-   returned ETag and size through a small JSON request. The original filename is never sent.
+   expected ciphertext size through a small JSON request. The server reads the provider-authoritative
+   ETag and size; the original filename is never sent.
 8. The phone polls a redacted public status view until terminal or expired.
 
 ## Kiosk flow
@@ -145,7 +146,8 @@ validation starts; once validation starts, processing reaches `printing` or fail
 - Every mutating request carries the expected state/revision or is implemented as a Lua script that
   checks both before writing.
 - Upload authorization is once per session and binds one random pathname. PUT is no-overwrite.
-- Upload completion accepts the expected pathname implicitly from Redis, records one ETag/size, and
+- Upload completion accepts the expected pathname implicitly from Redis, compares the client-reported
+  size with provider metadata, records the provider-authoritative ETag/size, and
   cannot replace them.
 - Consume changes state before returning the GET URL. A repeated consume returns conflict and never
   creates a second print opportunity.
