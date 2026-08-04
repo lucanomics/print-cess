@@ -81,8 +81,10 @@ test("HWP selection gives a privacy-preserving PDF conversion instruction", asyn
     buffer: Buffer.from("synthetic HWP placeholder for format routing"),
   });
 
-  await expect(mobile.getByRole("alert")).toContainText(
-    /not configured with the Hancom renderer required for HWP\/HWPX.*Save the document as PDF/u,
+  const fileError = mobile.locator(".mobile-file-error");
+  await expect(fileError).toContainText(
+    "not configured with the Hancom renderer required for HWP/HWPX",
   );
+  await expect(fileError).toContainText("Save the document as PDF");
   await expect(mobile.getByRole("heading", { name: "Check your document" })).toHaveCount(0);
 });
