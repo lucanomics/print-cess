@@ -20,7 +20,10 @@ function structuralHwp(properties = 0, includeScriptStream = false): File {
 
 function utf16(value: string): Uint8Array {
   return new Uint8Array(
-    [...value].flatMap((character) => [character.charCodeAt(0) & 0xff, character.charCodeAt(0) >> 8]),
+    [...value].flatMap((character) => [
+      character.charCodeAt(0) & 0xff,
+      character.charCodeAt(0) >> 8,
+    ]),
   );
 }
 
