@@ -1,0 +1,511 @@
+name: Implement direct HWP support
+
+on:
+  push:
+    branches:
+      - feat/direct-hwp-printing
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/direct-hwp-printing
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Apply HWP support patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p = Path(path)
+              value = p.read_text()
+              if old not in value:
+                  raise SystemExit(f"anchor missing: {path}: {old[:80]!r}")
+              p.write_text(value.replace(old, new, count))
+
+          replace("packages/protocol/src/envelope.ts", "  hwpx: 4,\n", "  hwpx: 4,\n  hwp: 5,\n")
+          replace(
+              "packages/protocol/src/session.ts",
+              "    supportsHwpx: z.boolean().optional().default(false),\n",
+              "    supportsHwpx: z.boolean().optional().default(false),\n    supportsHwp: z.boolean().optional().default(false),\n",
+          )
+          replace(
+              "apps/web/src/app/api/sessions/route.ts",
+              '    const capability = input.supportsHwpx ? "&hwpx=1" : "";\n',
+              '    const capability = `${input.supportsHwpx ? "&hwpx=1" : ""}${input.supportsHwp ? "&hwp=1" : ""}`;\n',
+          )
+
+          Path("apps/web/src/lib/hwp-validation.ts").write_text(r'''const HWP_MIME_TYPES = new Set([
+  "application/x-hwp",
+  "application/haansofthwp",
+  "application/vnd.hancom.hwp",
+]);
+const COMPOUND_FILE_SIGNATURE = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+const HWP_FILE_HEADER_SIGNATURE = new TextEncoder().encode("HWP Document File");
+const REJECTED_PROPERTY_MASK = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 8);
+
+export function isHwpSelection(file: Pick<File, "name" | "type">): boolean {
+  return file.name.toLowerCase().endsWith(".hwp") || HWP_MIME_TYPES.has(file.type.toLowerCase());
+}
+
+export function validateHwpHeader(bytes: Uint8Array): void {
+  if (bytes.byteLength < 512 || !fixedBytesEqual(bytes.subarray(0, 8), COMPOUND_FILE_SIGNATURE)) {
+    throw new Error("invalid HWP compound-file signature");
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (view.getUint16(0x1c, true) !== 0xfffe) throw new Error("invalid HWP byte order");
+  const sectorShift = view.getUint16(0x1e, true);
+  if (sectorShift !== 9 && sectorShift !== 12) throw new Error("invalid HWP sector size");
+  if (view.getUint16(0x20, true) !== 6 || view.getUint32(0x38, true) !== 4096) {
+    throw new Error("invalid HWP compound-file header");
+  }
+
+  const markerOffset = indexOfBytes(bytes, HWP_FILE_HEADER_SIGNATURE);
+  if (markerOffset < 0 || markerOffset + 40 > bytes.byteLength) {
+    throw new Error("missing HWP file header");
+  }
+  const properties = view.getUint32(markerOffset + 36, true);
+  if ((properties & REJECTED_PROPERTY_MASK) !== 0) {
+    throw new Error("protected or active HWP document");
+  }
+  if (!containsUtf16Name(bytes, "FileHeader") || !containsUtf16Name(bytes, "DocInfo")) {
+    throw new Error("missing HWP document streams");
+  }
+  for (const name of ["Scripts", "DefaultJScript", "JScriptVersion", "_VBA_PROJECT", "Macros"]) {
+    if (containsUtf16Name(bytes, name)) throw new Error("active HWP content");
+  }
+}
+
+function containsUtf16Name(bytes: Uint8Array, value: string): boolean {
+  return indexOfBytes(bytes, new TextEncoder().encode([...value].flatMap((char) => [char.charCodeAt(0), 0]))) >= 0;
+}
+
+function indexOfBytes(bytes: Uint8Array, needle: Uint8Array): number {
+  outer: for (let offset = 0; offset <= bytes.byteLength - needle.byteLength; offset += 1) {
+    for (let index = 0; index < needle.byteLength; index += 1) {
+      if (bytes[offset + index] !== needle[index]) continue outer;
+    }
+    return offset;
+  }
+  return -1;
+}
+
+function fixedBytesEqual(left: Uint8Array, right: Uint8Array): boolean {
+  if (left.byteLength !== right.byteLength) return false;
+  let difference = 0;
+  for (let index = 0; index < left.byteLength; index += 1) difference |= left[index]! ^ right[index]!;
+  return difference === 0;
+}
+''')
+
+          replace(
+              "apps/web/src/lib/session-fragment.ts",
+              'export type SessionFragment = { uploadToken: string; fingerprint: string; supportsHwpx: boolean };\n',
+              'export type SessionFragment = {\n  uploadToken: string;\n  fingerprint: string;\n  supportsHwpx: boolean;\n  supportsHwp: boolean;\n};\n',
+          )
+          replace(
+              "apps/web/src/lib/session-fragment.ts",
+              '  const supportsHwpx = parameters.get("hwpx") === "1";\n  if ([...parameters.keys()].some((key) => !["t", "fp", "hwpx"].includes(key))) return null;\n  return { uploadToken, fingerprint, supportsHwpx };\n',
+              '  const supportsHwpx = parameters.get("hwpx") === "1";\n  const supportsHwp = parameters.get("hwp") === "1";\n  if ([...parameters.keys()].some((key) => !["t", "fp", "hwpx", "hwp"].includes(key)))\n    return null;\n  return { uploadToken, fingerprint, supportsHwpx, supportsHwp };\n',
+          )
+
+          replace(
+              "apps/web/src/lib/file-validation.ts",
+              'import { isHwpxSelection, validateHwpxHeader } from "./hwpx-validation";\n',
+              'import { isHwpSelection, validateHwpHeader } from "./hwp-validation";\nimport { isHwpxSelection, validateHwpxHeader } from "./hwpx-validation";\n',
+          )
+          replace(
+              "apps/web/src/lib/file-validation.ts",
+              '): "image" | "hwpx" | "document" | "unknown" {\n',
+              '): "image" | "hwp" | "hwpx" | "document" | "unknown" {\n',
+          )
+          replace(
+              "apps/web/src/lib/file-validation.ts",
+              '  if (isHwpxSelection(file)) return "hwpx";\n',
+              '  if (isHwpSelection(file)) return "hwp";\n  if (isHwpxSelection(file)) return "hwpx";\n',
+          )
+          replace(
+              "apps/web/src/lib/file-validation.ts",
+              '  try {\n    validateHwpxHeader(bytes);\n    return "hwpx";\n  } catch {\n    throw new FileValidationError("unsupportedType");\n  }\n',
+              '  try {\n    validateHwpxHeader(bytes);\n    return "hwpx";\n  } catch {\n    try {\n      validateHwpHeader(bytes);\n      return "hwp";\n    } catch {\n      throw new FileValidationError("unsupportedType");\n    }\n  }\n',
+          )
+          replace(
+              "apps/web/src/lib/file-validation.ts",
+              '  options: { allowHwpx?: boolean } = {},\n',
+              '  options: { allowHwpx?: boolean; allowHwp?: boolean } = {},\n',
+          )
+          replace(
+              "apps/web/src/lib/file-validation.ts",
+              '  const bytes = new Uint8Array(await file.arrayBuffer());\n  if (classification === "hwpx") {\n',
+              '  const bytes = new Uint8Array(await file.arrayBuffer());\n  if (classification === "hwp") {\n    if (!options.allowHwp) throw new FileValidationError("hwpxUnavailable");\n    try {\n      validateHwpHeader(bytes);\n    } catch {\n      throw new FileValidationError("damagedFile");\n    }\n    return { bytes, fileKind: "hwp", pageCount: 1, normalized: false };\n  }\n  if (classification === "hwpx") {\n',
+          )
+          replace(
+              "apps/web/src/lib/file-validation.ts",
+              '  if (fileKind === "hwpx") {\n    if (!options.allowHwpx) throw new FileValidationError("hwpxUnavailable");\n    return { bytes, fileKind, pageCount: 1, normalized: false };\n  }\n',
+              '  if (fileKind === "hwp") {\n    if (!options.allowHwp) throw new FileValidationError("hwpxUnavailable");\n    return { bytes, fileKind, pageCount: 1, normalized: false };\n  }\n\n  if (fileKind === "hwpx") {\n    if (!options.allowHwpx) throw new FileValidationError("hwpxUnavailable");\n    return { bytes, fileKind, pageCount: 1, normalized: false };\n  }\n',
+          )
+
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '  const [supportsHwpx, setSupportsHwpx] = useState(false);\n',
+              '  const [supportsHwpx, setSupportsHwpx] = useState(false);\n  const [supportsHwp, setSupportsHwp] = useState(false);\n',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '        setSupportsHwpx(fragment.supportsHwpx);\n',
+              '        setSupportsHwpx(fragment.supportsHwpx);\n        setSupportsHwp(fragment.supportsHwp);\n',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '        const result = await validateFileForMobile(selected, { allowHwpx: supportsHwpx });\n',
+              '        const result = await validateFileForMobile(selected, {\n          allowHwpx: supportsHwpx,\n          allowHwp: supportsHwp,\n        });\n',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '    [clearDocument, supportsHwpx],\n',
+              '    [clearDocument, supportsHwp, supportsHwpx],\n',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '<GuideStep text={text} supportsHwpx={supportsHwpx} onContinue={() => setStage("file")} />',
+              '<GuideStep\n          text={text}\n          supportsHancom={supportsHwp || supportsHwpx}\n          onContinue={() => setStage("file")}\n        />',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '<p>{text(supportsHwpx ? "fileRulesHwpx" : "fileRules")}</p>',
+              '<p>{text(supportsHwp || supportsHwpx ? "fileRulesHwpx" : "fileRules")}</p>',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              'accept="application/pdf,application/hwp+zip,image/*,.pdf,.hwpx,.jpg,.jpeg,.png,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"',
+              'accept="application/pdf,application/x-hwp,application/haansofthwp,application/hwp+zip,image/*,.pdf,.hwp,.hwpx,.jpg,.jpeg,.png,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '  supportsHwpx,\n  onContinue,\n}: {\n  text: (key: string, values?: Record<string, string | number>) => string;\n  supportsHwpx: boolean;\n',
+              '  supportsHancom,\n  onContinue,\n}: {\n  text: (key: string, values?: Record<string, string | number>) => string;\n  supportsHancom: boolean;\n',
+          )
+          replace(
+              "apps/web/src/components/mobile/mobile-flow.tsx",
+              '      body: supportsHwpx ? "guideChooseBodyHwpx" : "guideChooseBody",\n',
+              '      body: supportsHancom ? "guideChooseBodyHwpx" : "guideChooseBody",\n',
+          )
+
+          replace(
+              "apps/web/src/components/mobile/document-preview.tsx",
+              '    if (validated.fileKind === "pdf" || validated.fileKind === "hwpx") return undefined;\n',
+              '    if (validated.fileKind === "pdf" || validated.fileKind === "hwp" || validated.fileKind === "hwpx")\n      return undefined;\n',
+          )
+          replace(
+              "apps/web/src/components/mobile/document-preview.tsx",
+              '      ) : validated.fileKind === "hwpx" ? (\n',
+              '      ) : validated.fileKind === "hwp" || validated.fileKind === "hwpx" ? (\n',
+          )
+          replace(
+              "apps/web/src/lib/kiosk-print.ts",
+              '  hwpx: { filename: "print-cess-document.hwpx", mimeType: "application/hwp+zip" },\n',
+              '  hwpx: { filename: "print-cess-document.hwpx", mimeType: "application/hwp+zip" },\n  hwp: { filename: "print-cess-document.hwp", mimeType: "application/x-hwp" },\n',
+          )
+
+          p = Path("packages/i18n/src/public.ts")
+          value = p.read_text().replace("HWPX", "HWP/HWPX")
+          p.write_text(value)
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentKind.cs",
+              '    Hwpx = 4,\n',
+              '    Hwpx = 4,\n    Hwp = 5,\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentKind.cs",
+              '        DocumentKind.Hwpx => "application/hwp+zip",\n',
+              '        DocumentKind.Hwpx => "application/hwp+zip",\n        DocumentKind.Hwp => "application/x-hwp",\n',
+          )
+
+          Path("apps/kiosk/Paradiso.PrintCess.Core/Documents/HwpDocumentInspector.cs").write_text(r'''using System.Buffers.Binary;
+using System.Text;
+
+namespace Paradiso.PrintCess.Core.Documents;
+
+internal static class HwpDocumentInspector
+{
+    private const uint RejectedPropertyMask =
+        (1u << 1) | // password encryption
+        (1u << 2) | // distribution document
+        (1u << 3) | // script
+        (1u << 4) | // DRM
+        (1u << 8);  // certificate encryption
+
+    private static ReadOnlySpan<byte> CompoundFileSignature =>
+        [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+    private static ReadOnlySpan<byte> HwpFileHeaderSignature => "HWP Document File"u8;
+
+    public static bool LooksLikeHwp(ReadOnlySpan<byte> content) =>
+        content.Length >= 512 && content[..8].SequenceEqual(CompoundFileSignature);
+
+    public static DocumentProperties Validate(ReadOnlySpan<byte> content)
+    {
+        if (!LooksLikeHwp(content) || BinaryPrimitives.ReadUInt16LittleEndian(content[0x1c..0x1e]) != 0xfffe)
+        {
+            throw new DocumentValidationException(DocumentValidationError.CorruptHwp);
+        }
+
+        var sectorShift = BinaryPrimitives.ReadUInt16LittleEndian(content[0x1e..0x20]);
+        if (sectorShift is not (9 or 12) ||
+            BinaryPrimitives.ReadUInt16LittleEndian(content[0x20..0x22]) != 6 ||
+            BinaryPrimitives.ReadUInt32LittleEndian(content[0x38..0x3c]) != 4096)
+        {
+            throw new DocumentValidationException(DocumentValidationError.CorruptHwp);
+        }
+
+        var headerOffset = content.IndexOf(HwpFileHeaderSignature);
+        if (headerOffset < 0 || headerOffset + 40 > content.Length ||
+            !ContainsUtf16DirectoryName(content, "FileHeader") ||
+            !ContainsUtf16DirectoryName(content, "DocInfo"))
+        {
+            throw new DocumentValidationException(DocumentValidationError.CorruptHwp);
+        }
+
+        var properties = BinaryPrimitives.ReadUInt32LittleEndian(content[(headerOffset + 36)..(headerOffset + 40)]);
+        if ((properties & RejectedPropertyMask) != 0)
+        {
+            throw new DocumentValidationException(
+                (properties & ((1u << 1) | (1u << 2) | (1u << 4) | (1u << 8))) != 0
+                    ? DocumentValidationError.EncryptedHwp
+                    : DocumentValidationError.UnsafeHwpContent);
+        }
+
+        foreach (var streamName in new[] { "Scripts", "DefaultJScript", "JScriptVersion", "_VBA_PROJECT", "Macros" })
+        {
+            if (ContainsUtf16DirectoryName(content, streamName))
+            {
+                throw new DocumentValidationException(DocumentValidationError.UnsafeHwpContent);
+            }
+        }
+
+        return new DocumentProperties(null, null, null);
+    }
+
+    private static bool ContainsUtf16DirectoryName(ReadOnlySpan<byte> content, string value)
+    {
+        var bytes = Encoding.Unicode.GetBytes(value);
+        return content.IndexOf(bytes) >= 0;
+    }
+}
+''')
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              '    EncryptedHwpx,\n',
+              '    EncryptedHwpx,\n    CorruptHwp,\n    UnsafeHwpContent,\n    EncryptedHwp,\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              '        DocumentValidationError.EncryptedHwpx => "Encrypted HWPX documents are not supported.",\n',
+              '        DocumentValidationError.EncryptedHwpx => "Encrypted HWPX documents are not supported.",\n        DocumentValidationError.CorruptHwp => "The HWP compound document is invalid.",\n        DocumentValidationError.UnsafeHwpContent => "The HWP document contains unsafe active content.",\n        DocumentValidationError.EncryptedHwp => "Encrypted, DRM, or distribution HWP documents are not supported.",\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              '            DocumentKind.Hwpx => HwpxDocumentInspector.Validate(content),\n',
+              '            DocumentKind.Hwpx => HwpxDocumentInspector.Validate(content),\n            DocumentKind.Hwp => HwpDocumentInspector.Validate(content),\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              '        if (HwpxDocumentInspector.LooksLikeHwpx(content))\n        {\n            return DocumentKind.Hwpx;\n        }\n\n',
+              '        if (HwpxDocumentInspector.LooksLikeHwpx(content))\n        {\n            return DocumentKind.Hwpx;\n        }\n\n        if (HwpDocumentInspector.LooksLikeHwp(content))\n        {\n            return DocumentKind.Hwp;\n        }\n\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Protocol/BinaryEnvelope.cs",
+              '            (byte)DocumentKind.Hwpx => DocumentKind.Hwpx,\n',
+              '            (byte)DocumentKind.Hwpx => DocumentKind.Hwpx,\n            (byte)DocumentKind.Hwp => DocumentKind.Hwp,\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Protocol/PrintSession.cs",
+              '    [property: JsonPropertyName("supportsHwpx")] bool SupportsHwpx = false);\n',
+              '    [property: JsonPropertyName("supportsHwpx")] bool SupportsHwpx = false,\n    [property: JsonPropertyName("supportsHwp")] bool SupportsHwp = false);\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Http/KioskSessionClient.cs",
+              '                kioskPublicKeyFingerprint,\n                HancomHwpxRenderer.IsAvailable));\n',
+              '                kioskPublicKeyFingerprint,\n                HancomHwpxRenderer.IsAvailable,\n                HancomHwpxRenderer.IsAvailable));\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Http/KioskSessionClient.cs",
+              '        if (pairs.Length is < 2 or > 3)\n',
+              '        if (pairs.Length is < 2 or > 4)\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Http/KioskSessionClient.cs",
+              '            else if (name == "hwpx" && value == "1")\n            {\n                // Optional capability marker. It is advisory and never weakens kiosk validation.\n            }\n',
+              '            else if ((name == "hwpx" || name == "hwp") && value == "1")\n            {\n                // Optional capability markers. They are advisory and never weaken kiosk validation.\n            }\n',
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/HancomHwpxRenderer.cs",
+              'using System.Runtime.InteropServices;\n',
+              'using System.Runtime.InteropServices;\nusing Paradiso.PrintCess.Core.Documents;\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/HancomHwpxRenderer.cs",
+              '    public static Task<byte[]> RenderToPdfAsync(byte[] content, CancellationToken cancellationToken)\n',
+              '    public static Task<byte[]> RenderToPdfAsync(\n        byte[] content,\n        DocumentKind kind,\n        CancellationToken cancellationToken)\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/HancomHwpxRenderer.cs",
+              '        ArgumentNullException.ThrowIfNull(content);\n        cancellationToken.ThrowIfCancellationRequested();\n',
+              '        ArgumentNullException.ThrowIfNull(content);\n        if (kind is not (DocumentKind.Hwp or DocumentKind.Hwpx))\n        {\n            throw new ArgumentOutOfRangeException(nameof(kind));\n        }\n        cancellationToken.ThrowIfCancellationRequested();\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/HancomHwpxRenderer.cs",
+              '        var inputPath = Path.Combine(directory, "document.hwpx");\n',
+              '        var extension = kind == DocumentKind.Hwp ? "hwp" : "hwpx";\n        var format = kind == DocumentKind.Hwp ? "HWP" : "HWPX";\n        var inputPath = Path.Combine(directory, $"document.{extension}");\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/HancomHwpxRenderer.cs",
+              '            var opened = Invoke(automation, "Open", inputPath, "HWPX", "forceopen:true");\n',
+              '            var opened = Invoke(automation, "Open", inputPath, format, "forceopen:true;suspendpassword:true");\n',
+          )
+          p = Path("apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/HancomHwpxRenderer.cs")
+          p.write_text(p.read_text().replace("HWPX document", "Hangul document").replace("HWPX rendering", "Hangul document rendering"))
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/WindowsPrintEngine.cs",
+              '            DocumentKind.Hwpx => await RenderHwpxAsync(document.Content, cancellationToken),\n',
+              '            DocumentKind.Hwp or DocumentKind.Hwpx =>\n                await RenderHangulAsync(document.Content, document.Kind, cancellationToken),\n',
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/WindowsPrintEngine.cs",
+              '    private static async Task<IReadOnlyList<BitmapSource>> RenderHwpxAsync(\n        byte[] content,\n        CancellationToken cancellationToken)\n    {\n        var pdf = await HancomHwpxRenderer.RenderToPdfAsync(content, cancellationToken);\n',
+              '    private static async Task<IReadOnlyList<BitmapSource>> RenderHangulAsync(\n        byte[] content,\n        DocumentKind kind,\n        CancellationToken cancellationToken)\n    {\n        var pdf = await HancomHwpxRenderer.RenderToPdfAsync(content, kind, cancellationToken);\n',
+          )
+
+          Path("apps/kiosk/Paradiso.PrintCess.Tests/Fixtures/HwpTestDocuments.cs").write_text(r'''using System.Buffers.Binary;
+using System.Text;
+
+namespace Paradiso.PrintCess.Tests.Fixtures;
+
+internal static class HwpTestDocuments
+{
+    public static byte[] Valid(uint properties = 0, bool includeScriptStream = false)
+    {
+        var bytes = new byte[2048];
+        new byte[] { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 }.CopyTo(bytes, 0);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(0x1c, 2), 0xfffe);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(0x1e, 2), 9);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(0x20, 2), 6);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(0x38, 4), 4096);
+        Encoding.Unicode.GetBytes("FileHeader").CopyTo(bytes, 512);
+        Encoding.Unicode.GetBytes("DocInfo").CopyTo(bytes, 640);
+        Encoding.ASCII.GetBytes("HWP Document File").CopyTo(bytes, 1024);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(1024 + 36, 4), properties);
+        if (includeScriptStream)
+        {
+            Encoding.Unicode.GetBytes("Scripts").CopyTo(bytes, 768);
+        }
+        return bytes;
+    }
+}
+''')
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Tests/Documents/DocumentValidationTests.cs",
+              '    [Fact]\n    public void RejectsMagicAndMimeMismatches()\n',
+              '''    [Fact]
+    public void ValidatesHwpAndRejectsProtectedOrScriptedDocuments()
+    {
+        using var hwp = _validator.Validate(
+            HwpTestDocuments.Valid(),
+            DocumentKind.Hwp,
+            "application/x-hwp",
+            TestDocuments.SessionId);
+        Assert.Null(hwp.Properties.PageCount);
+
+        AssertError(DocumentValidationError.EncryptedHwp, () =>
+            _validator.Validate(HwpTestDocuments.Valid(properties: 1u << 1), DocumentKind.Hwp, null, TestDocuments.SessionId));
+        AssertError(DocumentValidationError.UnsafeHwpContent, () =>
+            _validator.Validate(HwpTestDocuments.Valid(includeScriptStream: true), DocumentKind.Hwp, null, TestDocuments.SessionId));
+    }
+
+    [Fact]
+    public void RejectsMagicAndMimeMismatches()
+''',
+          )
+
+          replace(
+              "apps/web/src/lib/file-validation.test.ts",
+              '  it("routes office and Hangul documents to the PDF guidance", () => {\n    expect(classifySelectedFile({ name: "application.hwp", type: "application/x-hwp" })).toBe(\n      "document",\n    );\n',
+              '  it("routes HWP to native validation and other office documents to PDF guidance", () => {\n    expect(classifySelectedFile({ name: "application.hwp", type: "application/x-hwp" })).toBe(\n      "hwp",\n    );\n',
+          )
+          replace(
+              "apps/web/src/lib/file-validation.test.ts",
+              '  it("accepts canonical HWPX only for a capable kiosk", async () => {\n',
+              '''  it("accepts structural HWP only for a capable kiosk", async () => {
+    const bytes = new Uint8Array(2048);
+    bytes.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+    const view = new DataView(bytes.buffer);
+    view.setUint16(0x1c, 0xfffe, true);
+    view.setUint16(0x1e, 9, true);
+    view.setUint16(0x20, 6, true);
+    view.setUint32(0x38, 4096, true);
+    const utf16 = (value: string) =>
+      new Uint8Array([...value].flatMap((character) => [character.charCodeAt(0), 0]));
+    bytes.set(utf16("FileHeader"), 512);
+    bytes.set(utf16("DocInfo"), 640);
+    bytes.set(new TextEncoder().encode("HWP Document File"), 1024);
+    const file = new File([bytes], "application.hwp", { type: "application/x-hwp" });
+
+    await expect(validateFileForMobile(file)).rejects.toMatchObject({ code: "hwpxUnavailable" });
+    await expect(validateFileForMobile(file, { allowHwp: true })).resolves.toMatchObject({
+      fileKind: "hwp",
+      normalized: false,
+    });
+  });
+
+  it("accepts canonical HWPX only for a capable kiosk", async () => {
+''',
+          )
+
+          replace(
+              "apps/web/src/lib/session-fragment.test.ts",
+              '    expect(parseSessionFragment(`#t=${token}&fp=${fingerprint}&hwpx=1`)).toEqual({\n      uploadToken: token,\n      fingerprint,\n      supportsHwpx: true,\n    });\n',
+              '    expect(parseSessionFragment(`#t=${token}&fp=${fingerprint}&hwpx=1&hwp=1`)).toEqual({\n      uploadToken: token,\n      fingerprint,\n      supportsHwpx: true,\n      supportsHwp: true,\n    });\n',
+          )
+          p = Path("apps/web/src/lib/session-fragment.test.ts")
+          value = p.read_text().replace(
+              "supportsHwpx: false,\n", "supportsHwpx: false,\n      supportsHwp: false,\n"
+          )
+          p.write_text(value)
+
+          replace(
+              "packages/protocol/test/envelope.test.ts",
+              '  it.each(["pdf", "jpeg", "png", "hwpx"] as const)',
+              '  it.each(["pdf", "jpeg", "png", "hwpx", "hwp"] as const)',
+          )
+
+          p = Path("docs/WINDOWS_KIOSK_DEPLOYMENT.md")
+          value = p.read_text().replace("HWPX", "HWP/HWPX")
+          value += "\n\n## HWP 5.x 원본 출력\n\n- HWP는 OLE Compound File 구조와 `HWP Document File` 헤더를 검증한 뒤 한컴 Automation으로 PDF 렌더링합니다.\n- 암호화·배포용·DRM·스크립트 플래그가 설정된 HWP는 거부합니다.\n- 실제 기관 PC에서 대표 HWP 5.x 문서의 글꼴, 표, 도형, 쪽 나눔을 합성자료로 비교시험해야 합니다.\n"
+          p.write_text(value)
+          PY
+      - name: Format web sources
+        run: pnpm exec prettier --write packages/protocol/src/envelope.ts packages/protocol/src/session.ts packages/protocol/test/envelope.test.ts apps/web/src/app/api/sessions/route.ts apps/web/src/lib/hwp-validation.ts apps/web/src/lib/session-fragment.ts apps/web/src/lib/session-fragment.test.ts apps/web/src/lib/file-validation.ts apps/web/src/lib/file-validation.test.ts apps/web/src/components/mobile/mobile-flow.tsx apps/web/src/components/mobile/document-preview.tsx apps/web/src/lib/kiosk-print.ts packages/i18n/src/public.ts
+      - name: Commit implementation
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps packages docs
+          git commit -m "feat(kiosk): add direct HWP printing through Hancom"
+          git push origin HEAD:feat/direct-hwp-printing
