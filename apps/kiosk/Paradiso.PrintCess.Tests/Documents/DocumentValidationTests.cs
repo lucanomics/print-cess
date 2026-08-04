@@ -20,6 +20,30 @@ public sealed class DocumentValidationTests
     }
 
     [Fact]
+    public void ValidatesCanonicalHwpxAndRejectsUnsafePackages()
+    {
+        using var hwpx = _validator.Validate(
+            HwpxTestDocuments.Valid(),
+            DocumentKind.Hwpx,
+            "application/hwp+zip",
+            TestDocuments.SessionId);
+        Assert.Null(hwpx.Properties.PageCount);
+
+        AssertError(DocumentValidationError.CorruptHwpx, () =>
+            _validator.Validate(
+                HwpxTestDocuments.Valid(mimeType: "application/zip"),
+                DocumentKind.Hwpx,
+                null,
+                TestDocuments.SessionId));
+        AssertError(DocumentValidationError.UnsafeHwpxContent, () =>
+            _validator.Validate(
+                HwpxTestDocuments.Valid(includeUnsafeScript: true),
+                DocumentKind.Hwpx,
+                null,
+                TestDocuments.SessionId));
+    }
+
+    [Fact]
     public void RejectsMagicAndMimeMismatches()
     {
         AssertError(DocumentValidationError.TypeMismatch, () =>

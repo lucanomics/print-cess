@@ -5,6 +5,7 @@ import {
   classifySelectedFile,
   detectFileKind,
   parsePngDimensions,
+  validateFileForMobile,
 } from "./file-validation";
 
 describe("file validation", () => {
@@ -36,6 +37,26 @@ describe("file validation", () => {
     expect(classifySelectedFile({ name: "table.xlsx", type: "application/vnd.ms-excel" })).toBe(
       "document",
     );
+  });
+
+  it("accepts canonical HWPX only for a capable kiosk", async () => {
+    const mime = new TextEncoder().encode("application/hwp+zip");
+    const bytes = new Uint8Array(30 + 8 + mime.length);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(8, 0, true);
+    view.setUint32(18, mime.length, true);
+    view.setUint32(22, mime.length, true);
+    view.setUint16(26, 8, true);
+    bytes.set(new TextEncoder().encode("mimetype"), 30);
+    bytes.set(mime, 38);
+    const file = new File([bytes], "application.hwpx", { type: "application/hwp+zip" });
+
+    await expect(validateFileForMobile(file)).rejects.toMatchObject({ code: "hwpxUnavailable" });
+    await expect(validateFileForMobile(file, { allowHwpx: true })).resolves.toMatchObject({
+      fileKind: "hwpx",
+      normalized: false,
+    });
   });
 
   it("parses PNG dimensions from IHDR", () => {

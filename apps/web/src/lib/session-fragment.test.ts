@@ -8,6 +8,12 @@ describe("QR fragment", () => {
     expect(parseSessionFragment(`#t=${token}&fp=${token}`)).toEqual({
       uploadToken: token,
       fingerprint: token,
+      supportsHwpx: false,
+    });
+    expect(parseSessionFragment(`#t=${token}&fp=${token}&hwpx=1`)).toEqual({
+      uploadToken: token,
+      fingerprint: token,
+      supportsHwpx: true,
     });
     expect(parseSessionFragment(`?t=${token}&fp=${token}`)).toBeNull();
     expect(parseSessionFragment("#t=short&fp=short")).toBeNull();
