@@ -45,9 +45,9 @@ import {
 import { BrowserSpeechSynthesisGuide } from "@/lib/audio-guide";
 import {
   FileValidationError,
-  validateFileForMobile,
+  validateMobileDocument,
   type ValidatedMobileFile,
-} from "@/lib/file-validation";
+} from "@/lib/mobile-document-validation";
 import { parseSessionFragment } from "@/lib/session-fragment";
 import { DocumentPreview } from "./document-preview";
 
@@ -74,6 +74,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   const [fileErrorKey, setFileErrorKey] = useState<string>();
   const [progressKey, setProgressKey] = useState("encrypting");
   const [supportsHwpx, setSupportsHwpx] = useState(false);
+  const [supportsHwp, setSupportsHwp] = useState(false);
   const [reminderStage, setReminderStage] = useState<Stage>();
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -137,6 +138,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       }
       try {
         setSupportsHwpx(fragment.supportsHwpx);
+        setSupportsHwp(fragment.supportsHwp);
         const nextMobileToken = generateToken();
         const claimId = generateToken();
         const response = await claimSession({
@@ -183,7 +185,10 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       if (!selected) return;
       try {
         setFileErrorKey(undefined);
-        const result = await validateFileForMobile(selected, { allowHwpx: supportsHwpx });
+        const result = await validateMobileDocument(selected, {
+          allowHwp: supportsHwp,
+          allowHwpx: supportsHwpx,
+        });
         setFile(selected);
         setValidated(result);
         setStage("preview");
@@ -192,7 +197,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         setFileErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
       }
     },
-    [clearDocument, supportsHwpx],
+    [clearDocument, supportsHwp, supportsHwpx],
   );
 
   const print = useCallback(async () => {
@@ -268,6 +273,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           : stage === "transfer" || stage === "progress"
             ? "keepPageOpen"
             : "fileRules";
+  const supportsHancom = supportsHwp || supportsHwpx;
 
   return (
     <ScreenShell>
@@ -285,7 +291,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("guide")} />
       ) : null}
       {stage === "guide" ? (
-        <GuideStep text={text} supportsHwpx={supportsHwpx} onContinue={() => setStage("file")} />
+        <GuideStep text={text} supportsHancom={supportsHancom} onContinue={() => setStage("file")} />
       ) : null}
       {stage === "file" ? (
         <section className="mobile-step">
@@ -293,7 +299,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             <FileImage size={32} aria-hidden="true" />
           </StatusIcon>
           <h1>{text("chooseFile")}</h1>
-          <p>{text(supportsHwpx ? "fileRulesHwpx" : "fileRules")}</p>
+          <p>{expandHancomLabel(text(supportsHancom ? "fileRulesHwpx" : "fileRules"))}</p>
           <input
             ref={photoInput}
             data-testid="photo-input"
@@ -307,12 +313,12 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             data-testid="file-input"
             hidden
             type="file"
-            accept="application/pdf,application/hwp+zip,image/*,.pdf,.hwpx,.jpg,.jpeg,.png,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"
+            accept="application/pdf,application/x-hwp,application/haansofthwp,application/hwp+zip,image/*,.pdf,.hwp,.hwpx,.jpg,.jpeg,.png,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
           {fileErrorKey ? (
             <p className="mobile-file-error" role="alert">
-              {text(fileErrorKey)}
+              {expandHancomLabel(text(fileErrorKey))}
             </p>
           ) : null}
           <div className="mobile-source-actions">
@@ -337,7 +343,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
               selectedDocumentPreview: text("selectedDocumentPreview"),
               pdfPreview: text("pdfPreview"),
               firstPagePreview: text("firstPagePreview"),
-              hwpxPreview: text("hwpxPreview"),
+              hwpxPreview: expandHancomLabel(text("hwpxPreview")),
             }}
           />
           <div className="mobile-summary">
@@ -432,11 +438,11 @@ function LanguageStep({
 
 function GuideStep({
   text,
-  supportsHwpx,
+  supportsHancom,
   onContinue,
 }: {
   text: (key: string, values?: Record<string, string | number>) => string;
-  supportsHwpx: boolean;
+  supportsHancom: boolean;
   onContinue: () => void;
 }) {
   const steps = [
@@ -444,7 +450,7 @@ function GuideStep({
     {
       icon: ImageIcon,
       title: "guideChooseTitle",
-      body: supportsHwpx ? "guideChooseBodyHwpx" : "guideChooseBody",
+      body: supportsHancom ? "guideChooseBodyHwpx" : "guideChooseBody",
       completed: false,
     },
     { icon: FileCheck2, title: "guideCheckTitle", body: "guideCheckBody", completed: false },
@@ -466,7 +472,7 @@ function GuideStep({
             </span>
             <span>
               <strong>{text(title)}</strong>
-              <small>{text(body)}</small>
+              <small>{expandHancomLabel(text(body))}</small>
             </span>
           </li>
         ))}
@@ -510,4 +516,8 @@ function ProgressState({ text, keepPageOpen }: { text: string; keepPageOpen: str
       <p>{keepPageOpen}</p>
     </section>
   );
+}
+
+function expandHancomLabel(value: string): string {
+  return value.replaceAll("HWPX", "HWP/HWPX");
 }
