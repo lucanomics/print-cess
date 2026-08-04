@@ -81,10 +81,8 @@ test("HWP selection gives a privacy-preserving PDF conversion instruction", asyn
     buffer: Buffer.from("synthetic HWP placeholder for format routing"),
   });
 
-  await expect(
-    mobile.getByText(
-      "Save this HWP, Office, or text document as PDF on your phone, then choose it again. HWPX can be sent directly only to a configured Windows kiosk.",
-    ),
-  ).toBeVisible();
+  await expect(mobile.getByRole("alert")).toContainText(
+    /not configured with the Hancom renderer required for HWP\/HWPX.*Save the document as PDF/u,
+  );
   await expect(mobile.getByRole("heading", { name: "Check your document" })).toHaveCount(0);
 });
