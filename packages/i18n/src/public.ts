@@ -15,8 +15,7 @@ const KOREAN_COPY_OVERRIDES: Record<string, string> = {
   guideScanTitle: "1. QR코드 스캔하기",
   guideScanBody: "휴대전화 카메라로 화면의 QR코드를 스캔하세요.",
   guideChooseTitle: "2. 문서 선택하기",
-  guideChooseBody:
-    "PDF 또는 JPG/JPEG, PNG, HEIC/HEIF, WebP 등 사진 파일 한 개를 선택하세요.",
+  guideChooseBody: "PDF 또는 JPG/JPEG, PNG, HEIC/HEIF, WebP 등 사진 파일 한 개를 선택하세요.",
   guideCheckTitle: "3. 확인 후 인쇄하기",
   guideCheckBody: "미리보기를 확인한 뒤 ‘A4 한 부 인쇄’를 누르세요.",
   guideCollectTitle: "4. 출력물 받기",
@@ -66,8 +65,7 @@ const KOREAN_COPY_OVERRIDES: Record<string, string> = {
 const ENGLISH_COPY_OVERRIDES: Record<string, string> = {
   guideChooseBody:
     "Choose one PDF or photo file, including JPG/JPEG, PNG, HEIC/HEIF, WebP, and other formats your phone can open.",
-  fileRules:
-    "PDF or photo file · PDF up to 10 MB/10 pages · original photos up to 20 MB",
+  fileRules: "PDF or photo file · PDF up to 10 MB/10 pages · original photos up to 20 MB",
   unsupportedType:
     "Choose a printable PDF or photo. Save HWP, Word, Excel, or PowerPoint documents as PDF first.",
   documentNeedsPdf:
