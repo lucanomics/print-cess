@@ -19,6 +19,7 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 minimumReleaseAgeExclude:
+  - heic-to@1.5.2
   - postcss@8.5.23
   - undici@6.28.0
   - jsdom@30.0.0
