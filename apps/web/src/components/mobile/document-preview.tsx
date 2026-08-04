@@ -22,7 +22,12 @@ export function DocumentPreview({
   };
 }) {
   const source = useMemo(() => {
-    if (validated.fileKind === "pdf" || validated.fileKind === "hwpx") return undefined;
+    if (
+      validated.fileKind === "pdf" ||
+      validated.fileKind === "hwp" ||
+      validated.fileKind === "hwpx"
+    )
+      return undefined;
     const previewBlob = validated.normalized
       ? new Blob([validated.bytes.slice().buffer], {
           type: validated.fileKind === "png" ? "image/png" : "image/jpeg",
@@ -45,7 +50,7 @@ export function DocumentPreview({
           pdfPreview={labels.pdfPreview}
           firstPagePreview={labels.firstPagePreview}
         />
-      ) : validated.fileKind === "hwpx" ? (
+      ) : validated.fileKind === "hwp" || validated.fileKind === "hwpx" ? (
         <div className="mobile-preview__document" role="img" aria-label={labels.hwpxPreview}>
           <FileText aria-hidden="true" />
           <strong>{file.name}</strong>
