@@ -1,0 +1,123 @@
+name: Apply HWPX tests and copy
+
+on:
+  push:
+    branches:
+      - feat/direct-hwpx-printing
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/direct-hwpx-printing
+      - name: Apply exact tests and copy
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              target = Path(path)
+              value = target.read_text()
+              if old not in value:
+                  raise SystemExit(f"missing patch anchor in {path}: {old[:100]!r}")
+              target.write_text(value.replace(old, new, 1))
+
+          replace(
+              "packages/i18n/src/public.ts",
+              '  guideChooseBody: "PDF 또는 JPG/JPEG, PNG, HEIC/HEIF, WebP 등 사진 파일 한 개를 선택하세요.",',
+              '  guideChooseBody: "PDF 또는 JPG/JPEG, PNG, HEIC/HEIF, WebP 등 사진 파일 한 개를 선택하세요.",\n  guideChooseBodyHwpx:\n    "PDF, HWPX 또는 JPG/JPEG, PNG, HEIC/HEIF, WebP 등 사진 파일 한 개를 선택하세요.",',
+          )
+          replace(
+              "packages/i18n/src/public.ts",
+              '  fileRules:\n    "PDF 또는 사진 파일(JPG/JPEG, PNG, HEIC/HEIF, WebP 등) · PDF 10MB/10쪽 · 사진 원본 20MB 이하",',
+              '  fileRules:\n    "PDF 또는 사진 파일(JPG/JPEG, PNG, HEIC/HEIF, WebP 등) · PDF 10MB/10쪽 · 사진 원본 20MB 이하",\n  fileRulesHwpx:\n    "PDF·HWPX 또는 사진 파일 · 파일 10MB 이하 · PDF 10쪽 이하 · 사진 원본 20MB 이하",',
+          )
+          replace(
+              "packages/i18n/src/public.ts",
+              '  documentNeedsPdf:\n    "HWP, HWPX, Word, Excel, PowerPoint 등 문서 파일은 휴대전화에서 PDF로 저장한 뒤 다시 선택하세요. 개인정보 보호를 위해 외부 변환 서버로 원문을 보내지 않습니다.",',
+              '  documentNeedsPdf:\n    "HWP, Word, Excel, PowerPoint 등 문서 파일은 휴대전화에서 PDF로 저장한 뒤 다시 선택하세요. HWPX는 지원되는 Windows 키오스크에서 원본 그대로 선택할 수 있습니다.",\n  hwpxUnavailable:\n    "이 키오스크에는 HWPX 인쇄용 한컴 렌더러가 준비되지 않았어요. PDF로 저장한 뒤 다시 선택하세요.",',
+          )
+          replace(
+              "packages/i18n/src/public.ts",
+              '  firstPagePreview: "첫 페이지 미리보기",',
+              '  firstPagePreview: "첫 페이지 미리보기",\n  hwpxPreview: "원본 HWPX 문서 · Windows 키오스크에서 한컴 렌더러로 인쇄",',
+          )
+          replace(
+              "packages/i18n/src/public.ts",
+              '  guideChooseBody:\n    "Choose one PDF or photo file, including JPG/JPEG, PNG, HEIC/HEIF, WebP, and other formats your phone can open.",',
+              '  guideChooseBody:\n    "Choose one PDF or photo file, including JPG/JPEG, PNG, HEIC/HEIF, WebP, and other formats your phone can open.",\n  guideChooseBodyHwpx:\n    "Choose one PDF, HWPX, or photo file. HWPX is available only on a configured Windows kiosk.",',
+          )
+          replace(
+              "packages/i18n/src/public.ts",
+              '  fileRules: "PDF or photo file · PDF up to 10 MB/10 pages · original photos up to 20 MB",',
+              '  fileRules: "PDF or photo file · PDF up to 10 MB/10 pages · original photos up to 20 MB",\n  fileRulesHwpx:\n    "PDF, HWPX, or photo file · documents up to 10 MB · PDFs up to 10 pages · original photos up to 20 MB",',
+          )
+          replace(
+              "packages/i18n/src/public.ts",
+              '  documentNeedsPdf:\n    "Save this HWP, Office, or text document as PDF on your phone, then choose it again. To protect your document, Print-cess does not send the original to an external conversion service.",',
+              '  documentNeedsPdf:\n    "Save this HWP, Office, or text document as PDF on your phone, then choose it again. HWPX can be sent directly only to a configured Windows kiosk.",\n  hwpxUnavailable:\n    "This kiosk is not configured with the Hancom renderer required for HWPX. Save the document as PDF and try again.",\n  hwpxPreview: "Original HWPX document · rendered by Hancom on the Windows kiosk",',
+          )
+          replace(
+              "packages/i18n/src/public.ts",
+              'const UNIVERSAL_ENGLISH_FALLBACKS: Record<string, string> = {\n  documentNeedsPdf: ENGLISH_COPY_OVERRIDES.documentNeedsPdf!,',
+              'const UNIVERSAL_ENGLISH_FALLBACKS: Record<string, string> = {\n  documentNeedsPdf: ENGLISH_COPY_OVERRIDES.documentNeedsPdf!,\n  guideChooseBodyHwpx: ENGLISH_COPY_OVERRIDES.guideChooseBodyHwpx!,\n  fileRulesHwpx: ENGLISH_COPY_OVERRIDES.fileRulesHwpx!,\n  hwpxUnavailable: ENGLISH_COPY_OVERRIDES.hwpxUnavailable!,\n  hwpxPreview: ENGLISH_COPY_OVERRIDES.hwpxPreview!,',
+          )
+
+          replace(
+              "apps/web/src/app/styles.css",
+              ".mobile-preview__fallback {",
+              ".mobile-preview__document {\n  display: grid;\n  justify-items: center;\n  gap: 12px;\n  width: 100%;\n  min-height: 280px;\n  padding: 32px;\n  text-align: center;\n  color: var(--pc-ink);\n  background: white;\n}\n.mobile-preview__document svg {\n  width: 64px;\n  height: 64px;\n  color: var(--pc-teal-dark);\n}\n.mobile-preview__document strong {\n  max-width: 100%;\n  overflow-wrap: anywhere;\n}\n.mobile-preview__document span {\n  color: var(--pc-muted);\n}\n.mobile-preview__fallback {",
+          )
+
+          replace(
+              "apps/web/src/lib/session-fragment.test.ts",
+              "      fingerprint: token,\n    });",
+              "      fingerprint: token,\n      supportsHwpx: false,\n    });\n    expect(parseSessionFragment(`#t=${token}&fp=${token}&hwpx=1`)).toEqual({\n      uploadToken: token,\n      fingerprint: token,\n      supportsHwpx: true,\n    });",
+          )
+
+          replace(
+              "apps/web/src/lib/file-validation.test.ts",
+              "  parsePngDimensions,\n} from \"./file-validation\";",
+              "  parsePngDimensions,\n  validateFileForMobile,\n} from \"./file-validation\";",
+          )
+          replace(
+              "apps/web/src/lib/file-validation.test.ts",
+              "  it(\"parses PNG dimensions from IHDR\", () => {",
+              "  it(\"accepts canonical HWPX only for a capable kiosk\", async () => {\n    const mime = new TextEncoder().encode(\"application/hwp+zip\");\n    const bytes = new Uint8Array(30 + 8 + mime.length);\n    const view = new DataView(bytes.buffer);\n    view.setUint32(0, 0x04034b50, true);\n    view.setUint16(8, 0, true);\n    view.setUint32(18, mime.length, true);\n    view.setUint32(22, mime.length, true);\n    view.setUint16(26, 8, true);\n    bytes.set(new TextEncoder().encode(\"mimetype\"), 30);\n    bytes.set(mime, 38);\n    const file = new File([bytes], \"application.hwpx\", { type: \"application/hwp+zip\" });\n\n    await expect(validateFileForMobile(file)).rejects.toMatchObject({ code: \"hwpxUnavailable\" });\n    await expect(validateFileForMobile(file, { allowHwpx: true })).resolves.toMatchObject({\n      fileKind: \"hwpx\",\n      normalized: false,\n    });\n  });\n\n  it(\"parses PNG dimensions from IHDR\", () => {",
+          )
+
+          replace(
+              "packages/protocol/test/envelope.test.ts",
+              "  it(\"rejects a changed protocol version\", () => {",
+              "  it(\"round-trips the HWPX file-kind code\", () => {\n    const value = { ...metadata(), fileKind: \"hwpx\" as const };\n    const header = encodeEnvelopeHeader(value);\n    const envelope = assembleEnvelope(header, new Uint8Array(4 + AES_GCM_TAG_BYTES));\n    expect(parseEnvelope(envelope).fileKind).toBe(\"hwpx\");\n  });\n\n  it(\"rejects a changed protocol version\", () => {",
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Tests/Documents/DocumentValidationTests.cs",
+              "    [Fact]\n    public void RejectsMagicAndMimeMismatches()",
+              "    [Fact]\n    public void ValidatesCanonicalHwpxAndRejectsUnsafePackages()\n    {\n        using var hwpx = _validator.Validate(\n            HwpxTestDocuments.Valid(),\n            DocumentKind.Hwpx,\n            \"application/hwp+zip\",\n            TestDocuments.SessionId);\n        Assert.Null(hwpx.Properties.PageCount);\n\n        AssertError(DocumentValidationError.CorruptHwpx, () =>\n            _validator.Validate(\n                HwpxTestDocuments.Valid(mimeType: \"application/zip\"),\n                DocumentKind.Hwpx,\n                null,\n                TestDocuments.SessionId));\n        AssertError(DocumentValidationError.UnsafeHwpxContent, () =>\n            _validator.Validate(\n                HwpxTestDocuments.Valid(includeUnsafeScript: true),\n                DocumentKind.Hwpx,\n                null,\n                TestDocuments.SessionId));\n    }\n\n    [Fact]\n    public void RejectsMagicAndMimeMismatches()",
+          )
+
+          deployment = Path("docs/WINDOWS_KIOSK_DEPLOYMENT.md")
+          text = deployment.read_text()
+          anchor = "## Printer provisioning\n"
+          section = """## HWPX direct printing\n\nDirect HWPX printing is available only in the native Windows kiosk. The mobile browser sends the\noriginal HWPX inside the existing encrypted envelope; the kiosk validates the package, writes it to\nan application-owned temporary directory, asks an installed Hancom Office automation component to\nrender PDF, validates the generated PDF, prints it through the existing fixed policy, and clears\nboth temporary files. The public browser kiosk does not claim or emulate HWPX printing.\n\nBefore enabling the capability:\n\n1. Install an institution-approved Hancom Office version that registers `HWPFrame.HwpObject`.\n2. Obtain, install, and register Hancom's file-path security module under the kiosk account.\n3. Set `PRINT_CESS_HANCOM_SECURITY_MODULE` to the registered module name. The kiosk advertises HWPX\n   in its QR only when both the COM component and this setting are present.\n4. Confirm with Hancom that the institution's automation and redistribution use is licensed and\n   approved. Personal-use automation terms must not be assumed to cover an institutional kiosk.\n5. Test representative synthetic HWPX files containing tables, images, page breaks, headers,\n   footers, and required fonts. Compare page count, wrapping, clipping, grayscale output, and\n   margins against interactive Hancom Office output on the same machine.\n\nHWPX files larger than 10 MiB, malformed or encrypted packages, unsafe archive paths, excessive\nexpansion ratios, scripts, and prohibited embedded objects fail closed. A missing Hancom component,\nsecurity module, font, or PDF output also fails the session without falling back to a third-party\nconversion service.\n\n"""
+          if anchor not in text:
+              raise SystemExit("deployment anchor missing")
+          deployment.write_text(text.replace(anchor, section + anchor, 1))
+          PY
+      - name: Commit generated patch
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps packages docs
+          git commit -m "test: cover HWPX validation and capability gating"
+          git push origin HEAD:feat/direct-hwpx-printing
