@@ -12,6 +12,7 @@ const PRINT_METADATA: Record<FileKind, { filename: string; mimeType: string }> =
   jpeg: { filename: "print-cess-document.jpg", mimeType: "image/jpeg" },
   png: { filename: "print-cess-document.png", mimeType: "image/png" },
   hwpx: { filename: "print-cess-document.hwpx", mimeType: "application/hwp+zip" },
+  hwp: { filename: "print-cess-document.hwp", mimeType: "application/x-hwp" },
 };
 
 export function createPrintArtifact(bytes: Uint8Array, fileKind: FileKind): PrintArtifact {
@@ -30,8 +31,8 @@ export function revokePrintArtifact(artifact: PrintArtifact | undefined): void {
 }
 
 export async function printArtifact(artifact: PrintArtifact): Promise<void> {
-  if (artifact.fileKind === "hwpx") {
-    throw new Error("HWPX printing requires the configured native Windows kiosk");
+  if (artifact.fileKind === "hwp" || artifact.fileKind === "hwpx") {
+    throw new Error("HWP/HWPX printing requires the configured native Windows kiosk");
   }
 
   const frame = createPrintFrame();
