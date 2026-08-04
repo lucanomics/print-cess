@@ -6,6 +6,7 @@ public enum DocumentKind : byte
     Jpeg = 2,
     Png = 3,
     Hwpx = 4,
+    Hwp = 5,
 }
 
 public static class DocumentKindExtensions
@@ -16,6 +17,7 @@ public static class DocumentKindExtensions
         DocumentKind.Jpeg => "image/jpeg",
         DocumentKind.Png => "image/png",
         DocumentKind.Hwpx => "application/hwp+zip",
+        DocumentKind.Hwp => "application/x-hwp",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }

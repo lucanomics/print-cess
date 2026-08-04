@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Paradiso.PrintCess.Core.Documents;
 
 namespace Paradiso.PrintCess.Infrastructure.Printing;
 
@@ -16,9 +17,16 @@ internal static class HancomHwpxRenderer
         (Type.GetTypeFromProgID("HWPFrame.HwpObject.2", throwOnError: false) is not null ||
          Type.GetTypeFromProgID("HWPFrame.HwpObject", throwOnError: false) is not null);
 
-    public static Task<byte[]> RenderToPdfAsync(byte[] content, CancellationToken cancellationToken)
+    public static Task<byte[]> RenderToPdfAsync(
+        byte[] content,
+        DocumentKind kind,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(content);
+        if (kind is not (DocumentKind.Hwp or DocumentKind.Hwpx))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind));
+        }
         cancellationToken.ThrowIfCancellationRequested();
 
         var moduleName = Environment.GetEnvironmentVariable(SecurityModuleEnvironmentVariable)?.Trim();
@@ -30,7 +38,9 @@ internal static class HancomHwpxRenderer
 
         var directory = Path.Combine(Path.GetTempPath(), "PrintCess", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
-        var inputPath = Path.Combine(directory, "document.hwpx");
+        var extension = kind == DocumentKind.Hwp ? "hwp" : "hwpx";
+        var format = kind == DocumentKind.Hwp ? "HWP" : "HWPX";
+        var inputPath = Path.Combine(directory, $"document.{extension}");
         var outputPath = Path.Combine(directory, "document.pdf");
         object? automation = null;
 
@@ -56,17 +66,22 @@ internal static class HancomHwpxRenderer
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var opened = Invoke(automation, "Open", inputPath, "HWPX", "forceopen:true");
+            var opened = Invoke(
+                automation,
+                "Open",
+                inputPath,
+                format,
+                "forceopen:true;suspendpassword:true");
             if (opened is bool openedResult && !openedResult)
             {
-                throw new InvalidDataException("Hancom Office rejected the HWPX document.");
+                throw new InvalidDataException("Hancom Office rejected the Hangul document.");
             }
 
             cancellationToken.ThrowIfCancellationRequested();
             var saved = Invoke(automation, "SaveAs", outputPath, "PDF", string.Empty);
             if (saved is bool savedResult && !savedResult)
             {
-                throw new InvalidDataException("Hancom Office could not render the HWPX document as PDF.");
+                throw new InvalidDataException("Hancom Office could not render the Hangul document as PDF.");
             }
 
             if (!File.Exists(outputPath))
@@ -86,7 +101,7 @@ internal static class HancomHwpxRenderer
         catch (Exception exception) when (exception is COMException or TargetInvocationException or
                                           MissingMethodException or UnauthorizedAccessException or IOException)
         {
-            throw new InvalidDataException("HWPX rendering failed safely.", exception);
+            throw new InvalidDataException("Hangul document rendering failed safely.", exception);
         }
         finally
         {
