@@ -4,9 +4,7 @@ const HWP_MIME_TYPES = new Set([
   "application/vnd.hancom.hwp",
 ]);
 
-const COMPOUND_FILE_SIGNATURE = new Uint8Array([
-  0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
-]);
+const COMPOUND_FILE_SIGNATURE = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 const HWP_FILE_HEADER_SIGNATURE = new TextEncoder().encode("HWP Document File");
 const REJECTED_PROPERTY_MASK = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 8);
 
@@ -50,7 +48,10 @@ export function validateHwpHeader(bytes: Uint8Array): void {
 
 function containsUtf16Name(bytes: Uint8Array, value: string): boolean {
   const encoded = new Uint8Array(
-    [...value].flatMap((character) => [character.charCodeAt(0) & 0xff, character.charCodeAt(0) >> 8]),
+    [...value].flatMap((character) => [
+      character.charCodeAt(0) & 0xff,
+      character.charCodeAt(0) >> 8,
+    ]),
   );
   return indexOfBytes(bytes, encoded) >= 0;
 }
