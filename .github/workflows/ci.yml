@@ -45,7 +45,21 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check formatting
-        run: pnpm format:check
+        shell: bash
+        run: |
+          if ! pnpm format:check; then
+            pnpm exec prettier --write \
+              apps/web/src/components/mobile/mobile-flow.tsx \
+              apps/web/src/lib/file-validation.ts \
+              apps/web/src/lib/hwpx-validation.ts \
+              packages/i18n/src/public.ts
+            git diff -- \
+              apps/web/src/components/mobile/mobile-flow.tsx \
+              apps/web/src/lib/file-validation.ts \
+              apps/web/src/lib/hwpx-validation.ts \
+              packages/i18n/src/public.ts
+            exit 1
+          fi
 
       - name: Lint
         run: pnpm lint
