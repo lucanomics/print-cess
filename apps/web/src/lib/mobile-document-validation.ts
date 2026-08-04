@@ -15,7 +15,9 @@ export async function validateMobileDocument(
   options: { allowHwp?: boolean; allowHwpx?: boolean } = {},
 ): Promise<ValidatedMobileFile> {
   if (!isHwpSelection(file)) {
-    return validateFileForMobile(file, { allowHwpx: options.allowHwpx });
+    return options.allowHwpx === undefined
+      ? validateFileForMobile(file)
+      : validateFileForMobile(file, { allowHwpx: options.allowHwpx });
   }
 
   if (file.size < 1) throw new FileValidationError("damagedFile");
