@@ -19,10 +19,15 @@ export function DocumentPreview({
     firstPagePreview: string;
   };
 }) {
-  const source = useMemo(
-    () => (validated.fileKind === "pdf" ? undefined : URL.createObjectURL(file)),
-    [file, validated.fileKind],
-  );
+  const source = useMemo(() => {
+    if (validated.fileKind === "pdf") return undefined;
+    const previewBlob = validated.normalized
+      ? new Blob([validated.bytes.slice().buffer], {
+          type: validated.fileKind === "png" ? "image/png" : "image/jpeg",
+        })
+      : file;
+    return URL.createObjectURL(previewBlob);
+  }, [file, validated.bytes, validated.fileKind, validated.normalized]);
 
   useEffect(() => {
     return () => {
