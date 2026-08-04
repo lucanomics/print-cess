@@ -291,7 +291,11 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("guide")} />
       ) : null}
       {stage === "guide" ? (
-        <GuideStep text={text} supportsHancom={supportsHancom} onContinue={() => setStage("file")} />
+        <GuideStep
+          text={text}
+          supportsHancom={supportsHancom}
+          onContinue={() => setStage("file")}
+        />
       ) : null}
       {stage === "file" ? (
         <section className="mobile-step">
