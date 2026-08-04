@@ -69,6 +69,9 @@ public enum DocumentValidationError
     CorruptHwpx,
     UnsafeHwpxContent,
     EncryptedHwpx,
+    CorruptHwp,
+    UnsafeHwpContent,
+    EncryptedHwp,
 }
 
 public sealed class DocumentValidationException : Exception
@@ -96,6 +99,9 @@ public sealed class DocumentValidationException : Exception
         DocumentValidationError.CorruptHwpx => "The HWPX package is invalid.",
         DocumentValidationError.UnsafeHwpxContent => "The HWPX package contains unsafe content.",
         DocumentValidationError.EncryptedHwpx => "Encrypted HWPX documents are not supported.",
+        DocumentValidationError.CorruptHwp => "The HWP compound document is invalid.",
+        DocumentValidationError.UnsafeHwpContent => "The HWP document contains unsafe active content.",
+        DocumentValidationError.EncryptedHwp => "Encrypted, DRM, or distribution HWP documents are not supported.",
         _ => "The document is invalid.",
     };
 }
@@ -144,6 +150,7 @@ public sealed class PortableDocumentValidator : IDocumentValidator
             DocumentKind.Png => PngDocumentInspector.Validate(content),
             DocumentKind.Jpeg => JpegDocumentInspector.Validate(content),
             DocumentKind.Hwpx => HwpxDocumentInspector.Validate(content),
+            DocumentKind.Hwp => HwpDocumentInspector.Validate(content),
             _ => throw new DocumentValidationException(DocumentValidationError.TypeMismatch),
         };
 
@@ -165,6 +172,11 @@ public sealed class PortableDocumentValidator : IDocumentValidator
         if (HwpxDocumentInspector.LooksLikeHwpx(content))
         {
             return DocumentKind.Hwpx;
+        }
+
+        if (HwpDocumentInspector.LooksLikeHwp(content))
+        {
+            return DocumentKind.Hwp;
         }
 
         if (content.Length >= 3 && content[0] == 0xff && content[1] == 0xd8 && content[2] == 0xff)
