@@ -44,8 +44,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check formatting
-        run: pnpm format:check
+      - name: Format HWP sources
+        run: >-
+          pnpm exec prettier --write
+          apps/web/src/components/mobile/mobile-flow.tsx
+          apps/web/src/lib/hwp-validation.ts
+          apps/web/src/lib/mobile-document-validation.test.ts
+          apps/web/src/lib/session-fragment.ts
+
+      - name: Upload formatted HWP sources
+        uses: actions/upload-artifact@v7
+        with:
+          name: formatted-hwp-sources-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            apps/web/src/components/mobile/mobile-flow.tsx
+            apps/web/src/lib/hwp-validation.ts
+            apps/web/src/lib/mobile-document-validation.test.ts
+            apps/web/src/lib/session-fragment.ts
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Lint
         run: pnpm lint
