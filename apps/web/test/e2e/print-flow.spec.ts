@@ -125,7 +125,7 @@ test("large files are rejected before encryption", async ({ page, context }) => 
     mimeType: "application/pdf",
     buffer: Buffer.from(createBoundaryBytes(1)),
   });
-  await expect(mobile.getByText(/larger than 10 MB/u)).toBeVisible();
+  await expect(mobile.getByText(/PDFs under 10 MB/u)).toBeVisible();
 });
 
 test("cancelling a file picker keeps the claimed session ready", async ({ page, context }) => {

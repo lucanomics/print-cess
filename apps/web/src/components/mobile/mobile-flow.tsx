@@ -295,7 +295,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             data-testid="photo-input"
             hidden
             type="file"
-            accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+            accept="image/*,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
           <input
@@ -303,7 +303,6 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             data-testid="file-input"
             hidden
             type="file"
-            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
           {fileErrorKey ? (

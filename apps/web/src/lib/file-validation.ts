@@ -6,15 +6,61 @@ export type ValidatedMobileFile = {
   pageCount: number;
   width?: number;
   height?: number;
+  normalized: boolean;
 };
 
 export type FileValidationCode =
-  "unsupportedType" | "tooLarge" | "tooManyPages" | "lockedPdf" | "damagedFile";
+  | "unsupportedType"
+  | "documentNeedsPdf"
+  | "imageConversionUnsupported"
+  | "tooLarge"
+  | "tooManyPages"
+  | "lockedPdf"
+  | "damagedFile";
 
 const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 const ACTIVE_PDF_MARKERS = ["/JavaScript", "/OpenAction", "/Launch", "/EmbeddedFile", "/AA"];
 const MAX_IMAGE_EDGE = 12_000;
 const MAX_IMAGE_PIXELS = 40_000_000;
+const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
+const NORMALIZED_IMAGE_EDGE = 6_000;
+const NORMALIZED_IMAGE_PIXELS = 16_000_000;
+const JPEG_QUALITIES = [0.92, 0.84, 0.72, 0.6] as const;
+
+const IMAGE_EXTENSIONS = new Set([
+  "avif",
+  "bmp",
+  "gif",
+  "heic",
+  "heif",
+  "jfif",
+  "jpeg",
+  "jpg",
+  "png",
+  "tif",
+  "tiff",
+  "webp",
+]);
+
+const DOCUMENT_EXTENSIONS = new Set([
+  "csv",
+  "doc",
+  "docx",
+  "hwp",
+  "hwpx",
+  "key",
+  "numbers",
+  "odp",
+  "ods",
+  "odt",
+  "pages",
+  "ppt",
+  "pptx",
+  "rtf",
+  "txt",
+  "xls",
+  "xlsx",
+]);
 
 export class FileValidationError extends Error {
   public constructor(public readonly code: FileValidationCode) {
@@ -36,16 +82,60 @@ export function detectFileKind(bytes: Uint8Array): FileKind {
   throw new FileValidationError("unsupportedType");
 }
 
+export function classifySelectedFile(
+  file: Pick<File, "name" | "type">,
+): "image" | "document" | "unknown" {
+  const extension = fileExtension(file.name);
+  if (file.type === "image/svg+xml" || extension === "svg") return "unknown";
+  if (file.type.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) return "image";
+  if (
+    DOCUMENT_EXTENSIONS.has(extension) ||
+    file.type.startsWith("application/vnd") ||
+    file.type.startsWith("text/")
+  )
+    return "document";
+  return "unknown";
+}
+
 export async function validateFileForMobile(file: File): Promise<ValidatedMobileFile> {
   if (file.size < 1) throw new FileValidationError("damagedFile");
-  if (file.size > MAX_PLAINTEXT_BYTES) throw new FileValidationError("tooLarge");
+
+  const classification = classifySelectedFile(file);
+  const sourceLimit = classification === "image" ? MAX_SOURCE_IMAGE_BYTES : MAX_PLAINTEXT_BYTES;
+  if (file.size > sourceLimit) throw new FileValidationError("tooLarge");
+
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const fileKind = detectFileKind(bytes);
-  if (fileKind === "pdf") return { bytes, fileKind, pageCount: await validatePdf(bytes) };
+  let fileKind: FileKind;
+  try {
+    fileKind = detectFileKind(bytes);
+  } catch (error) {
+    if (!(error instanceof FileValidationError) || error.code !== "unsupportedType") throw error;
+    if (classification === "document") throw new FileValidationError("documentNeedsPdf");
+    if (classification === "image") return normalizeBrowserImage(file);
+    throw error;
+  }
+
+  if (fileKind === "pdf") {
+    if (bytes.byteLength > MAX_PLAINTEXT_BYTES) throw new FileValidationError("tooLarge");
+    return {
+      bytes,
+      fileKind,
+      pageCount: await validatePdf(bytes),
+      normalized: false,
+    };
+  }
+
   const dimensions = fileKind === "png" ? parsePngDimensions(bytes) : parseJpegDimensions(bytes);
+  if (
+    bytes.byteLength > MAX_PLAINTEXT_BYTES ||
+    !dimensionsWithinLimits(dimensions.width, dimensions.height)
+  ) {
+    return normalizeBrowserImage(file);
+  }
+
   validateDimensions(dimensions.width, dimensions.height);
   await verifyBrowserImageDecode(file, dimensions);
-  return { bytes, fileKind, pageCount: 1, ...dimensions };
+  return { bytes, fileKind, pageCount: 1, ...dimensions, normalized: false };
 }
 
 export async function validatePdf(bytes: Uint8Array): Promise<number> {
@@ -121,16 +211,157 @@ export function parseJpegDimensions(bytes: Uint8Array): { width: number; height:
   throw new FileValidationError("damagedFile");
 }
 
-function validateDimensions(width: number, height: number): void {
-  if (
-    width < 1 ||
-    height < 1 ||
-    width > MAX_IMAGE_EDGE ||
-    height > MAX_IMAGE_EDGE ||
-    width * height > MAX_IMAGE_PIXELS
-  ) {
-    throw new FileValidationError("damagedFile");
+async function normalizeBrowserImage(file: File): Promise<ValidatedMobileFile> {
+  let decoded: Awaited<ReturnType<typeof decodeBrowserImage>> | undefined;
+  try {
+    const source = await convertHeicIfNeeded(file);
+    decoded = await decodeBrowserImage(source);
+    const dimensions = normalizedDimensions(decoded.width, decoded.height);
+    const canvas = document.createElement("canvas");
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new FileValidationError("imageConversionUnsupported");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, dimensions.width, dimensions.height);
+    context.drawImage(decoded.source, 0, 0, dimensions.width, dimensions.height);
+    const blob = await encodeJpeg(canvas);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    return {
+      bytes,
+      fileKind: "jpeg",
+      pageCount: 1,
+      ...dimensions,
+      normalized: true,
+    };
+  } catch (error) {
+    if (error instanceof FileValidationError) throw error;
+    throw new FileValidationError("imageConversionUnsupported");
+  } finally {
+    decoded?.dispose();
   }
+}
+
+async function convertHeicIfNeeded(file: File): Promise<Blob> {
+  if (!isHeicFile(file)) return file;
+  try {
+    const { heicTo } = await import("heic-to/csp");
+    const converted = await heicTo({
+      blob: file,
+      type: "image/jpeg",
+      quality: 0.92,
+    });
+    if (!(converted instanceof Blob) || converted.size < 1)
+      throw new FileValidationError("imageConversionUnsupported");
+    return converted;
+  } catch (error) {
+    if (error instanceof FileValidationError) throw error;
+    throw new FileValidationError("imageConversionUnsupported");
+  }
+}
+
+function isHeicFile(file: File): boolean {
+  const extension = fileExtension(file.name);
+  return (
+    extension === "heic" ||
+    extension === "heif" ||
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    file.type === "image/heic-sequence" ||
+    file.type === "image/heif-sequence"
+  );
+}
+
+async function decodeBrowserImage(file: Blob): Promise<{
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  dispose: () => void;
+}> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        dispose: () => bitmap.close(),
+      };
+    } catch {
+      // Fall back to the browser image element for formats it decodes there.
+    }
+  }
+
+  if (typeof document === "undefined") throw new FileValidationError("imageConversionUnsupported");
+  const url = URL.createObjectURL(file);
+  const image = document.createElement("img");
+  image.decoding = "async";
+  const loaded = new Promise<void>((resolve, reject) => {
+    image.addEventListener("load", () => resolve(), { once: true });
+    image.addEventListener("error", () => reject(new Error("image decode failed")), { once: true });
+  });
+  image.src = url;
+  try {
+    await loaded;
+    if (image.naturalWidth < 1 || image.naturalHeight < 1)
+      throw new FileValidationError("imageConversionUnsupported");
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      dispose: () => URL.revokeObjectURL(url),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
+async function encodeJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
+  for (const quality of JPEG_QUALITIES) {
+    const blob = await canvasToBlob(canvas, "image/jpeg", quality);
+    if (blob.size <= MAX_PLAINTEXT_BYTES) return blob;
+  }
+  throw new FileValidationError("tooLarge");
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new FileValidationError("imageConversionUnsupported"));
+      },
+      type,
+      quality,
+    );
+  });
+}
+
+function normalizedDimensions(width: number, height: number): { width: number; height: number } {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1)
+    throw new FileValidationError("damagedFile");
+  const edgeScale = Math.min(1, NORMALIZED_IMAGE_EDGE / Math.max(width, height));
+  const pixelScale = Math.min(1, Math.sqrt(NORMALIZED_IMAGE_PIXELS / (width * height)));
+  const scale = Math.min(edgeScale, pixelScale);
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function dimensionsWithinLimits(width: number, height: number): boolean {
+  return (
+    width >= 1 &&
+    height >= 1 &&
+    width <= MAX_IMAGE_EDGE &&
+    height <= MAX_IMAGE_EDGE &&
+    width * height <= MAX_IMAGE_PIXELS
+  );
+}
+
+function validateDimensions(width: number, height: number): void {
+  if (!dimensionsWithinLimits(width, height)) throw new FileValidationError("damagedFile");
 }
 
 async function verifyBrowserImageDecode(
@@ -139,7 +370,7 @@ async function verifyBrowserImageDecode(
 ): Promise<void> {
   if (typeof createImageBitmap !== "function") return;
   try {
-    const bitmap = await createImageBitmap(file);
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     try {
       if (bitmap.width !== expected.width || bitmap.height !== expected.height)
         throw new FileValidationError("damagedFile");
@@ -150,6 +381,11 @@ async function verifyBrowserImageDecode(
     if (error instanceof FileValidationError) throw error;
     throw new FileValidationError("damagedFile");
   }
+}
+
+function fileExtension(name: string): string {
+  const separator = name.lastIndexOf(".");
+  return separator < 0 ? "" : name.slice(separator + 1).toLowerCase();
 }
 
 function isStartOfFrame(marker: number): boolean {

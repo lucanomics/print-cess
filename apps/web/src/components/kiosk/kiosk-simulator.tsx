@@ -252,7 +252,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
               <span>
                 지원 파일 형식
                 <br />
-                <strong>PDF, JPG, PNG</strong>
+                <strong>PDF · JPG/JPEG · HEIC 등 사진</strong>
               </span>
             </p>
             <p>
