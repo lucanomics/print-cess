@@ -12,7 +12,7 @@
     "create:readiness-evidence-template": "node scripts/acceptance/create-readiness-evidence-template.mjs",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",
-    "format:check": "npm view postcss@8.5.23 dist.integrity && npm view undici@6.28.0 dist.integrity && false",
+    "format:check": "prettier --check .",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
