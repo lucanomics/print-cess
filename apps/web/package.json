@@ -25,6 +25,7 @@
     "@upstash/qstash": "2.11.3",
     "@upstash/redis": "1.38.0",
     "@vercel/blob": "2.6.1",
+    "heic-to": "1.5.2",
     "i18next": "26.3.6",
     "lucide-react": "1.28.0",
     "next": "16.2.12",
