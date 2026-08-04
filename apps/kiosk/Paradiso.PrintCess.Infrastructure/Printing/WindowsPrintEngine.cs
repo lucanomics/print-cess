@@ -180,6 +180,7 @@ public sealed class WindowsPrintEngine : IPrintEngine
         {
             DocumentKind.Pdf => await RenderPdfAsync(document.Content, cancellationToken),
             DocumentKind.Jpeg or DocumentKind.Png => [DecodeImage(document.Content)],
+            DocumentKind.Hwpx => await RenderHwpxAsync(document.Content, cancellationToken),
             _ => throw new InvalidDataException("Unsupported document kind."),
         };
 
@@ -227,6 +228,21 @@ public sealed class WindowsPrintEngine : IPrintEngine
         var frame = decoder.Frames[0];
         frame.Freeze();
         return frame;
+    }
+
+    private static async Task<IReadOnlyList<BitmapSource>> RenderHwpxAsync(
+        byte[] content,
+        CancellationToken cancellationToken)
+    {
+        var pdf = await HancomHwpxRenderer.RenderToPdfAsync(content, cancellationToken);
+        try
+        {
+            return await RenderPdfAsync(pdf, cancellationToken);
+        }
+        finally
+        {
+            Array.Clear(pdf);
+        }
     }
 
     private static async Task<IReadOnlyList<BitmapSource>> RenderPdfAsync(

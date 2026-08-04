@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Paradiso.PrintCess.Core.Protocol;
+using Paradiso.PrintCess.Infrastructure.Printing;
 
 namespace Paradiso.PrintCess.Infrastructure.Http;
 
@@ -32,7 +33,11 @@ public sealed class KioskSessionClient
         using var request = CreateJsonRequest(
             HttpMethod.Post,
             "api/sessions",
-            new CreateSessionRequest(ProtocolConstants.Version, kioskPublicKey, kioskPublicKeyFingerprint));
+            new CreateSessionRequest(
+                ProtocolConstants.Version,
+                kioskPublicKey,
+                kioskPublicKeyFingerprint,
+                HancomHwpxRenderer.IsAvailable));
         if (_registrationSecret is not null)
         {
             request.Headers.TryAddWithoutValidation("x-kiosk-registration-secret", _registrationSecret);
@@ -255,7 +260,7 @@ public sealed class KioskSessionClient
         }
 
         var pairs = fragment[1..].Split('&', StringSplitOptions.None);
-        if (pairs.Length != 2)
+        if (pairs.Length is < 2 or > 3)
         {
             return false;
         }
@@ -277,6 +282,10 @@ public sealed class KioskSessionClient
             else if (name == "fp" && fingerprint.Length == 0)
             {
                 fingerprint = value;
+            }
+            else if (name == "hwpx" && value == "1")
+            {
+                // Optional capability marker. It is advisory and never weakens kiosk validation.
             }
             else
             {

@@ -1,6 +1,6 @@
 import { DIGEST_PATTERN } from "@print-cess/protocol";
 
-export type SessionFragment = { uploadToken: string; fingerprint: string };
+export type SessionFragment = { uploadToken: string; fingerprint: string; supportsHwpx: boolean };
 
 export function parseSessionFragment(hash: string): SessionFragment | null {
   if (!hash.startsWith("#")) return null;
@@ -9,5 +9,7 @@ export function parseSessionFragment(hash: string): SessionFragment | null {
   const fingerprint = parameters.get("fp");
   if (!uploadToken || !fingerprint) return null;
   if (!DIGEST_PATTERN.test(uploadToken) || !DIGEST_PATTERN.test(fingerprint)) return null;
-  return { uploadToken, fingerprint };
+  const supportsHwpx = parameters.get("hwpx") === "1";
+  if ([...parameters.keys()].some((key) => !["t", "fp", "hwpx"].includes(key))) return null;
+  return { uploadToken, fingerprint, supportsHwpx };
 }
