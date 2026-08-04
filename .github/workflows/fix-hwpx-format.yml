@@ -1,0 +1,75 @@
+name: Fix HWPX formatting
+
+on:
+  push:
+    branches:
+      - feat/direct-hwpx-printing
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/direct-hwpx-printing
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Fix edge cases and copy
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/web/src/lib/file-validation.ts")
+          value = path.read_text()
+          old = """  if (fileKind === \"pdf\") {
+"""
+          new = """  if (fileKind === \"hwpx\") {
+    if (!options.allowHwpx) throw new FileValidationError(\"hwpxUnavailable\");
+    return { bytes, fileKind, pageCount: 1, normalized: false };
+  }
+
+  if (fileKind === \"pdf\") {
+"""
+          if old not in value:
+              raise SystemExit("file-kind anchor missing")
+          path.write_text(value.replace(old, new, 1))
+
+          path = Path("apps/kiosk/Paradiso.PrintCess.Kiosk/ViewModels/MainViewModel.cs")
+          value = path.read_text()
+          value = value.replace(
+              'SecondaryInstruction = "Wi-Fi는 필요하지 않습니다. 휴대전화 모바일 데이터를 사용하세요";',
+              'SecondaryInstruction = "QR코드를 비춘 뒤 휴대전화 화면에 나타나는 링크를 누르세요";',
+              1,
+          )
+          value = value.replace(
+              'SetProgress(KioskUiState.Claimed, "휴대전화 연결됨", "휴대전화에서 문서를 선택해 주세요", "PDF, JPG, PNG 파일 한 개를 보낼 수 있습니다", preserveDeadline: true);',
+              'SetProgress(KioskUiState.Claimed, "휴대전화 연결됨", "휴대전화에서 문서를 선택해 주세요", "휴대전화 화면에 표시되는 지원 형식의 파일 한 개를 보낼 수 있습니다", preserveDeadline: true);',
+              1,
+          )
+          path.write_text(value)
+          PY
+      - name: Apply Prettier
+        run: >-
+          pnpm exec prettier --write
+          apps/web/src/components/mobile/mobile-flow.tsx
+          apps/web/src/lib/file-validation.ts
+          apps/web/src/lib/hwpx-validation.ts
+          packages/i18n/src/public.ts
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps packages
+          git commit -m "fix: normalize HWPX flow formatting and native guidance"
+          git push origin HEAD:feat/direct-hwpx-printing
