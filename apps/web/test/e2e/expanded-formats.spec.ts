@@ -83,7 +83,7 @@ test("HWP selection gives a privacy-preserving PDF conversion instruction", asyn
 
   await expect(
     mobile.getByText(
-      "Save this HWP, Office, or text document as PDF on your phone, then choose it again. To protect your document, Print-cess does not send the original to an external conversion service.",
+      "Save this HWP, Office, or text document as PDF on your phone, then choose it again. HWPX can be sent directly only to a configured Windows kiosk.",
     ),
   ).toBeVisible();
   await expect(mobile.getByRole("heading", { name: "Check your document" })).toHaveCount(0);

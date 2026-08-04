@@ -137,6 +137,11 @@ export async function validateFileForMobile(
     throw error;
   }
 
+  if (fileKind === "hwpx") {
+    if (!options.allowHwpx) throw new FileValidationError("hwpxUnavailable");
+    return { bytes, fileKind, pageCount: 1, normalized: false };
+  }
+
   if (fileKind === "pdf") {
     if (bytes.byteLength > MAX_PLAINTEXT_BYTES) throw new FileValidationError("tooLarge");
     return {

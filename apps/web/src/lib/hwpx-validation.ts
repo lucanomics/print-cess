@@ -26,7 +26,9 @@ export function validateHwpxHeader(bytes: Uint8Array): void {
     throw new Error("invalid HWPX mimetype entry");
   }
 
-  const name = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(30, 30 + nameLength));
+  const name = new TextDecoder("utf-8", { fatal: true }).decode(
+    bytes.subarray(30, 30 + nameLength),
+  );
   const mime = new TextDecoder("utf-8", { fatal: true }).decode(
     bytes.subarray(dataOffset, dataOffset + compressedSize),
   );

@@ -285,11 +285,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("guide")} />
       ) : null}
       {stage === "guide" ? (
-        <GuideStep
-          text={text}
-          supportsHwpx={supportsHwpx}
-          onContinue={() => setStage("file")}
-        />
+        <GuideStep text={text} supportsHwpx={supportsHwpx} onContinue={() => setStage("file")} />
       ) : null}
       {stage === "file" ? (
         <section className="mobile-step">

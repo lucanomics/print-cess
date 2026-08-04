@@ -29,8 +29,7 @@ const KOREAN_COPY_OVERRIDES: Record<string, string> = {
   chooseFile: "인쇄할 문서를 선택하세요",
   fileRules:
     "PDF 또는 사진 파일(JPG/JPEG, PNG, HEIC/HEIF, WebP 등) · PDF 10MB/10쪽 · 사진 원본 20MB 이하",
-  fileRulesHwpx:
-    "PDF·HWPX 또는 사진 파일 · 파일 10MB 이하 · PDF 10쪽 이하 · 사진 원본 20MB 이하",
+  fileRulesHwpx: "PDF·HWPX 또는 사진 파일 · 파일 10MB 이하 · PDF 10쪽 이하 · 사진 원본 20MB 이하",
   checkDocument: "인쇄할 내용을 확인하세요",
   previewHelp: "미리보기를 확인하세요. A4 용지에 흑백 단면으로 한 부 인쇄됩니다.",
   privacySummary: "문서는 휴대전화에서 암호화되며, 서버에 저장된 암호화 파일은 처리 후 삭제됩니다.",
