@@ -214,7 +214,8 @@ export function parseJpegDimensions(bytes: Uint8Array): { width: number; height:
 async function normalizeBrowserImage(file: File): Promise<ValidatedMobileFile> {
   let decoded: Awaited<ReturnType<typeof decodeBrowserImage>> | undefined;
   try {
-    decoded = await decodeBrowserImage(file);
+    const source = await convertHeicIfNeeded(file);
+    decoded = await decodeBrowserImage(source);
     const dimensions = normalizedDimensions(decoded.width, decoded.height);
     const canvas = document.createElement("canvas");
     canvas.width = dimensions.width;
@@ -241,7 +242,37 @@ async function normalizeBrowserImage(file: File): Promise<ValidatedMobileFile> {
   }
 }
 
-async function decodeBrowserImage(file: File): Promise<{
+async function convertHeicIfNeeded(file: File): Promise<Blob> {
+  if (!isHeicFile(file)) return file;
+  try {
+    const { heicTo } = await import("heic-to/csp");
+    const converted = await heicTo({
+      blob: file,
+      type: "image/jpeg",
+      quality: 0.92,
+    });
+    if (!(converted instanceof Blob) || converted.size < 1)
+      throw new FileValidationError("imageConversionUnsupported");
+    return converted;
+  } catch (error) {
+    if (error instanceof FileValidationError) throw error;
+    throw new FileValidationError("imageConversionUnsupported");
+  }
+}
+
+function isHeicFile(file: File): boolean {
+  const extension = fileExtension(file.name);
+  return (
+    extension === "heic" ||
+    extension === "heif" ||
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    file.type === "image/heic-sequence" ||
+    file.type === "image/heif-sequence"
+  );
+}
+
+async function decodeBrowserImage(file: Blob): Promise<{
   source: CanvasImageSource;
   width: number;
   height: number;
@@ -257,7 +288,7 @@ async function decodeBrowserImage(file: File): Promise<{
         dispose: () => bitmap.close(),
       };
     } catch {
-      // Some mobile browsers decode HEIC through an image element but not createImageBitmap.
+      // Fall back to the browser image element for formats it decodes there.
     }
   }
 
