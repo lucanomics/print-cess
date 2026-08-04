@@ -1,0 +1,144 @@
+name: Apply HWPX core patch
+
+on:
+  push:
+    branches:
+      - feat/direct-hwpx-printing
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/direct-hwpx-printing
+      - name: Apply exact source updates
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              target = Path(path)
+              value = target.read_text()
+              if old not in value:
+                  raise SystemExit(f"missing patch anchor in {path}: {old[:80]!r}")
+              target.write_text(value.replace(old, new, 1))
+
+          replace(
+              "packages/protocol/src/envelope.ts",
+              "  png: 3,\n} as const;",
+              "  png: 3,\n  hwpx: 4,\n} as const;",
+          )
+
+          replace(
+              "packages/protocol/src/session.ts",
+              "    kioskPublicKeyFingerprint: z.string().regex(DIGEST_PATTERN),\n  })",
+              "    kioskPublicKeyFingerprint: z.string().regex(DIGEST_PATTERN),\n    supportsHwpx: z.boolean().optional().default(false),\n  })",
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentKind.cs",
+              "    Png = 3,\n}",
+              "    Png = 3,\n    Hwpx = 4,\n}",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentKind.cs",
+              "        DocumentKind.Png => \"image/png\",\n        _ =>",
+              "        DocumentKind.Png => \"image/png\",\n        DocumentKind.Hwpx => \"application/hwp+zip\",\n        _ =>",
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Protocol/BinaryEnvelope.cs",
+              "            (byte)DocumentKind.Png => DocumentKind.Png,\n            _ =>",
+              "            (byte)DocumentKind.Png => DocumentKind.Png,\n            (byte)DocumentKind.Hwpx => DocumentKind.Hwpx,\n            _ =>",
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Protocol/PrintSession.cs",
+              "    [property: JsonPropertyName(\"kioskPublicKeyFingerprint\")] string KioskPublicKeyFingerprint);",
+              "    [property: JsonPropertyName(\"kioskPublicKeyFingerprint\")] string KioskPublicKeyFingerprint,\n    [property: JsonPropertyName(\"supportsHwpx\")] bool SupportsHwpx = false);",
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              "    ImageDimensionsTooLarge,\n}",
+              "    ImageDimensionsTooLarge,\n    CorruptHwpx,\n    UnsafeHwpxContent,\n    EncryptedHwpx,\n}",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              "        DocumentValidationError.ImageDimensionsTooLarge => \"The image dimensions exceed the safe limit.\",\n        _ =>",
+              "        DocumentValidationError.ImageDimensionsTooLarge => \"The image dimensions exceed the safe limit.\",\n        DocumentValidationError.CorruptHwpx => \"The HWPX package is invalid.\",\n        DocumentValidationError.UnsafeHwpxContent => \"The HWPX package contains unsafe content.\",\n        DocumentValidationError.EncryptedHwpx => \"Encrypted HWPX documents are not supported.\",\n        _ =>",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              "            DocumentKind.Jpeg => JpegDocumentInspector.Validate(content),\n            _ =>",
+              "            DocumentKind.Jpeg => JpegDocumentInspector.Validate(content),\n            DocumentKind.Hwpx => HwpxDocumentInspector.Validate(content),\n            _ =>",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Core/Documents/DocumentValidation.cs",
+              "        if (content.Length >= 3 && content[0] == 0xff",
+              "        if (HwpxDocumentInspector.LooksLikeHwpx(content))\n        {\n            return DocumentKind.Hwpx;\n        }\n\n        if (content.Length >= 3 && content[0] == 0xff",
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/WindowsPrintEngine.cs",
+              "            DocumentKind.Jpeg or DocumentKind.Png => [DecodeImage(document.Content)],\n            _ =>",
+              "            DocumentKind.Jpeg or DocumentKind.Png => [DecodeImage(document.Content)],\n            DocumentKind.Hwpx => await RenderHwpxAsync(document.Content, cancellationToken),\n            _ =>",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Printing/WindowsPrintEngine.cs",
+              "    private static async Task<IReadOnlyList<BitmapSource>> RenderPdfAsync(",
+              "    private static async Task<IReadOnlyList<BitmapSource>> RenderHwpxAsync(\n        byte[] content,\n        CancellationToken cancellationToken)\n    {\n        var pdf = await HancomHwpxRenderer.RenderToPdfAsync(content, cancellationToken);\n        try\n        {\n            return await RenderPdfAsync(pdf, cancellationToken);\n        }\n        finally\n        {\n            Array.Clear(pdf);\n        }\n    }\n\n    private static async Task<IReadOnlyList<BitmapSource>> RenderPdfAsync(",
+          )
+
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Http/KioskSessionClient.cs",
+              "            new CreateSessionRequest(ProtocolConstants.Version, kioskPublicKey, kioskPublicKeyFingerprint));",
+              "            new CreateSessionRequest(\n                ProtocolConstants.Version,\n                kioskPublicKey,\n                kioskPublicKeyFingerprint,\n                HancomHwpxRenderer.IsAvailable));",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Http/KioskSessionClient.cs",
+              "    private static bool TryReadQrFragment(string fragment, out string uploadToken, out string fingerprint)\n    {",
+              "    private static bool TryReadQrFragment(string fragment, out string uploadToken, out string fingerprint)\n    {",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Http/KioskSessionClient.cs",
+              "        if (pairs.Length != 2)\n        {\n            return false;\n        }",
+              "        if (pairs.Length is < 2 or > 3)\n        {\n            return false;\n        }",
+          )
+          replace(
+              "apps/kiosk/Paradiso.PrintCess.Infrastructure/Http/KioskSessionClient.cs",
+              "            else\n            {\n                return false;\n            }\n        }\n\n        return uploadToken.Length > 0 && fingerprint.Length > 0;",
+              "            else if (name == \"hwpx\" && value == \"1\")\n            {\n                // Optional capability marker. It is advisory and never weakens kiosk validation.\n            }\n            else\n            {\n                return false;\n            }\n        }\n\n        return uploadToken.Length > 0 && fingerprint.Length > 0;",
+          )
+
+          replace(
+              "apps/web/src/app/api/sessions/route.ts",
+              "    const qrUrl = `${server.config.publicBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}`;",
+              "    const capability = input.supportsHwpx ? \"&hwpx=1\" : \"\";\n    const qrUrl = `${server.config.publicBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}${capability}`;",
+          )
+
+          replace(
+              "apps/web/src/lib/session-fragment.ts",
+              "export type SessionFragment = { uploadToken: string; fingerprint: string };",
+              "export type SessionFragment = { uploadToken: string; fingerprint: string; supportsHwpx: boolean };",
+          )
+          replace(
+              "apps/web/src/lib/session-fragment.ts",
+              "  return { uploadToken, fingerprint };",
+              "  const supportsHwpx = parameters.get(\"hwpx\") === \"1\";\n  if ([...parameters.keys()].some((key) => ![\"t\", \"fp\", \"hwpx\"].includes(key))) return null;\n  return { uploadToken, fingerprint, supportsHwpx };",
+          )
+          PY
+      - name: Commit generated patch
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages apps
+          git commit -m "feat: extend protocol and Windows pipeline for HWPX"
+          git push origin HEAD:feat/direct-hwpx-printing
