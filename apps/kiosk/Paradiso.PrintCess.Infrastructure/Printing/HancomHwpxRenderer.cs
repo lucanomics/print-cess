@@ -1,4 +1,6 @@
 #if WINDOWS
+using System.Globalization;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -120,7 +122,8 @@ internal static class HancomHwpxRenderer
             BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Instance,
             binder: null,
             target,
-            arguments);
+            arguments,
+            CultureInfo.InvariantCulture);
 
     private static void TryInvoke(object target, string method, params object?[] arguments)
     {
