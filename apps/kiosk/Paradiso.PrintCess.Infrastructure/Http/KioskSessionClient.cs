@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Paradiso.PrintCess.Core.Protocol;
+using Paradiso.PrintCess.Infrastructure.Printing;
 
 namespace Paradiso.PrintCess.Infrastructure.Http;
 

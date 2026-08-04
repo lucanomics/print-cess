@@ -9,6 +9,11 @@ internal static class HancomHwpxRenderer
     private const int MaximumRenderedPdfBytes = 64 * 1024 * 1024;
     private const string SecurityModuleEnvironmentVariable = "PRINT_CESS_HANCOM_SECURITY_MODULE";
 
+    public static bool IsAvailable =>
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(SecurityModuleEnvironmentVariable)) &&
+        (Type.GetTypeFromProgID("HWPFrame.HwpObject.2", throwOnError: false) is not null ||
+         Type.GetTypeFromProgID("HWPFrame.HwpObject", throwOnError: false) is not null);
+
     public static Task<byte[]> RenderToPdfAsync(byte[] content, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(content);
@@ -159,5 +164,12 @@ internal static class HancomHwpxRenderer
             // Best effort only; encrypted transfer storage remains independently short-lived.
         }
     }
+}
+#else
+namespace Paradiso.PrintCess.Infrastructure.Printing;
+
+internal static class HancomHwpxRenderer
+{
+    public static bool IsAvailable => false;
 }
 #endif

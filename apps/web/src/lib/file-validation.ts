@@ -1,5 +1,7 @@
 import { MAX_PDF_PAGES, MAX_PLAINTEXT_BYTES, type FileKind } from "@print-cess/protocol";
 
+import { isHwpxSelection, validateHwpxHeader } from "./hwpx-validation";
+
 export type ValidatedMobileFile = {
   bytes: Uint8Array;
   fileKind: FileKind;
@@ -12,6 +14,7 @@ export type ValidatedMobileFile = {
 export type FileValidationCode =
   | "unsupportedType"
   | "documentNeedsPdf"
+  | "hwpxUnavailable"
   | "imageConversionUnsupported"
   | "tooLarge"
   | "tooManyPages"
@@ -79,13 +82,19 @@ export function detectFileKind(bytes: Uint8Array): FileKind {
     fixedBytesEqual(bytes.subarray(0, 8), PNG_SIGNATURE)
   )
     return "png";
-  throw new FileValidationError("unsupportedType");
+  try {
+    validateHwpxHeader(bytes);
+    return "hwpx";
+  } catch {
+    throw new FileValidationError("unsupportedType");
+  }
 }
 
 export function classifySelectedFile(
   file: Pick<File, "name" | "type">,
-): "image" | "document" | "unknown" {
+): "image" | "hwpx" | "document" | "unknown" {
   const extension = fileExtension(file.name);
+  if (isHwpxSelection(file)) return "hwpx";
   if (file.type === "image/svg+xml" || extension === "svg") return "unknown";
   if (file.type.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) return "image";
   if (
@@ -97,7 +106,10 @@ export function classifySelectedFile(
   return "unknown";
 }
 
-export async function validateFileForMobile(file: File): Promise<ValidatedMobileFile> {
+export async function validateFileForMobile(
+  file: File,
+  options: { allowHwpx?: boolean } = {},
+): Promise<ValidatedMobileFile> {
   if (file.size < 1) throw new FileValidationError("damagedFile");
 
   const classification = classifySelectedFile(file);
@@ -105,6 +117,16 @@ export async function validateFileForMobile(file: File): Promise<ValidatedMobile
   if (file.size > sourceLimit) throw new FileValidationError("tooLarge");
 
   const bytes = new Uint8Array(await file.arrayBuffer());
+  if (classification === "hwpx") {
+    if (!options.allowHwpx) throw new FileValidationError("hwpxUnavailable");
+    try {
+      validateHwpxHeader(bytes);
+    } catch {
+      throw new FileValidationError("damagedFile");
+    }
+    return { bytes, fileKind: "hwpx", pageCount: 1, normalized: false };
+  }
+
   let fileKind: FileKind;
   try {
     fileKind = detectFileKind(bytes);
