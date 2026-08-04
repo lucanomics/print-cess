@@ -1,0 +1,41 @@
+name: Temporary kiosk format copy update
+
+on:
+  push:
+    branches:
+      - feat/expand-file-format-support
+
+permissions:
+  contents: write
+
+jobs:
+  update-copy:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v7
+        with:
+          ref: feat/expand-file-format-support
+          fetch-depth: 0
+
+      - name: Update visible format guidance
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/components/kiosk/kiosk-simulator.tsx')
+          text = path.read_text()
+          old = '<strong>PDF, JPG, PNG</strong>'
+          new = '<strong>PDF · JPG/JPEG · HEIC 등 사진</strong>'
+          if old not in text:
+              raise SystemExit('expected kiosk format copy not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Commit updated copy
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/kiosk/kiosk-simulator.tsx
+          git commit -m "feat(kiosk): advertise expanded photo formats"
+          git push origin HEAD:feat/expand-file-format-support
