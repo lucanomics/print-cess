@@ -1,0 +1,98 @@
+name: Temporary HEIC decoder integration
+
+on:
+  push:
+    branches:
+      - feat/expand-file-format-support
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v7
+        with:
+          ref: feat/expand-file-format-support
+          fetch-depth: 0
+
+      - name: Wire client-side HEIC conversion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/lib/file-validation.ts')
+          text = path.read_text()
+          old = '''  try {
+            decoded = await decodeBrowserImage(file);
+            const dimensions = normalizedDimensions(decoded.width, decoded.height);'''
+          new = '''  try {
+            const source = await convertHeicIfNeeded(file);
+            decoded = await decodeBrowserImage(source);
+            const dimensions = normalizedDimensions(decoded.width, decoded.height);'''
+          if old not in text:
+              raise SystemExit('normalization hook not found')
+          text = text.replace(old, new, 1)
+          signature = 'async function decodeBrowserImage(file: File): Promise<{'
+          if signature not in text:
+              raise SystemExit('decode signature not found')
+          helper = '''async function convertHeicIfNeeded(file: File): Promise<Blob> {
+            if (!isHeicFile(file)) return file;
+            try {
+              const { heicTo } = await import("heic-to/csp");
+              const converted = await heicTo({
+                blob: file,
+                type: "image/jpeg",
+                quality: 0.92,
+              });
+              if (!(converted instanceof Blob) || converted.size < 1)
+                throw new FileValidationError("imageConversionUnsupported");
+              return converted;
+            } catch (error) {
+              if (error instanceof FileValidationError) throw error;
+              throw new FileValidationError("imageConversionUnsupported");
+            }
+          }
+
+          function isHeicFile(file: File): boolean {
+            const extension = fileExtension(file.name);
+            return (
+              extension === "heic" ||
+              extension === "heif" ||
+              file.type === "image/heic" ||
+              file.type === "image/heif" ||
+              file.type === "image/heic-sequence" ||
+              file.type === "image/heif-sequence"
+            );
+          }
+
+          async function decodeBrowserImage(file: Blob): Promise<{'''
+          text = text.replace(signature, helper, 1)
+          path.write_text(text)
+          PY
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Refresh lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Format changed files
+        run: pnpm exec prettier --write apps/web/src/lib/file-validation.ts apps/web/package.json pnpm-lock.yaml
+
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/lib/file-validation.ts apps/web/package.json pnpm-lock.yaml
+          git commit -m "feat(web): decode HEIC locally before encryption"
+          git push origin HEAD:feat/expand-file-format-support
