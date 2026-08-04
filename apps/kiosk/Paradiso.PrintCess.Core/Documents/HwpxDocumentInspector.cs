@@ -118,7 +118,7 @@ internal static class HwpxDocumentInspector
 
     private static void ValidateXml(
         ZipArchiveEntry entry,
-        IReadOnlyDictionary<string, ZipArchiveEntry> entries,
+        Dictionary<string, ZipArchiveEntry> entries,
         bool validateReferences = false,
         bool requireContentRoot = false,
         bool rejectEncryptionMarkers = false)
@@ -193,7 +193,8 @@ internal static class HwpxDocumentInspector
         {
             throw;
         }
-        catch (Exception exception) when (exception is XmlException or InvalidDataException or IOException)
+        catch (Exception exception) when (
+            exception is XmlException or InvalidDataException or IOException or UriFormatException)
         {
             throw new DocumentValidationException(DocumentValidationError.CorruptHwpx);
         }
@@ -262,7 +263,7 @@ internal static class HwpxDocumentInspector
         return ValidateEntryName(string.Join('/', segments));
     }
 
-    private static void Require(IReadOnlyDictionary<string, ZipArchiveEntry> entries, string name)
+    private static void Require(Dictionary<string, ZipArchiveEntry> entries, string name)
     {
         if (!entries.ContainsKey(name))
         {
