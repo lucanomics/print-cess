@@ -45,34 +45,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check formatting
-        shell: bash
-        run: |
-          if ! pnpm format:check; then
-            pnpm exec prettier --write \
-              apps/web/src/components/mobile/mobile-flow.tsx \
-              apps/web/src/lib/file-validation.ts \
-              apps/web/src/lib/hwpx-validation.ts \
-              packages/i18n/src/public.ts
-            git diff -- \
-              apps/web/src/components/mobile/mobile-flow.tsx \
-              apps/web/src/lib/file-validation.ts \
-              apps/web/src/lib/hwpx-validation.ts \
-              packages/i18n/src/public.ts
-            exit 1
-          fi
-
-      - name: Upload formatted HWPX sources
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: formatted-hwpx-sources-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            apps/web/src/components/mobile/mobile-flow.tsx
-            apps/web/src/lib/file-validation.ts
-            apps/web/src/lib/hwpx-validation.ts
-            packages/i18n/src/public.ts
-          if-no-files-found: error
-          retention-days: 1
+        run: pnpm format:check
 
       - name: Lint
         run: pnpm lint
