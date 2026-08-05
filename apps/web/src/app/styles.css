@@ -43,6 +43,46 @@ p {
   color: var(--pc-muted) !important;
 }
 
+/* The wordmark and the help control share one row only while both fit. "Need
+   help?" is far longer in some of the thirteen languages, and the service name
+   is long too, so neither may force the page wider than the phone screen. */
+.mobile-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.mobile-topbar .pc-wordmark {
+  min-width: 0;
+}
+.mobile-topbar .pc-wordmark > span {
+  flex-wrap: wrap;
+  gap: 0 10px;
+}
+.mobile-help-open {
+  display: inline-flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 10px 14px;
+  text-align: start;
+  border: 2px solid var(--pc-teal);
+  border-radius: 999px;
+  background: var(--pc-teal-soft);
+  color: var(--pc-teal-dark);
+  font-size: 16px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.mobile-help-open svg {
+  width: 22px;
+  height: 22px;
+}
+
 .mobile-step {
   display: grid;
   align-content: start;
@@ -68,7 +108,15 @@ p {
   justify-items: start;
 }
 .mobile-step--single .pc-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   margin-top: 18px;
+}
+.mobile-step--single .pc-button svg {
+  width: 24px;
+  height: 24px;
 }
 .mobile-step--preview {
   gap: 10px;
@@ -242,6 +290,120 @@ p {
   background: #fff4f4;
   color: var(--pc-error) !important;
   font-size: 16px !important;
+}
+.mobile-file-notice {
+  padding: 12px 14px;
+  border: 1px solid var(--pc-line);
+  border-radius: 10px;
+  background: var(--pc-subtle);
+  font-size: 16px !important;
+}
+
+.mobile-listen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+}
+.mobile-listen svg {
+  width: 24px;
+  height: 24px;
+}
+
+.mobile-help {
+  width: min(100%, 560px);
+  max-width: 100%;
+  max-height: 88dvh;
+  margin: auto auto 0;
+  padding: 24px clamp(20px, 6vw, 28px) calc(24px + env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  background: white;
+  color: var(--pc-text);
+  overflow-y: auto;
+  box-shadow: 0 -18px 50px rgb(7 23 55 / 22%);
+}
+.mobile-help::backdrop {
+  background: rgb(7 23 55 / 55%);
+}
+.mobile-help h2 {
+  margin: 0 0 12px;
+  color: var(--pc-ink);
+  font-size: 27px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+.mobile-help__now {
+  margin: 0;
+  padding: 14px 16px;
+  border-inline-start: 4px solid var(--pc-teal);
+  border-radius: 0 12px 12px 0;
+  background: var(--pc-teal-soft);
+  color: var(--pc-ink);
+  font-size: 19px;
+  line-height: 1.5;
+}
+.mobile-help__where {
+  margin-top: 20px;
+}
+.mobile-help__where h3 {
+  margin: 0 0 10px;
+  color: var(--pc-ink);
+  font-size: 18px;
+}
+.mobile-help__where ul {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mobile-help__where li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+}
+.mobile-help__where svg {
+  width: 26px;
+  height: 26px;
+  color: var(--pc-teal-dark);
+}
+.mobile-help__where strong,
+.mobile-help__where small {
+  display: block;
+}
+.mobile-help__where strong {
+  color: var(--pc-ink);
+  font-size: 17px;
+}
+.mobile-help__where small {
+  margin-top: 3px;
+  color: var(--pc-muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.mobile-help__staff {
+  margin: 20px 0 0;
+  color: var(--pc-muted);
+  font-size: 16px;
+  line-height: 1.45;
+}
+.mobile-help__actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+.mobile-help__actions .pc-button--secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+}
+.mobile-help__actions svg {
+  width: 24px;
+  height: 24px;
 }
 
 .mobile-preview {

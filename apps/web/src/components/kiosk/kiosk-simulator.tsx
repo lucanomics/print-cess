@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Download,
   FileCheck2,
+  Languages,
   LockKeyhole,
   Printer,
   ShieldCheck,
@@ -20,12 +21,20 @@ import {
   generateToken,
   hashToken,
 } from "@print-cess/crypto";
+import {
+  isRightToLeft,
+  LOCALE_NAMES,
+  SUPPORTED_LOCALES,
+  translate,
+  type SupportedLocale,
+} from "@print-cess/i18n";
 import { Wordmark } from "@print-cess/ui";
 
 import {
   detectFileKind,
   parseJpegDimensions,
   parsePngDimensions,
+  validateDimensions,
   validatePdf,
 } from "@/lib/file-validation";
 import {
@@ -46,6 +55,14 @@ type KioskStatus =
   | "completed"
   | "failed";
 
+// Korean and English stay on screen permanently; the remaining languages take
+// turns on one line so a visitor sees the same instruction in their own
+// language without the display filling up with text.
+const SPOTLIGHT_LOCALES: readonly SupportedLocale[] = SUPPORTED_LOCALES.filter(
+  (locale) => locale !== "ko" && locale !== "en",
+);
+const SPOTLIGHT_INTERVAL_MS = 4500;
+
 type RegisteredSession = {
   sessionId: string;
   expiresAt: number;
@@ -63,6 +80,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
   const [completionRemaining, setCompletionRemaining] = useState(60);
   const [artifact, setArtifact] = useState<PrintArtifact>();
   const [generation, setGeneration] = useState(0);
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
   const processing = useRef(false);
   const artifactRef = useRef<PrintArtifact | undefined>(undefined);
 
@@ -89,6 +107,14 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
     },
     [],
   );
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setSpotlightIndex((index) => (index + 1) % SPOTLIGHT_LOCALES.length),
+      SPOTLIGHT_INTERVAL_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -225,11 +251,12 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
     );
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
 
+  const spotlight = SPOTLIGHT_LOCALES[spotlightIndex] ?? "zh-CN";
   const countdownLabel =
     status === "preparing" || status === "waiting" ? "QR코드 변경까지" : "작업 만료까지";
 
   return (
-    <main className="kiosk-shell">
+    <main className="kiosk-shell" lang="ko">
       <Wordmark />
       <div className="kiosk-layout">
         <section className="kiosk-instructions">
@@ -245,12 +272,27 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
               <span>카메라를 여세요</span>
             </span>
           </h1>
-          <p className="kiosk-english">Open the camera on your phone</p>
+          <p className="kiosk-english" lang="en">
+            Open the camera on your phone
+          </p>
+          {/* One line, rotating through the languages that are not permanently
+              on screen, so a visitor who reads neither Korean nor English still
+              sees what to do. Hidden from assistive technology because a line
+              that changes on a timer would interrupt it repeatedly. */}
+          <p
+            className="kiosk-spotlight"
+            lang={spotlight}
+            dir={isRightToLeft(spotlight) ? "rtl" : "ltr"}
+            aria-hidden="true"
+          >
+            <span>{LOCALE_NAMES[spotlight]}</span>
+            {translate(spotlight, "kioskScanTitle")}
+          </p>
           <div className="kiosk-facts">
             <p>
               <FileCheck2 aria-hidden="true" />
               <span>
-                지원 파일 형식
+                인쇄할 수 있는 파일
                 <br />
                 <strong>PDF · JPG/JPEG · HEIC 등 사진</strong>
               </span>
@@ -260,7 +302,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
               <span>
                 인쇄가 끝나면
                 <br />
-                파일은 자동 삭제됩니다
+                <strong>파일 자동 삭제</strong>
               </span>
             </p>
           </div>
@@ -277,7 +319,11 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
         <section
           className="kiosk-qr"
           aria-label="휴대전화로 스캔할 QR코드"
-          data-session-url={session?.qrUrl}
+          // The QR URL carries the one-time upload token and key fingerprint.
+          // End-to-end tests need to read it, but a Production kiosk must not
+          // publish it as page text where a DOM snapshot or an extension could
+          // pick it up; the QR image alone is enough there.
+          data-session-url={process.env.NODE_ENV === "production" ? undefined : session?.qrUrl}
         >
           <div className="kiosk-qr__instruction">
             <span className="kiosk-step-number" aria-hidden="true">
@@ -304,6 +350,10 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
               <small>사진을 찍을 필요는 없습니다 · Tap the link that appears</small>
             </div>
           </div>
+          <p className="kiosk-languages">
+            <Languages aria-hidden="true" />
+            <span>{SUPPORTED_LOCALES.length}개 언어 · languages</span>
+          </p>
         </section>
       </div>
     </main>
@@ -356,9 +406,19 @@ async function consumeAndPrint(
     await kioskTransition(session, "validating");
     const detected = detectFileKind(plaintext);
     if (detected !== decrypted.fileKind) throw new Error("file kind mismatch");
-    if (detected === "pdf") await validatePdf(plaintext);
-    else if (detected === "png") parsePngDimensions(plaintext);
-    else parseJpegDimensions(plaintext);
+    if (detected === "pdf") {
+      await validatePdf(plaintext);
+    } else if (detected === "png" || detected === "jpeg") {
+      // `docs/SECURITY.md` requires the kiosk to enforce the image dimension
+      // and resource budget itself, not to inherit the phone's verdict.
+      const { width, height } =
+        detected === "png" ? parsePngDimensions(plaintext) : parseJpegDimensions(plaintext);
+      validateDimensions(width, height);
+    } else {
+      // Only the Windows kiosk carries a Hancom renderer, and this browser
+      // kiosk never advertises HWP/HWPX support, so anything else fails closed.
+      throw new Error("unsupported file kind for the browser kiosk");
+    }
     const artifact = createPrintArtifact(plaintext, decrypted.fileKind);
     setArtifact(artifact);
     setStatus("printing");
@@ -390,14 +450,14 @@ async function kioskTransition(
 function statusLabel(status: KioskStatus): string {
   return {
     preparing: "준비 중",
-    waiting: "준비",
-    claimed: "휴대전화 연결됨",
-    uploading: "파일 전송 중",
-    uploaded: "파일 수신 완료",
-    validating: "파일 검증 중",
-    printing: "인쇄 중",
-    completed: "출력 완료",
-    failed: "서비스 일시 중단",
+    waiting: "사용할 수 있어요",
+    claimed: "휴대전화가 연결됐어요",
+    uploading: "문서를 받고 있어요",
+    uploaded: "문서를 받았어요",
+    validating: "문서를 확인하고 있어요",
+    printing: "인쇄하고 있어요",
+    completed: "인쇄가 끝났어요",
+    failed: "잠시 사용할 수 없어요",
   }[status];
 }
 
@@ -433,14 +493,20 @@ function CompletedScreen({
   return (
     <main
       className="kiosk-result kiosk-result--success"
+      lang="ko"
       data-printing-mode={automaticPrinting ? "automatic" : "interactive"}
     >
       <Wordmark />
       <CheckCircle2 aria-hidden="true" />
-      <h1>{automaticPrinting ? "자동 인쇄가 시작됐습니다" : "인쇄 준비가 완료됐습니다"}</h1>
+      <h1>{automaticPrinting ? "인쇄가 시작됐어요" : "인쇄 준비가 끝났어요"}</h1>
       <p>
         <Printer aria-hidden="true" />
-        {automaticPrinting ? "프린터 출력구를 확인하세요" : "인쇄 창을 확인하세요"}
+        {automaticPrinting ? "프린터에서 종이를 가져가세요" : "화면의 인쇄 창을 확인하세요"}
+      </p>
+      <p className="kiosk-result__english" lang="en">
+        {automaticPrinting
+          ? "Your page is printing. Take it from the printer."
+          : "Confirm the print dialog on this screen."}
       </p>
       <div className="kiosk-result__actions">
         {automaticPrinting ? null : (
@@ -448,25 +514,31 @@ function CompletedScreen({
             <Printer aria-hidden="true" /> 인쇄 창 다시 열기
           </button>
         )}
+        {/* Operator-only recovery path: it writes a plaintext copy into the
+            kiosk account's Downloads folder, so it must never read as a normal
+            visitor action. See docs/VERCEL_DEPLOYMENT.md. */}
         <a href={artifact.url} download={artifact.filename} className="kiosk-download">
-          <Download aria-hidden="true" /> 파일 다운로드
+          <Download aria-hidden="true" /> 파일 다운로드 (직원용)
         </a>
       </div>
-      <span>서버 파일 삭제 완료 · {remaining}초 후 새 QR</span>
+      <span>서버에 보관된 파일은 삭제됐습니다 · {remaining}초 후 새 QR코드</span>
     </main>
   );
 }
 
 function UnavailableScreen({ onReset }: { onReset: () => void }) {
   return (
-    <main className="kiosk-result kiosk-result--error">
+    <main className="kiosk-result kiosk-result--error" lang="ko">
       <Wordmark />
       <ShieldCheck aria-hidden="true" />
-      <h1>인쇄 서비스를 잠시 사용할 수 없습니다</h1>
-      <p>잠시 후 다시 시도해주세요.</p>
-      <span>업로드된 파일은 삭제됩니다.</span>
+      <h1>지금은 인쇄할 수 없어요</h1>
+      <p>잠시 뒤에 다시 시도해 주세요.</p>
+      <p className="kiosk-result__english" lang="en">
+        Printing is unavailable right now. Please try again in a moment.
+      </p>
+      <span>보내신 파일은 삭제됐습니다.</span>
       <button type="button" onClick={onReset}>
-        개발 시뮬레이터 초기화
+        새 QR코드 만들기
       </button>
     </main>
   );

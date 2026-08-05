@@ -57,6 +57,22 @@ export async function createSyntheticJpeg(width = 1170, height = 1654): Promise<
   return new Uint8Array(await sharp(png).jpeg({ quality: 88 }).toBuffer());
 }
 
+/**
+ * A phone photograph taken sideways: the pixels stay in landscape order and an
+ * EXIF orientation tag asks the viewer for a quarter turn. Most photos in a
+ * phone gallery look like this, so the flow must accept it.
+ */
+export async function createSidewaysSyntheticJpeg(
+  width = 1600,
+  height = 1200,
+  orientation = 6,
+): Promise<Uint8Array> {
+  const png = await createSyntheticPng(width, height);
+  return new Uint8Array(
+    await sharp(png).withMetadata({ orientation }).jpeg({ quality: 88 }).toBuffer(),
+  );
+}
+
 export function createBoundaryBytes(overBy = 0): Uint8Array {
   const bytes = new Uint8Array(TEN_MIB + overBy);
   bytes.set(new TextEncoder().encode("%PDF-SAMPLE-NOT-VALID\n"));

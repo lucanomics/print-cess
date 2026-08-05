@@ -167,8 +167,17 @@ export async function validateFileForMobile(
 
 export async function validatePdf(bytes: Uint8Array): Promise<number> {
   const searchable = new TextDecoder("latin1").decode(bytes);
-  if (searchable.includes("/Encrypt")) throw new FileValidationError("lockedPdf");
-  if (ACTIVE_PDF_MARKERS.some((marker) => searchable.includes(marker)))
+  // PDF names may hex-escape any character, so `/J#61vaScript` names the same
+  // key as `/JavaScript`. Scan the decoded form too, or the marker check below
+  // is bypassed by an author who only has to escape one letter.
+  const decodedNames = decodePdfNameEscapes(searchable);
+  if (searchable.includes("/Encrypt") || decodedNames.includes("/Encrypt"))
+    throw new FileValidationError("lockedPdf");
+  if (
+    ACTIVE_PDF_MARKERS.some(
+      (marker) => searchable.includes(marker) || decodedNames.includes(marker),
+    )
+  )
     throw new FileValidationError("damagedFile");
   try {
     const pdfjs = await import("pdfjs-dist");
@@ -387,8 +396,21 @@ function dimensionsWithinLimits(width: number, height: number): boolean {
   );
 }
 
-function validateDimensions(width: number, height: number): void {
+export function validateDimensions(width: number, height: number): void {
   if (!dimensionsWithinLimits(width, height)) throw new FileValidationError("damagedFile");
+}
+
+export function decodedDimensionsMatch(
+  expected: { width: number; height: number },
+  decoded: { width: number; height: number },
+): boolean {
+  if (decoded.width === expected.width && decoded.height === expected.height) return true;
+  // The decode below asks for the EXIF orientation to be applied, and a photo
+  // taken sideways — most photos in a phone gallery — then reports its axes
+  // swapped relative to the width and height stored in the file. That is a
+  // valid, printable photograph, not a damaged one. Browsers also disagree
+  // about honouring the orientation request at all, so accept both forms.
+  return decoded.width === expected.height && decoded.height === expected.width;
 }
 
 async function verifyBrowserImageDecode(
@@ -399,8 +421,7 @@ async function verifyBrowserImageDecode(
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     try {
-      if (bitmap.width !== expected.width || bitmap.height !== expected.height)
-        throw new FileValidationError("damagedFile");
+      if (!decodedDimensionsMatch(expected, bitmap)) throw new FileValidationError("damagedFile");
     } finally {
       bitmap.close();
     }
@@ -408,6 +429,16 @@ async function verifyBrowserImageDecode(
     if (error instanceof FileValidationError) throw error;
     throw new FileValidationError("damagedFile");
   }
+}
+
+function decodePdfNameEscapes(source: string): string {
+  if (!source.includes("#")) return source;
+  return source.replaceAll(/#([0-9a-fA-F]{2})/gu, (match, hex: string) => {
+    const code = Number.parseInt(hex, 16);
+    // `#00` is not a legal name character, so leave the sequence untouched
+    // rather than inventing a NUL that the real parser would reject.
+    return code === 0 ? match : String.fromCharCode(code);
+  });
 }
 
 function fileExtension(name: string): string {

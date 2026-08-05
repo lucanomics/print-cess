@@ -35,6 +35,8 @@ remediation.
   bits. Tokens are independent and one-time.
 - Put the upload token and kiosk-key fingerprint in the QR fragment, never a query string. Reject
   a missing or malformed fragment.
+- The QR image is the only place a Production kiosk publishes that fragment. Do not also write the
+  session URL into page text, a DOM attribute, a log line, or a test hook that ships to Production.
 - Store only domain-separated SHA-256 token hashes. Protocol version 1 hashes the canonical
   32-byte token after
   `UTF8("print-cess-by-paradiso:token-hash:<role>:v1") || 00`, where role is upload, kiosk, or
@@ -66,8 +68,17 @@ beyond the stated threat model.
   success, page count, PDF encryption/actions, and image dimensions/resource budget.
 - Reject HWP, Office formats, archives, HTML, SVG, executables, locked/damaged PDF, malformed
   images, disguised extensions, and unsupported image encodings.
+- Size the image budget so that current phone-camera output — 48 MP stills and panoramas longer
+  than 12,000 pixels on one edge — is accepted, and separate a decompression bomb from a real
+  photograph by requiring a minimum pixel density per compressed byte rather than by lowering the
+  pixel ceiling. Rejecting a visitor's ordinary photograph as damaged is a defect, not caution.
+- Do not compare a decoded bitmap's width and height against the stored dimensions without
+  allowing the transposed form. Browsers disagree about applying the EXIF orientation tag, so a
+  photo taken sideways legitimately decodes with its axes swapped.
 - Do not execute PDF JavaScript, OpenAction, Launch actions, attachments, external links, or embed a
-  PDF as active HTML.
+  PDF as active HTML. Because a PDF name may hex-escape any character, scan for those markers in
+  both the raw bytes and the form with `#xx` escapes decoded; a substring scan of the raw bytes
+  alone is bypassed by escaping one letter of the name.
 - Keep plaintext in bounded memory. If a renderer requires a temporary file, use an
   application-owned ACL-restricted directory, random name, immediate deletion, and startup cleanup.
   Never use the original filename, Downloads, or Documents.

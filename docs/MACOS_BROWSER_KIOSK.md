@@ -76,7 +76,8 @@ Use a synthetic one-page PNG and a synthetic two-page PDF. For each document ver
 - Chrome returns to a new QR after 60 seconds;
 - **Open print dialog again** is not used after a successful automatic print because it would
   intentionally submit another job;
-- **Download file** works only as the operator-approved recovery action.
+- **Download file** (`파일 다운로드 (직원용)`) works only as the operator-approved recovery action;
+  confirm it still reads as staff-only on the station's display.
 
 If Chrome shows a print dialog, stop the station and inspect the LaunchAgent command with `--status`.
 Do not add `--disable-print-preview`; silent kiosk printing relies on Chrome's print preview path.

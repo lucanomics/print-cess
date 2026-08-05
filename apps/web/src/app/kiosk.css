@@ -80,28 +80,28 @@
 }
 .kiosk-facts p {
   display: flex;
-  gap: 18px;
+  gap: 14px;
   align-items: center;
-  padding: 28px 16px 28px 0;
-  font-size: clamp(18px, 1.35vw, 24px);
-  line-height: 1.45;
+  padding: 24px 14px 24px 0;
+  font-size: clamp(15px, 1.1vw, 20px);
+  line-height: 1.4;
 }
 .kiosk-facts p + p {
-  padding-left: 24px;
+  padding-left: 18px;
   border-left: 2px solid var(--pc-line);
 }
 .kiosk-facts svg {
   flex: none;
-  width: 52px;
-  height: 52px;
-  padding: 10px;
+  width: 46px;
+  height: 46px;
+  padding: 9px;
   border-radius: 50%;
   color: var(--pc-ink);
   background: #eaf3f8;
 }
 .kiosk-facts strong {
   color: var(--pc-teal-dark);
-  font-size: 1.2em;
+  font-size: 1.15em;
 }
 .kiosk-status-row {
   display: flex;
@@ -196,6 +196,13 @@
   height: 48px;
   color: var(--pc-teal-dark);
 }
+.kiosk-languages small {
+  display: block;
+  margin-top: 4px;
+  color: var(--pc-muted);
+  font-size: 0.78em;
+  font-weight: 500;
+}
 @keyframes kiosk-loading {
   to {
     background-position: -200% 0;
@@ -235,6 +242,10 @@
 .kiosk-result p svg {
   width: 44px;
   height: 44px;
+}
+.kiosk-result__english {
+  color: var(--pc-muted);
+  font-size: 26px;
 }
 .kiosk-result > span {
   font-size: 23px;
@@ -278,10 +289,13 @@
   text-decoration: none;
   cursor: pointer;
 }
+/* Staff recovery action. It stays reachable but must not compete with the
+   visitor's own next step, so it is deliberately the quietest control here. */
 .kiosk-download {
-  border-color: var(--pc-teal);
-  background: var(--pc-teal);
-  color: white;
+  border-style: dashed;
+  background: var(--pc-subtle);
+  color: var(--pc-muted);
+  font-weight: 500;
 }
 .kiosk-result__actions svg {
   width: 24px;
@@ -350,4 +364,36 @@
   .kiosk-qr__action > svg {
     display: none;
   }
+}
+
+/* The rotating instruction for the languages that are not permanently on
+   screen. A fixed height keeps a longer language from shifting the layout
+   every few seconds. */
+.kiosk-spotlight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  min-height: 2.9em;
+  margin: 14px 0 0 calc(var(--kiosk-heading-number-size) + var(--kiosk-heading-gap));
+  font-size: clamp(19px, 1.6vw, 27px);
+  line-height: 1.4;
+  color: var(--pc-teal-dark);
+}
+.kiosk-spotlight > span {
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--pc-teal-soft);
+  font-weight: 750;
+  font-size: 0.82em;
+}
+.kiosk-languages {
+  gap: 12px !important;
+  color: var(--pc-muted);
+  font-size: clamp(15px, 1.1vw, 19px) !important;
+  font-weight: 500 !important;
+}
+.kiosk-languages svg {
+  width: 28px !important;
+  height: 28px !important;
 }

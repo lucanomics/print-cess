@@ -18,6 +18,23 @@ test("shows three simple QR steps without network jargon", async ({ page }) => {
   await expect(page.getByText("휴대전화 모바일 데이터를 사용하세요")).toHaveCount(0);
 });
 
+test("repeats the scan instruction in the other visitor languages", async ({ page }) => {
+  const rotating = ["ar", "fil", "id", "km", "mn", "ne", "ru", "th", "uk", "vi", "zh-CN"];
+  await page.goto("/kiosk");
+  // Chromium throttles timers in a background tab; a real kiosk is always the
+  // foreground tab.
+  await page.bringToFront();
+  const spotlight = page.locator(".kiosk-spotlight");
+
+  const first = await spotlight.getAttribute("lang");
+  expect(rotating).toContain(first);
+  expect((await spotlight.textContent())?.trim()).not.toBe("");
+
+  // The line advances on a timer, so the next language must differ.
+  await expect.poll(() => spotlight.getAttribute("lang"), { timeout: 30_000 }).not.toBe(first);
+  expect(rotating).toContain(await spotlight.getAttribute("lang"));
+});
+
 test("keeps the primary camera instruction balanced and aligned", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/kiosk");

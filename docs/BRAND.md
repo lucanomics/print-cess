@@ -64,6 +64,8 @@ travel-service logo without written permission.
 
 - One screen, one clear decision; no more than two primary/secondary actions.
 - Generous whitespace, short sentences, visible progress, and paired icon/text labels.
+- A help control stays in the phone header on every step. It explains the current screen in the
+  chosen language, can be read aloud, and never counts against the two-action limit.
 - Kiosk QR and collection direction are the dominant elements at their respective stages.
 - Avoid carousels, promotional panels, ornamental mascots, and marketing landing-page patterns.
 - Honor `prefers-reduced-motion`. Animation explains state only and must not delay an action.
@@ -81,28 +83,43 @@ Use direct, respectful, plain language. Say what happened and provide exactly on
 Do not blame the visitor, expose implementation detail, or promise more privacy than the system can
 technically establish.
 
+Write for a visitor who has never used a kiosk, may read slowly, and is standing in a queue. One
+idea per sentence, one action per line, everyday words instead of product vocabulary. Say “the big
+screen” rather than “the kiosk”, “locked” rather than “encrypted”, and name the button the visitor
+must press using the exact words printed on it.
+
 Preferred:
 
-- “This PDF is locked. Open it on your phone and save the required pages as screenshots.”
-- “This service prints PDF, JPG, and PNG files only. Save the document as a PDF or take a clear
-  screenshot.”
+- “This PDF has a password. Open it on your phone and take a screenshot of the pages you need.”
+- “You can print PDF, JPG and PNG only. Save your page as a PDF, or take a clear screenshot.”
 - “Printing service is temporarily unavailable. Error code: P-01. Your uploaded file has been
   deleted.”
 
 Avoid:
 
 - “Fatal error,” raw provider responses, stack traces, paths, or retry loops.
-- “Ask an employee for help” as the default failure action.
+- “Ask an employee for help” as the default or only failure action. It may appear as a closing
+  line in the help sheet, after the screen has already given a concrete next step.
 - Requests that staff log in to KakaoTalk/email, enter a password, or search the visitor's phone.
 - “Completely erased everywhere” or “the server can never see anything.”
+- Referring to a control by its color, position alone, or an English product term the visitor has
+  no reason to know.
 
 When the visitor has no document, explain that the service cannot search, buy, or issue it and give
 one action: contact the reservation holder, airline, or travel agency.
 
 ## Translation
 
-All copy lives in translation resources with English fallback. Supported locales are English,
-Korean, Simplified Chinese, Vietnamese, Mongolian, Thai, Russian, and Nepali. Machine translation
-is a development placeholder only. Native-speaker review must cover accuracy, politeness,
-line-breaking, screen-reader output, audio guidance, error instructions, and privacy/security
-meaning before Production.
+All copy lives in `packages/i18n` with English fallback, and English is the source of truth: a
+locale that is missing a key fails the build. Supported locales are English, Korean, Simplified
+Chinese, Bahasa Indonesia, Filipino, Vietnamese, Thai, Nepali, Khmer, Arabic, Russian, Mongolian,
+and Ukrainian. No locale may keep its wording in a separate override layer; every language is
+edited and reviewed in the same table so a change to one is visible against all the others.
+
+Machine translation is a development placeholder only. Native-speaker review must cover accuracy,
+politeness, line-breaking, screen-reader output, audio guidance, error instructions, the plain-
+language help sheet, and privacy/security meaning before Production.
+
+The shared kiosk display keeps Korean and English on screen permanently and rotates the single
+scan instruction through the remaining eleven languages, so the display stays readable while every
+supported visitor still sees their own language.

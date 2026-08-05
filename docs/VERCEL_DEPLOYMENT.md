@@ -23,7 +23,9 @@ and workspace packages while building from `apps/web`.
 
 The public browser kiosk decrypts and validates the received document in memory, creates a
 short-lived browser Blob, and opens the browser's system print UI. The completion screen keeps two
-recovery actions visible for 60 seconds: **Open print dialog again** and **Download file**. The
+recovery actions visible for 60 seconds: **Open print dialog again** (`인쇄 창 다시 열기`) and
+**Download file**, which is labelled `파일 다운로드 (직원용)` and styled as the quietest control on
+the screen so a visitor does not read it as their own next step. The
 server-side encrypted object is deleted at terminal completion; the in-memory Blob URL is revoked
 when the screen resets.
 

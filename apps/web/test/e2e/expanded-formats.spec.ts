@@ -16,8 +16,8 @@ async function openMobileAtFilePicker(
     timeout: 20_000,
   });
   await mobile.getByRole("button", { name: "Continue" }).click();
-  await mobile.getByRole("button", { name: "Choose my document" }).click();
-  await expect(mobile.getByRole("heading", { name: "Choose one document" })).toBeVisible();
+  await mobile.getByRole("button", { name: "Pick my file" }).click();
+  await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible();
   return mobile;
 }
 
@@ -54,18 +54,18 @@ test("WebP is normalized on the phone and printed through the JPEG path", async 
     mimeType: "image/webp",
     buffer: webp!,
   });
-  await expect(mobile.getByRole("heading", { name: "Check your document" })).toBeVisible();
-  await expect(mobile.getByRole("img", { name: "Selected document preview" })).toBeVisible();
-  await mobile.getByRole("button", { name: "Print one A4 copy" }).click();
+  await expect(mobile.getByRole("heading", { name: "Is this the right page?" })).toBeVisible();
+  await expect(mobile.getByRole("img", { name: "Preview of the file you picked" })).toBeVisible();
+  await mobile.getByRole("button", { name: "Print 1 copy" }).click();
 
-  await expect(page.getByRole("heading", { name: "자동 인쇄가 시작됐습니다" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "인쇄가 시작됐어요" })).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByRole("link", { name: "파일 다운로드" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "파일 다운로드 (직원용)" })).toHaveAttribute(
     "download",
     "print-cess-document.jpg",
   );
-  await expect(mobile.getByRole("heading", { name: "Printing is complete" })).toBeVisible({
+  await expect(mobile.getByRole("heading", { name: "All done" })).toBeVisible({
     timeout: 60_000,
   });
 });
@@ -82,9 +82,7 @@ test("HWP selection gives a privacy-preserving PDF conversion instruction", asyn
   });
 
   const fileError = mobile.locator(".mobile-file-error");
-  await expect(fileError).toContainText(
-    "not configured with the Hancom renderer required for HWP/HWPX",
-  );
-  await expect(fileError).toContainText("Save the document as PDF");
-  await expect(mobile.getByRole("heading", { name: "Check your document" })).toHaveCount(0);
+  await expect(fileError).toContainText("This printer cannot open an HWP/HWPX file");
+  await expect(fileError).toContainText("Save the document as a PDF");
+  await expect(mobile.getByRole("heading", { name: "Is this the right page?" })).toHaveCount(0);
 });
