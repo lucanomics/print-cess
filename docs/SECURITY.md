@@ -35,6 +35,8 @@ remediation.
   bits. Tokens are independent and one-time.
 - Put the upload token and kiosk-key fingerprint in the QR fragment, never a query string. Reject
   a missing or malformed fragment.
+- The QR image is the only place a Production kiosk publishes that fragment. Do not also write the
+  session URL into page text, a DOM attribute, a log line, or a test hook that ships to Production.
 - Store only domain-separated SHA-256 token hashes. Protocol version 1 hashes the canonical
   32-byte token after
   `UTF8("print-cess-by-paradiso:token-hash:<role>:v1") || 00`, where role is upload, kiosk, or
@@ -67,7 +69,9 @@ beyond the stated threat model.
 - Reject HWP, Office formats, archives, HTML, SVG, executables, locked/damaged PDF, malformed
   images, disguised extensions, and unsupported image encodings.
 - Do not execute PDF JavaScript, OpenAction, Launch actions, attachments, external links, or embed a
-  PDF as active HTML.
+  PDF as active HTML. Because a PDF name may hex-escape any character, scan for those markers in
+  both the raw bytes and the form with `#xx` escapes decoded; a substring scan of the raw bytes
+  alone is bypassed by escaping one letter of the name.
 - Keep plaintext in bounded memory. If a renderer requires a temporary file, use an
   application-owned ACL-restricted directory, random name, immediate deletion, and startup cleanup.
   Never use the original filename, Downloads, or Documents.

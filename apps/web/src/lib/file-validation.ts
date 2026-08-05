@@ -50,8 +50,17 @@ export async function validateFileForMobile(file: File): Promise<ValidatedMobile
 
 export async function validatePdf(bytes: Uint8Array): Promise<number> {
   const searchable = new TextDecoder("latin1").decode(bytes);
-  if (searchable.includes("/Encrypt")) throw new FileValidationError("lockedPdf");
-  if (ACTIVE_PDF_MARKERS.some((marker) => searchable.includes(marker)))
+  // PDF names may hex-escape any character, so `/J#61vaScript` names the same
+  // key as `/JavaScript`. Scan the decoded form too, or the marker check below
+  // is bypassed by an author who only has to escape one letter.
+  const decodedNames = decodePdfNameEscapes(searchable);
+  if (searchable.includes("/Encrypt") || decodedNames.includes("/Encrypt"))
+    throw new FileValidationError("lockedPdf");
+  if (
+    ACTIVE_PDF_MARKERS.some(
+      (marker) => searchable.includes(marker) || decodedNames.includes(marker),
+    )
+  )
     throw new FileValidationError("damagedFile");
   try {
     const pdfjs = await import("pdfjs-dist");
@@ -150,6 +159,16 @@ async function verifyBrowserImageDecode(
     if (error instanceof FileValidationError) throw error;
     throw new FileValidationError("damagedFile");
   }
+}
+
+function decodePdfNameEscapes(source: string): string {
+  if (!source.includes("#")) return source;
+  return source.replaceAll(/#([0-9a-fA-F]{2})/gu, (match, hex: string) => {
+    const code = Number.parseInt(hex, 16);
+    // `#00` is not a legal name character, so leave the sequence untouched
+    // rather than inventing a NUL that the real parser would reject.
+    return code === 0 ? match : String.fromCharCode(code);
+  });
 }
 
 function isStartOfFrame(marker: number): boolean {

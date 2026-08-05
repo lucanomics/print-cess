@@ -14,9 +14,11 @@ At minimum test the oldest and newest institution-supported combinations:
 - target Windows 10/11 image, display scaling, screen, speakers, keyboard, and kiosk policy;
 - cellular paths from at least two carriers while the desktop uses its production-like wired path.
 
-For every combination run language selection, Photos/Gallery, Files/Downloads, PDF/JPG/PNG preview,
-approve, progress, completion, QR
-expiry/reuse, network loss, locked/damaged/oversize document, refresh/back, and reduced-motion paths.
+For every combination run language selection, the help sheet on each step, the photo picker, the
+file picker, PDF/JPG/PNG preview, approve, progress, completion, QR
+expiry/reuse, network loss, locked/damaged/oversize document, cancelled picker, refresh/back, and
+reduced-motion paths. On the shared kiosk display, watch one full rotation of the eleven-language
+scan instruction and confirm no line clips or reflows the layout.
 Record OS/browser version, viewport/scaling, assistive technology, commit/deployment, tester, UTC time,
 result, and sanitized issue link.
 
@@ -63,6 +65,15 @@ promise the service cannot keep, correct response when the user lacks a phone/da
 professional error recovery. Review at actual device widths; a string-level spreadsheet alone is
 insufficient. Pre-recorded operational audio, if adopted, needs the same reviewer and a second
 listening check on the target kiosk.
+
+Reviewers must also judge the copy against the reading level the service actually needs. Every
+visible string is written for a visitor who has never used a kiosk and may read slowly, so each
+reviewer confirms in their own language that: sentences carry one idea, a control is named with the
+exact words printed on it rather than by colour or position, the help sheet answers "what do I do
+now" for the screen it was opened from, and the closing offer of staff help never replaces a
+concrete instruction. Whenever visible copy changes, every locale is reviewed again — a previous
+sign-off does not carry over, because the wording of one locale is no longer maintained separately
+from the rest.
 
 ## Approval record
 

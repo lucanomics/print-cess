@@ -30,61 +30,105 @@
   letter-spacing: -0.055em;
 }
 .kiosk-english {
-  margin: 22px 0 0;
-  font-size: clamp(26px, 2.5vw, 42px);
+  margin: 20px 0 0;
+  font-size: clamp(24px, 2.2vw, 38px);
   color: var(--pc-text);
 }
-.kiosk-rule {
-  height: 2px;
-  margin: 38px 0;
-  background: var(--pc-line);
-}
-.kiosk-data {
+.kiosk-spotlight {
   display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  min-height: 2.9em;
+  margin: 14px 0 0;
+  font-size: clamp(20px, 1.7vw, 29px);
+  line-height: 1.4;
+  color: var(--pc-teal-dark);
+}
+.kiosk-spotlight > span {
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--pc-teal-soft);
+  font-weight: 750;
+  font-size: 0.82em;
+}
+.kiosk-steps {
+  display: grid;
+  gap: 0;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+  border-block: 2px solid var(--pc-line);
+}
+.kiosk-steps li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 22px;
-  font-size: clamp(22px, 1.8vw, 31px);
-  line-height: 1.45;
+  padding: 22px 0;
 }
-.kiosk-data > svg {
-  flex: none;
-  width: 84px;
-  height: 84px;
-  padding: 19px;
+.kiosk-steps li + li {
+  border-block-start: 2px solid var(--pc-line);
+}
+.kiosk-steps__number {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
-  color: white;
   background: var(--pc-teal);
+  color: white;
+  font-size: 34px;
+  font-weight: 750;
+}
+.kiosk-steps__text strong,
+.kiosk-steps__text small {
+  display: block;
+}
+.kiosk-steps__text strong {
+  color: var(--pc-ink);
+  font-size: clamp(24px, 2vw, 34px);
+  line-height: 1.2;
+}
+.kiosk-steps__text small {
+  margin-top: 6px;
+  color: var(--pc-muted);
+  font-size: clamp(17px, 1.3vw, 23px);
+}
+.kiosk-steps__icon {
+  width: 52px;
+  height: 52px;
+  color: var(--pc-teal-dark);
 }
 .kiosk-facts {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-block: 2px solid var(--pc-line);
-  margin-top: 36px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block-end: 2px solid var(--pc-line);
 }
 .kiosk-facts p {
   display: flex;
-  gap: 18px;
+  gap: 14px;
   align-items: center;
-  padding: 28px 16px 28px 0;
-  font-size: clamp(18px, 1.35vw, 24px);
-  line-height: 1.45;
+  padding: 24px 14px 24px 0;
+  font-size: clamp(15px, 1.1vw, 20px);
+  line-height: 1.4;
 }
 .kiosk-facts p + p {
-  padding-left: 24px;
+  padding-left: 18px;
   border-left: 2px solid var(--pc-line);
 }
 .kiosk-facts svg {
   flex: none;
-  width: 52px;
-  height: 52px;
-  padding: 10px;
+  width: 46px;
+  height: 46px;
+  padding: 9px;
   border-radius: 50%;
   color: var(--pc-ink);
   background: #eaf3f8;
 }
 .kiosk-facts strong {
   color: var(--pc-teal-dark);
-  font-size: 1.2em;
+  font-size: 1.15em;
 }
 .kiosk-status-row {
   display: flex;
@@ -150,6 +194,13 @@
   height: 52px;
   color: var(--pc-teal);
 }
+.kiosk-languages small {
+  display: block;
+  margin-top: 4px;
+  color: var(--pc-muted);
+  font-size: 0.78em;
+  font-weight: 500;
+}
 @keyframes kiosk-loading {
   to {
     background-position: -200% 0;
@@ -189,6 +240,10 @@
 .kiosk-result p svg {
   width: 44px;
   height: 44px;
+}
+.kiosk-result__english {
+  color: var(--pc-muted);
+  font-size: 26px;
 }
 .kiosk-result > span {
   font-size: 23px;
@@ -232,10 +287,13 @@
   text-decoration: none;
   cursor: pointer;
 }
+/* Staff recovery action. It stays reachable but must not compete with the
+   visitor's own next step, so it is deliberately the quietest control here. */
 .kiosk-download {
-  border-color: var(--pc-teal);
-  background: var(--pc-teal);
-  color: white;
+  border-style: dashed;
+  background: var(--pc-subtle);
+  color: var(--pc-muted);
+  font-weight: 500;
 }
 .kiosk-result__actions svg {
   width: 24px;
@@ -245,6 +303,18 @@
 @media (max-width: 960px) {
   .kiosk-layout {
     grid-template-columns: 1fr;
+  }
+  .kiosk-facts {
+    grid-template-columns: 1fr;
+    border-block-start: 2px solid var(--pc-line);
+  }
+  .kiosk-facts p + p {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 2px solid var(--pc-line);
+  }
+  .kiosk-steps__icon {
+    display: none;
   }
   .kiosk-qr {
     grid-row: 1;

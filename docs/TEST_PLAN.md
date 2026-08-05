@@ -109,7 +109,12 @@ Skip with an explicit “credentials unavailable” result rather than silently 
 At minimum:
 
 - all thirteen language selections and English fallback;
-- direct Photos/Gallery and Files/Downloads selection with no account or app-specific detours;
+- the help sheet on every step: localized instruction for the current screen, the where-is-my-file
+  guidance before a file is chosen, spoken playback, close/focus return, and no help text reachable
+  in the page while the sheet is closed;
+- the kiosk display rotating its scan instruction through the eleven non-Korean, non-English
+  languages;
+- direct photo and file selection with no account or app-specific detours;
 - PDF/JPEG/PNG selection, local preview, summary, one A4-copy approval;
 - local encryption/direct upload, kiosk simulator state sequence, print invocation, download
   recovery, deletion, and 60-second browser-kiosk reset;
