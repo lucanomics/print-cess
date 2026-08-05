@@ -118,6 +118,16 @@ p {
   width: 24px;
   height: 24px;
 }
+/* The end of the visit. Nothing here is actionable, so it fills the screen and
+   reads quieter than a step that still wants something from the visitor. */
+.mobile-step--closed {
+  min-height: 72vh;
+  justify-items: center;
+  text-align: center;
+}
+.mobile-step--closed p {
+  color: var(--pc-muted);
+}
 .mobile-step--preview {
   gap: 10px;
 }
