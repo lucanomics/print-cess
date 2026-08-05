@@ -85,6 +85,14 @@ describe("translations", () => {
     }
   });
 
+  it("lets every locale shut the finished page down", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      expectTranslated(locale, "closePage");
+      expectTranslated(locale, "closedTitle");
+      expectTranslated(locale, "closedBody");
+    }
+  });
+
   it("gives the shared kiosk display a scan instruction in every locale", () => {
     for (const locale of SUPPORTED_LOCALES) {
       expectTranslated(locale, "kioskScanTitle");

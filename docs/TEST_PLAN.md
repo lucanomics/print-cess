@@ -114,6 +114,8 @@ At minimum:
   in the page while the sheet is closed;
 - the kiosk display rotating its scan instruction through the eleven non-Korean, non-English
   languages;
+- shutting the phone page down after printing, by the visitor's action and by the automatic
+  thirty-second path, on a browser that permits `window.close()` and on one that refuses it;
 - direct photo and file selection with no account or app-specific detours;
 - PDF/JPEG/PNG selection, local preview, summary, one A4-copy approval;
 - local encryption/direct upload, kiosk simulator state sequence, print invocation, download

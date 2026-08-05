@@ -17,6 +17,7 @@ import {
   ScanLine,
   TriangleAlert,
   Volume2,
+  X,
 } from "lucide-react";
 
 import {
@@ -71,6 +72,7 @@ type Stage =
   | "transfer"
   | "progress"
   | "complete"
+  | "closed"
   | "error";
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
 type Text = (key: string, values?: Record<string, string | number>) => string;
@@ -86,8 +88,16 @@ const HELP_KEYS: Record<Stage, string> = {
   transfer: "helpProgress",
   progress: "helpProgress",
   complete: "helpDone",
+  closed: "helpDone",
   error: "helpError",
 };
+
+// A tab the visitor opened by scanning a QR was not opened by script, so most
+// browsers refuse `window.close()`. Try anyway, and fall back to a screen that
+// carries nothing from the visit.
+const CLOSE_CONFIRM_MS = 150;
+// Long enough to read the collection instruction and walk to the printer.
+const AUTOMATIC_SHUTDOWN_MS = 30_000;
 
 function guideStepsFor(supportsHancom: boolean) {
   return [
@@ -139,6 +149,27 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
     },
     [guide, locale],
   );
+
+  const shutdownPage = useCallback(() => {
+    guide.stop();
+    try {
+      window.close();
+    } catch {
+      // Refusing to close is the normal case, not an error.
+    }
+    window.setTimeout(() => {
+      if (window.closed) return;
+      // Drop the session fragment so Back cannot return to the finished flow.
+      history.replaceState(null, "", window.location.pathname);
+      setStage("closed");
+    }, CLOSE_CONFIRM_MS);
+  }, [guide]);
+
+  useEffect(() => {
+    if (stage !== "complete") return;
+    const timer = window.setTimeout(shutdownPage, AUTOMATIC_SHUTDOWN_MS);
+    return () => window.clearTimeout(timer);
+  }, [shutdownPage, stage]);
 
   useEffect(() => () => guide.stop(), [guide]);
 
@@ -340,7 +371,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
     <ScreenShell>
       <div className="mobile-topbar">
         <Wordmark compact />
-        {stage === "boot" ? null : (
+        {stage === "boot" || stage === "closed" ? null : (
           <button
             type="button"
             className="mobile-help-open"
@@ -461,9 +492,20 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           icon="success"
           title={text("completed")}
           body={text("collectOutput")}
-          action={text("listenAgain")}
-          onAction={() => void speak(["collectOutput"])}
+          action={text("closePage")}
+          onAction={shutdownPage}
+          secondaryAction={text("listenAgain")}
+          onSecondaryAction={() => void speak(["collectOutput"])}
         />
+      ) : null}
+      {stage === "closed" ? (
+        <section className="mobile-step mobile-step--single mobile-step--closed">
+          <StatusIcon tone="success">
+            <CheckCircle2 size={34} aria-hidden="true" />
+          </StatusIcon>
+          <h1>{text("closedTitle")}</h1>
+          <p>{text("closedBody")}</p>
+        </section>
       ) : null}
       {stage === "error" ? (
         <SingleAction
@@ -659,12 +701,16 @@ function SingleAction({
   body,
   action,
   onAction,
+  secondaryAction,
+  onSecondaryAction,
 }: {
   icon?: "info" | "success" | "error";
   title: string;
   body: string;
   action: string;
   onAction: () => void;
+  secondaryAction?: string;
+  onSecondaryAction?: () => void;
 }) {
   const Icon = icon === "success" ? CheckCircle2 : icon === "error" ? TriangleAlert : Headphones;
   return (
@@ -675,8 +721,13 @@ function SingleAction({
       <h1>{title}</h1>
       {body ? <p>{body}</p> : null}
       <PrimaryButton onClick={onAction}>
-        <Volume2 aria-hidden="true" /> {action}
+        {secondaryAction ? <X aria-hidden="true" /> : <Volume2 aria-hidden="true" />} {action}
       </PrimaryButton>
+      {secondaryAction && onSecondaryAction ? (
+        <SecondaryButton className="mobile-listen" onClick={onSecondaryAction}>
+          <Volume2 aria-hidden="true" /> {secondaryAction}
+        </SecondaryButton>
+      ) : null}
     </section>
   );
 }

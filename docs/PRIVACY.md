@@ -21,17 +21,30 @@ data, or the file must contact the reservation holder, airline, or travel agency
 
 ## Information processed transiently
 
-| Location                       | Transient data                                                                                                                          | Intended lifetime                                                                                                  |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Visitor phone                  | Selected plaintext, preview, ephemeral key, upload token, kiosk fingerprint, ciphertext buffer                                          | Active flow; browser/OS behavior can retain page state beyond application control                                  |
-| Route Handler                  | Session ID, status request, token in authorization header, small metadata, signed URL during response construction                      | Request lifetime; only redacted operational event afterward                                                        |
-| Upstash Redis                  | Protocol/status/revision, public key/fingerprint, credential/idempotency hashes, consume lease, random Blob path, ETag/size, timestamps | Active record: three minutes plus cleanup buffer; terminal receipt: 15 seconds                                     |
-| Redis orphan ledger            | Pseudonymous session ID, random pathname, ETag, creation/due time, due-time index                                                       | Until conditional Blob delete succeeds; provider outage can extend this and requires a bounded sweep               |
-| Vercel Private Blob            | Binary encrypted envelope at a random pathname                                                                                          | Delete immediately on terminal outcome; delayed cleanup target at no more than three minutes after authorization   |
-| QStash                         | Cleanup destination/timing and pseudonymous cleanup reference                                                                           | Provider delivery/retry retention, subject to approved provider policy                                             |
-| Windows kiosk                  | Session token/key, ciphertext, decrypted bytes, validation/render buffers                                                               | Active session; best-effort clearing on terminal outcome or restart                                                |
-| Kiosk print journal            | SHA-256 of the random session ID, submission state, safe code, and timestamp                                                            | Resolved records prune after 24 hours; ambiguous records remain until authenticated acknowledgement, then 24 hours |
-| Windows spooler/driver/printer | Rendered page/job metadata and physical output                                                                                          | OS, driver, firmware, and policy dependent; must be validated before deployment                                    |
+| Location                       | Transient data                                                                                                                          | Intended lifetime                                                                                                              |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Visitor phone                  | Selected plaintext, preview, ephemeral key, upload token, kiosk fingerprint, ciphertext buffer                                          | Active flow, then the page shuts itself down (see below); browser/OS behavior can retain page state beyond application control |
+| Route Handler                  | Session ID, status request, token in authorization header, small metadata, signed URL during response construction                      | Request lifetime; only redacted operational event afterward                                                                    |
+| Upstash Redis                  | Protocol/status/revision, public key/fingerprint, credential/idempotency hashes, consume lease, random Blob path, ETag/size, timestamps | Active record: three minutes plus cleanup buffer; terminal receipt: 15 seconds                                                 |
+| Redis orphan ledger            | Pseudonymous session ID, random pathname, ETag, creation/due time, due-time index                                                       | Until conditional Blob delete succeeds; provider outage can extend this and requires a bounded sweep                           |
+| Vercel Private Blob            | Binary encrypted envelope at a random pathname                                                                                          | Delete immediately on terminal outcome; delayed cleanup target at no more than three minutes after authorization               |
+| QStash                         | Cleanup destination/timing and pseudonymous cleanup reference                                                                           | Provider delivery/retry retention, subject to approved provider policy                                                         |
+| Windows kiosk                  | Session token/key, ciphertext, decrypted bytes, validation/render buffers                                                               | Active session; best-effort clearing on terminal outcome or restart                                                            |
+| Kiosk print journal            | SHA-256 of the random session ID, submission state, safe code, and timestamp                                                            | Resolved records prune after 24 hours; ambiguous records remain until authenticated acknowledgement, then 24 hours             |
+| Windows spooler/driver/printer | Rendered page/job metadata and physical output                                                                                          | OS, driver, firmware, and policy dependent; must be validated before deployment                                                |
+
+## Shutting the visitor's page down
+
+When printing finishes, the phone offers **Close this page**, and takes the same action by itself
+after thirty seconds if the visitor has already walked away. It calls `window.close()` first. A tab
+opened by scanning a QR code was not opened by script, so most browsers refuse that call; the page
+then replaces itself with a screen that holds no preview, no session fragment in the address bar,
+and no control other than the confirmation that printing is done.
+
+State this honestly to reviewers and visitors: shutting the page down removes what the page itself
+was holding. It does not reach the browser's memory, cache, or history, it does not remove the
+file from the visitor's own gallery, and a phone left unlocked on the counter is still a phone left
+unlocked on the counter. It is a hygiene measure, not an erasure guarantee.
 
 “Deleted” in the UI means the application has completed or accepted its explicit deletion workflow.
 It is not a promise of immediate physical erasure from provider backups, mobile browser caches,

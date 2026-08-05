@@ -92,6 +92,9 @@ const en = {
   completed: "All done",
   collectOutput: "Take your paper from the printer.",
   listenAgain: "Listen again",
+  closePage: "Close this page",
+  closedTitle: "Printing is finished",
+  closedBody: "You can close this tab now.",
   keepPageOpen: "Do not close this page.",
   preparingSession: "Getting ready…",
 
@@ -196,6 +199,9 @@ const ko = {
   completed: "인쇄가 끝났어요",
   collectOutput: "프린터에서 종이를 가져가세요.",
   listenAgain: "다시 듣기",
+  closePage: "이 화면 닫기",
+  closedTitle: "인쇄가 끝났습니다",
+  closedBody: "이제 이 탭을 닫아도 됩니다.",
   keepPageOpen: "이 화면을 닫지 마세요.",
   preparingSession: "안전하게 연결하고 있어요…",
 
@@ -293,6 +299,9 @@ const zhCN = {
   completed: "全部完成",
   collectOutput: "到打印机那里拿纸。",
   listenAgain: "再听一遍",
+  closePage: "关闭这个页面",
+  closedTitle: "打印完成了",
+  closedBody: "现在可以关掉这个标签页了。",
   keepPageOpen: "不要关掉这个页面。",
   preparingSession: "正在准备…",
 
@@ -388,6 +397,9 @@ const id = {
   completed: "Selesai",
   collectOutput: "Ambil kertas Anda dari printer.",
   listenAgain: "Dengarkan lagi",
+  closePage: "Tutup halaman ini",
+  closedTitle: "Pencetakan selesai",
+  closedBody: "Anda boleh menutup tab ini sekarang.",
   keepPageOpen: "Jangan tutup halaman ini.",
   preparingSession: "Sedang bersiap…",
 
@@ -493,6 +505,9 @@ const fil = {
   completed: "Tapos na",
   collectOutput: "Kunin ang papel mo sa printer.",
   listenAgain: "Pakinggan muli",
+  closePage: "Isara ang pahinang ito",
+  closedTitle: "Tapos na ang pag-print",
+  closedBody: "Puwede mo nang isara ang tab na ito.",
   keepPageOpen: "Huwag isara ang pahinang ito.",
   preparingSession: "Naghahanda…",
 
@@ -599,6 +614,9 @@ const vi = {
   completed: "Xong rồi",
   collectOutput: "Lấy giấy ở máy in.",
   listenAgain: "Nghe lại",
+  closePage: "Đóng trang này",
+  closedTitle: "Đã in xong",
+  closedBody: "Bây giờ bạn có thể đóng thẻ này.",
   keepPageOpen: "Đừng đóng trang này.",
   preparingSession: "Đang chuẩn bị…",
 
@@ -697,6 +715,9 @@ const th = {
   completed: "เสร็จแล้ว",
   collectOutput: "รับกระดาษที่เครื่องพิมพ์",
   listenAgain: "ฟังอีกครั้ง",
+  closePage: "ปิดหน้านี้",
+  closedTitle: "พิมพ์เสร็จแล้ว",
+  closedBody: "ตอนนี้ปิดแท็บนี้ได้เลย",
   keepPageOpen: "อย่าปิดหน้านี้",
   preparingSession: "กำลังเตรียม…",
 
@@ -794,6 +815,9 @@ const ne = {
   completed: "सबै सकियो",
   collectOutput: "प्रिन्टरबाट कागज लिनुहोस्।",
   listenAgain: "फेरि सुन्नुहोस्",
+  closePage: "यो पृष्ठ बन्द गर्नुहोस्",
+  closedTitle: "प्रिन्ट सकियो",
+  closedBody: "अब यो ट्याब बन्द गर्न सक्नुहुन्छ।",
   keepPageOpen: "यो पृष्ठ बन्द नगर्नुहोस्।",
   preparingSession: "तयारी हुँदै छ…",
 
@@ -894,6 +918,9 @@ const km = {
   completed: "រួចរាល់ហើយ",
   collectOutput: "យកក្រដាសពីម៉ាស៊ីនបោះពុម្ព។",
   listenAgain: "ស្តាប់ម្តងទៀត",
+  closePage: "បិទទំព័រនេះ",
+  closedTitle: "ការបោះពុម្ពបានចប់",
+  closedBody: "ឥឡូវនេះអ្នកអាចបិទផ្ទាំងនេះបាន។",
   keepPageOpen: "សូមមិនបិទទំព័រនេះ។",
   preparingSession: "កំពុងរៀបចំ…",
 
@@ -992,6 +1019,9 @@ const ar = {
   completed: "تم كل شيء",
   collectOutput: "خذ ورقتك من الطابعة.",
   listenAgain: "اسمع مرة أخرى",
+  closePage: "أغلق هذه الصفحة",
+  closedTitle: "انتهت الطباعة",
+  closedBody: "يمكنك إغلاق هذه التبويبة الآن.",
   keepPageOpen: "لا تغلق هذه الصفحة.",
   preparingSession: "جارٍ التحضير…",
 
@@ -1091,6 +1121,9 @@ const ru = {
   completed: "Готово",
   collectOutput: "Заберите лист из принтера.",
   listenAgain: "Прослушать ещё раз",
+  closePage: "Закрыть эту страницу",
+  closedTitle: "Печать завершена",
+  closedBody: "Теперь эту вкладку можно закрыть.",
   keepPageOpen: "Не закрывайте эту страницу.",
   preparingSession: "Готовимся…",
 
@@ -1194,6 +1227,9 @@ const mn = {
   completed: "Бүх зүйл дууслаа",
   collectOutput: "Хэвлэгчээс цаасаа авна уу.",
   listenAgain: "Дахин сонсох",
+  closePage: "Энэ хуудсыг хаах",
+  closedTitle: "Хэвлэлт дууслаа",
+  closedBody: "Одоо энэ табыг хааж болно.",
   keepPageOpen: "Энэ хуудсыг хааж болохгүй.",
   preparingSession: "Бэлтгэж байна…",
 
@@ -1298,6 +1334,9 @@ const uk = {
   completed: "Готово",
   collectOutput: "Заберіть аркуш із принтера.",
   listenAgain: "Прослухати ще раз",
+  closePage: "Закрити цю сторінку",
+  closedTitle: "Друк завершено",
+  closedBody: "Тепер цю вкладку можна закрити.",
   keepPageOpen: "Не закривайте цю сторінку.",
   preparingSession: "Готуємось…",
 

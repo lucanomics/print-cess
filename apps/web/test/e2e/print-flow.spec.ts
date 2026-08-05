@@ -69,6 +69,16 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   await expect(mobile.getByRole("heading", { name: "All done" })).toBeVisible({
     timeout: 60_000,
   });
+
+  // Shutting the page down closes the tab where the browser allows it. A tab
+  // opened by scanning a QR was not opened by script, so most browsers refuse;
+  // the visitor then gets a screen that carries nothing from the visit.
+  await mobile.getByRole("button", { name: "Close this page" }).click();
+  if (!mobile.isClosed()) {
+    await expect(mobile.getByRole("heading", { name: "Printing is finished" })).toBeVisible();
+    await expect(mobile.getByRole("button", { name: "Need help?" })).toHaveCount(0);
+    expect(mobile.url()).not.toMatch(/#/u);
+  }
 });
 
 test("a captured QR cannot be claimed by a second phone", async ({ page, context }) => {

@@ -43,19 +43,33 @@ p {
   color: var(--pc-muted) !important;
 }
 
+/* The wordmark and the help control share one row only while both fit. "Need
+   help?" is far longer in some of the thirteen languages, and the service name
+   is long too, so neither may force the page wider than the phone screen. */
 .mobile-topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
+}
+.mobile-topbar .pc-wordmark {
+  min-width: 0;
+}
+.mobile-topbar .pc-wordmark > span {
+  flex-wrap: wrap;
+  gap: 0 10px;
 }
 .mobile-help-open {
   display: inline-flex;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: 7px;
   min-height: 48px;
-  padding: 10px 16px;
+  padding: 10px 14px;
+  text-align: start;
   border: 2px solid var(--pc-teal);
   border-radius: 999px;
   background: var(--pc-teal-soft);
