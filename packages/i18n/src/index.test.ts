@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { isRightToLeft, SUPPORTED_LOCALES, TRANSLATIONS, translate } from "./index.js";
+import {
+  isRightToLeft,
+  SUPPORTED_LOCALES,
+  TRANSLATIONS,
+  translate,
+  type SupportedLocale,
+} from "./index.js";
 import { translate as publicTranslate } from "./public.js";
+
+// `translate` echoes an unknown key back, so asserting "not empty" would pass
+// for a key that has been removed. Require a real, different value.
+function expectTranslated(locale: SupportedLocale, key: string): void {
+  const value = translate(locale, key).trim();
+  expect(value).not.toBe("");
+  expect(value).not.toBe(key);
+}
 
 describe("translations", () => {
   it("supports every visitor language required by the kiosk", () => {
@@ -48,7 +62,7 @@ describe("translations", () => {
       "guideStart",
     ];
     for (const locale of SUPPORTED_LOCALES) {
-      for (const key of guideKeys) expect(translate(locale, key).trim()).not.toBe("");
+      for (const key of guideKeys) expectTranslated(locale, key);
     }
   });
 
@@ -67,14 +81,13 @@ describe("translations", () => {
       "helpAskStaff",
     ];
     for (const locale of SUPPORTED_LOCALES) {
-      for (const key of helpKeys) expect(translate(locale, key).trim()).not.toBe("");
+      for (const key of helpKeys) expectTranslated(locale, key);
     }
   });
 
   it("gives the shared kiosk display a scan instruction in every locale", () => {
     for (const locale of SUPPORTED_LOCALES) {
-      expect(translate(locale, "kioskScanTitle").trim()).not.toBe("");
-      expect(translate(locale, "kioskNoWifi").trim()).not.toBe("");
+      expectTranslated(locale, "kioskScanTitle");
     }
   });
 

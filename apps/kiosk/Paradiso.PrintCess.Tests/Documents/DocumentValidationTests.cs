@@ -20,6 +20,60 @@ public sealed class DocumentValidationTests
     }
 
     [Fact]
+    public void ValidatesCanonicalHwpxAndRejectsUnsafePackages()
+    {
+        using var hwpx = _validator.Validate(
+            HwpxTestDocuments.Valid(),
+            DocumentKind.Hwpx,
+            "application/hwp+zip",
+            TestDocuments.SessionId);
+        Assert.Null(hwpx.Properties.PageCount);
+
+        AssertError(DocumentValidationError.CorruptHwpx, () =>
+            _validator.Validate(
+                HwpxTestDocuments.Valid(mimeType: "application/zip"),
+                DocumentKind.Hwpx,
+                null,
+                TestDocuments.SessionId));
+        AssertError(DocumentValidationError.UnsafeHwpxContent, () =>
+            _validator.Validate(
+                HwpxTestDocuments.Valid(includeUnsafeScript: true),
+                DocumentKind.Hwpx,
+                null,
+                TestDocuments.SessionId));
+    }
+
+    [Fact]
+    public void ValidatesHwpAndRejectsProtectedOrScriptedDocuments()
+    {
+        using var hwp = _validator.Validate(
+            HwpTestDocuments.Valid(),
+            DocumentKind.Hwp,
+            "application/x-hwp",
+            TestDocuments.SessionId);
+        Assert.Null(hwp.Properties.PageCount);
+
+        AssertError(DocumentValidationError.EncryptedHwp, () =>
+            _validator.Validate(
+                HwpTestDocuments.Valid(properties: 1u << 1),
+                DocumentKind.Hwp,
+                null,
+                TestDocuments.SessionId));
+        AssertError(DocumentValidationError.EncryptedHwp, () =>
+            _validator.Validate(
+                HwpTestDocuments.Valid(properties: 1u << 2),
+                DocumentKind.Hwp,
+                null,
+                TestDocuments.SessionId));
+        AssertError(DocumentValidationError.UnsafeHwpContent, () =>
+            _validator.Validate(
+                HwpTestDocuments.Valid(includeScriptStream: true),
+                DocumentKind.Hwp,
+                null,
+                TestDocuments.SessionId));
+    }
+
+    [Fact]
     public void RejectsMagicAndMimeMismatches()
     {
         AssertError(DocumentValidationError.TypeMismatch, () =>
@@ -28,6 +82,8 @@ public sealed class DocumentValidationTests
             _validator.Validate(TestDocuments.OnePixelPng(), DocumentKind.Png, "image/jpeg", TestDocuments.SessionId));
         AssertError(DocumentValidationError.TypeMismatch, () =>
             _validator.Validate("%PDF-fake"u8, DocumentKind.Png, "image/png", TestDocuments.SessionId));
+        AssertError(DocumentValidationError.TypeMismatch, () =>
+            _validator.Validate(HwpTestDocuments.Valid(), DocumentKind.Hwpx, null, TestDocuments.SessionId));
     }
 
     [Fact]

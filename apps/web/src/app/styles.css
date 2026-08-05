@@ -411,6 +411,29 @@ p {
   object-fit: contain;
   background: white;
 }
+.mobile-preview__document {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 280px;
+  padding: 32px;
+  text-align: center;
+  color: var(--pc-ink);
+  background: white;
+}
+.mobile-preview__document svg {
+  width: 64px;
+  height: 64px;
+  color: var(--pc-teal-dark);
+}
+.mobile-preview__document strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.mobile-preview__document span {
+  color: var(--pc-muted);
+}
 .mobile-preview__fallback {
   min-height: 280px;
   display: grid;

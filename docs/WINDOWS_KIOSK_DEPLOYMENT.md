@@ -68,6 +68,31 @@ detect the Runtime and deploy the Evergreen bootstrapper for online or standalon
 controlled/offline installation. Pin and test the WebView2 SDK, apply update policy, and reassess
 the browser attack surface.
 
+## HWPX direct printing
+
+Direct HWPX printing is available only in the native Windows kiosk. The mobile browser sends the
+original HWPX inside the existing encrypted envelope; the kiosk validates the package, writes it to
+an application-owned temporary directory, asks an installed Hancom Office automation component to
+render PDF, validates the generated PDF, prints it through the existing fixed policy, and clears
+both temporary files. The public browser kiosk does not claim or emulate HWPX printing.
+
+Before enabling the capability:
+
+1. Install an institution-approved Hancom Office version that registers `HWPFrame.HwpObject`.
+2. Obtain, install, and register Hancom's file-path security module under the kiosk account.
+3. Set `PRINT_CESS_HANCOM_SECURITY_MODULE` to the registered module name. The kiosk advertises HWPX
+   in its QR only when both the COM component and this setting are present.
+4. Confirm with Hancom that the institution's automation and redistribution use is licensed and
+   approved. Personal-use automation terms must not be assumed to cover an institutional kiosk.
+5. Test representative synthetic HWPX files containing tables, images, page breaks, headers,
+   footers, and required fonts. Compare page count, wrapping, clipping, grayscale output, and
+   margins against interactive Hancom Office output on the same machine.
+
+HWPX files larger than 10 MiB, malformed or encrypted packages, unsafe archive paths, excessive
+expansion ratios, scripts, and prohibited embedded objects fail closed. A missing Hancom component,
+security module, font, or PDF output also fails the session without falling back to a third-party
+conversion service.
+
 ## Printer provisioning
 
 1. Install the approved vendor driver through institutional software management.

@@ -54,6 +54,8 @@ export const createSessionRequestSchema = z
     protocolVersion: z.literal(PROTOCOL_VERSION),
     kioskPublicKey: z.string().regex(P256_PUBLIC_KEY_PATTERN),
     kioskPublicKeyFingerprint: z.string().regex(DIGEST_PATTERN),
+    supportsHwpx: z.boolean().optional().default(false),
+    supportsHwp: z.boolean().optional().default(false),
   })
   .strict();
 

@@ -32,6 +32,13 @@ describe("binary envelope", () => {
     expect(parsed.header).toEqual(header);
   });
 
+  it.each(["hwpx", "hwp"] as const)("round-trips the %s file-kind code", (fileKind) => {
+    const value = { ...metadata(), fileKind };
+    const header = encodeEnvelopeHeader(value);
+    const envelope = assembleEnvelope(header, new Uint8Array(4 + AES_GCM_TAG_BYTES));
+    expect(parseEnvelope(envelope).fileKind).toBe(fileKind);
+  });
+
   it("rejects a changed protocol version", () => {
     const header = encodeEnvelopeHeader(metadata());
     const envelope = assembleEnvelope(header, new Uint8Array(4 + AES_GCM_TAG_BYTES));

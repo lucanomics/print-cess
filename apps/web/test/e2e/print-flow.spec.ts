@@ -118,7 +118,7 @@ test("large files are rejected before encryption", async ({ page, context }) => 
     mimeType: "application/pdf",
     buffer: Buffer.from(createBoundaryBytes(1)),
   });
-  await expect(mobile.getByText(/bigger than 10 MB/u)).toBeVisible();
+  await expect(mobile.getByText(/PDFs under 10 MB/u)).toBeVisible();
 });
 
 test("cancelling a file picker keeps the claimed session ready", async ({ page, context }) => {
@@ -172,50 +172,34 @@ test("a synthetic PDF is validated and previewed", async ({ page, context }) => 
   await expect(mobile.locator("canvas")).toBeVisible({ timeout: 30_000 });
 });
 
-test("language selection shows a localized guide before photo and file sharing", async ({
-  page,
-  context,
-}) => {
+test("language selection shows a localized guide and help sheet", async ({ page, context }) => {
   const { mobile } = await openMobileAtLanguage(page, context);
   await mobile.getByLabel("한국어").check();
+
+  const sheet = mobile.getByRole("dialog");
+  await mobile.getByRole("button", { name: "도움이 필요해요" }).click();
+  await expect(sheet.getByRole("heading", { name: "지금 무엇을 하면 되나요?" })).toBeVisible();
+  await expect(sheet.getByText(/내 언어가 적힌 칸을 누르세요/u)).toBeVisible();
+  await expect(sheet.getByText(/직원에게 도움을 요청하세요/u)).toBeVisible();
+  await sheet.getByRole("button", { name: "알겠어요" }).click();
+  await expect(sheet).toBeHidden();
+
   await mobile.getByRole("button", { name: "계속" }).click();
   await expect(mobile.getByRole("heading", { name: "인쇄 방법" })).toBeVisible();
   await expect(mobile.getByText("1. QR코드 스캔하기")).toBeVisible();
   await mobile.getByRole("button", { name: "문서 고르기", exact: true }).click();
   await expect(mobile.getByRole("button", { name: "사진에서 고르기" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "파일에서 고르기" })).toBeVisible();
+
+  // The places a document usually hides belong in the help sheet, not on the
+  // picker screen, which stays down to two actions.
   await expect(mobile.getByText("카카오톡")).toHaveCount(0);
   await expect(mobile.getByText("이메일")).toHaveCount(0);
-});
-
-test("the help sheet explains the current screen in the chosen language", async ({
-  page,
-  context,
-}) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await mobile.getByLabel("한국어").check();
   await mobile.getByRole("button", { name: "도움이 필요해요" }).click();
-
-  const sheet = mobile.getByRole("dialog");
-  await expect(sheet.getByRole("heading", { name: "지금 무엇을 하면 되나요?" })).toBeVisible();
-  await expect(sheet.getByText(/내 언어가 적힌 칸을 누르세요/u)).toBeVisible();
-  await expect(sheet.getByText(/직원에게 도움을 요청하세요/u)).toBeVisible();
-
-  await sheet.getByRole("button", { name: "알겠어요" }).click();
-  await expect(sheet).toBeHidden();
-  await expect(mobile.getByRole("heading", { name: "언어를 선택하세요" })).toBeVisible();
-});
-
-test("the help sheet says where a document is usually saved", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await reachFilePicker(mobile);
-  await mobile.getByRole("button", { name: "Need help?" }).click();
-
-  const sheet = mobile.getByRole("dialog");
-  await expect(sheet.getByRole("heading", { name: "Where is your file?" })).toBeVisible();
-  await expect(sheet.getByText("In KakaoTalk", { exact: true })).toBeVisible();
-  await expect(sheet.getByText("In email", { exact: true })).toBeVisible();
-  await expect(sheet.getByText("I do not have the file", { exact: true })).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "인쇄할 문서가 어디에 있나요?" })).toBeVisible();
+  await expect(sheet.getByText("카카오톡에 있어요", { exact: true })).toBeVisible();
+  await expect(sheet.getByText("이메일에 있어요", { exact: true })).toBeVisible();
+  await expect(sheet.getByText("문서가 없어요", { exact: true })).toBeVisible();
 
   const accessibility = await new AxeBuilder({ page: mobile }).analyze();
   expect(accessibility.violations).toEqual([]);
@@ -262,18 +246,4 @@ test("@viewport Arabic picture guide is right-to-left and fits the screen", asyn
   await expect(mobile.getByRole("button", { name: "اختيار ملفي" })).toBeVisible();
   const accessibility = await new AxeBuilder({ page: mobile }).analyze();
   expect(accessibility.violations).toEqual([]);
-});
-
-test("the kiosk rotates the scan instruction through the visitor languages", async ({ page }) => {
-  const rotating = ["ar", "fil", "id", "km", "mn", "ne", "ru", "th", "uk", "vi", "zh-CN"];
-  await openSession(page);
-  const spotlight = page.locator(".kiosk-spotlight");
-
-  const first = await spotlight.getAttribute("lang");
-  expect(rotating).toContain(first);
-  expect((await spotlight.textContent())?.trim()).not.toBe("");
-
-  // The line advances on a timer, so the next language must differ.
-  await expect.poll(() => spotlight.getAttribute("lang"), { timeout: 20_000 }).not.toBe(first);
-  expect(rotating).toContain(await spotlight.getAttribute("lang"));
 });

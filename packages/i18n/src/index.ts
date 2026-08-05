@@ -41,7 +41,7 @@ export function isRightToLeft(locale: SupportedLocale): boolean {
 // English is the source of truth: every other locale must provide exactly these
 // keys, which `satisfies Translation` enforces at build time.
 const en = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "Choose your language",
   selectLanguageHint: "Tap your language. Then tap the button at the bottom.",
@@ -53,7 +53,7 @@ const en = {
   guideScanTitle: "1. Scan the QR code",
   guideScanBody: "You scanned it with your phone camera. This step is done.",
   guideChooseTitle: "2. Pick one file",
-  guideChooseBody: "One photo, or one PDF you saved on your phone.",
+  guideChooseBody: "One photo from your gallery, or one PDF you saved on your phone.",
   guideCheckTitle: "3. Check it, then print",
   guideCheckBody: "Look at the picture on your phone, then tap the print button.",
   guideCollectTitle: "4. Take your paper",
@@ -64,7 +64,17 @@ const en = {
   guideReminder: "Read the four steps, then tap the button at the bottom.",
 
   chooseFile: "Pick one file to print",
-  fileRules: "PDF, JPG or PNG · up to 10 MB · up to 10 pages",
+  fileRules: "Photo or PDF · photos up to 20 MB · PDF up to 10 MB and 10 pages",
+  guideChooseBodyHwpx: "One photo, one PDF, or one HWPX file from your phone.",
+  fileRulesHwpx:
+    "Photo, PDF or HWPX · photos up to 20 MB · documents up to 10 MB · PDF up to 10 pages",
+  documentNeedsPdf:
+    "Save this document as a PDF on your phone, then pick it again. Your document is never sent to another company to be converted.",
+  imageConversionUnsupported:
+    "This phone cannot open that photo. Save it as JPG in your photo app, or take a screenshot, then pick it again.",
+  hwpxUnavailable:
+    "This printer cannot open an HWPX file. Save the document as a PDF and pick it again.",
+  hwpxPreview: "HWPX document · printed by the Windows kiosk",
   locationPhotos: "Open my photos",
   locationFiles: "Open my files",
   cancelled: "No file yet. Tap one of the two buttons below.",
@@ -94,8 +104,9 @@ const en = {
   expiredQr: "This QR code is too old. Scan the new QR code on the big screen.",
   usedQr: "Someone is already using this QR code. Scan the new one on the big screen.",
   unsupportedType:
-    "You can print PDF, JPG and PNG only. Save your page as a PDF, or take a clear screenshot.",
-  tooLarge: "This file is bigger than 10 MB. Save only the pages you need, or take a screenshot.",
+    "Pick a photo or a PDF. Save a HWP, Word, Excel or PowerPoint file as a PDF first, then pick it.",
+  tooLarge:
+    "This file is too big. Keep photos under 20 MB and PDFs under 10 MB, or save only the pages you need.",
   tooManyPages: "This PDF has more than 10 pages. Save only the pages you need.",
   lockedPdf:
     "This PDF has a password. Open it on your phone and take a screenshot of the pages you need.",
@@ -130,14 +141,13 @@ const en = {
   helpAskStaff: "Still stuck? Ask a staff member near the printer.",
 
   kioskScanTitle: "Scan this QR code with your phone camera",
-  kioskNoWifi: "No Wi-Fi needed — use your phone data",
 };
 
 export type TranslationKey = keyof typeof en;
 type Translation = Record<TranslationKey, string>;
 
 const ko = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "언어를 선택하세요",
   selectLanguageHint: "사용할 언어를 누르세요. 그다음 아래 버튼을 누르세요.",
@@ -149,7 +159,7 @@ const ko = {
   guideScanTitle: "1. QR코드 스캔하기",
   guideScanBody: "휴대전화 카메라로 스캔했어요. 이 단계는 끝났습니다.",
   guideChooseTitle: "2. 문서 한 개 고르기",
-  guideChooseBody: "사진 한 장, 또는 휴대전화에 저장한 PDF 한 개를 고르세요.",
+  guideChooseBody: "갤러리의 사진 한 장, 또는 휴대전화에 저장한 PDF 한 개를 고르세요.",
   guideCheckTitle: "3. 확인하고 인쇄하기",
   guideCheckBody: "휴대전화에 보이는 그림을 확인한 뒤 인쇄 버튼을 누르세요.",
   guideCollectTitle: "4. 출력물 가져가기",
@@ -160,7 +170,15 @@ const ko = {
   guideReminder: "네 단계를 읽고 아래 버튼을 누르세요.",
 
   chooseFile: "인쇄할 문서 한 개를 고르세요",
-  fileRules: "PDF, JPG, PNG · 10MB 이하 · 10페이지 이하",
+  fileRules: "사진 또는 PDF · 사진 20MB 이하 · PDF 10MB, 10페이지 이하",
+  guideChooseBodyHwpx: "사진, PDF, HWPX 파일 중 한 개를 고르세요.",
+  fileRulesHwpx: "사진, PDF, HWPX · 사진 20MB 이하 · 문서 10MB 이하 · PDF 10페이지 이하",
+  documentNeedsPdf:
+    "이 문서는 휴대전화에서 PDF로 저장한 뒤 다시 고르세요. 문서를 변환하려고 다른 회사에 보내지 않습니다.",
+  imageConversionUnsupported:
+    "이 휴대전화에서는 이 사진을 열 수 없어요. 사진 앱에서 JPG로 저장하거나 화면을 캡처한 뒤 다시 고르세요.",
+  hwpxUnavailable: "이 프린터는 HWPX 파일을 열 수 없어요. 문서를 PDF로 저장한 뒤 다시 고르세요.",
+  hwpxPreview: "HWPX 문서 · 윈도우 키오스크에서 인쇄",
   locationPhotos: "사진에서 고르기",
   locationFiles: "파일에서 고르기",
   cancelled: "아직 고른 문서가 없어요. 아래 두 버튼 중 하나를 누르세요.",
@@ -190,8 +208,8 @@ const ko = {
   expiredQr: "QR코드 사용 시간이 지났어요. 큰 화면의 새 QR코드를 스캔하세요.",
   usedQr: "다른 사람이 사용 중인 QR코드예요. 큰 화면의 새 QR코드를 스캔하세요.",
   unsupportedType:
-    "PDF, JPG, PNG만 인쇄할 수 있어요. 문서를 PDF로 저장하거나 화면을 선명하게 캡처하세요.",
-  tooLarge: "파일이 10MB보다 커요. 필요한 페이지만 저장하거나 화면을 캡처하세요.",
+    "사진이나 PDF를 고르세요. HWP, 워드, 엑셀, 파워포인트 파일은 먼저 PDF로 저장한 뒤 고르세요.",
+  tooLarge: "파일이 너무 커요. 사진은 20MB, PDF는 10MB 이하로 줄이거나 필요한 페이지만 저장하세요.",
   tooManyPages: "PDF가 10페이지보다 많아요. 필요한 페이지만 저장하세요.",
   lockedPdf: "암호가 걸린 PDF예요. 휴대전화에서 열어 필요한 페이지를 캡처해 저장하세요.",
   damagedFile: "파일이 열리지 않아요. 다시 저장하거나 화면을 선명하게 캡처하세요.",
@@ -224,11 +242,10 @@ const ko = {
   helpAskStaff: "그래도 어려우면 프린터 옆 직원에게 도움을 요청하세요.",
 
   kioskScanTitle: "휴대전화 카메라로 이 QR코드를 스캔하세요",
-  kioskNoWifi: "Wi-Fi는 필요 없어요. 휴대전화 데이터를 사용하세요",
 } satisfies Translation;
 
 const zhCN = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "选择语言",
   selectLanguageHint: "点一下你的语言，然后点下面的按钮。",
@@ -240,7 +257,7 @@ const zhCN = {
   guideScanTitle: "1. 扫二维码",
   guideScanBody: "你已经用手机相机扫好了，这一步做完了。",
   guideChooseTitle: "2. 选一个文件",
-  guideChooseBody: "一张照片，或者手机里存好的一个 PDF。",
+  guideChooseBody: "相册里的一张照片，或者手机里存好的一个 PDF。",
   guideCheckTitle: "3. 看一下，然后打印",
   guideCheckBody: "看看手机上的图，然后点打印按钮。",
   guideCollectTitle: "4. 拿走你的纸",
@@ -251,7 +268,14 @@ const zhCN = {
   guideReminder: "看完这四步，再点下面的按钮。",
 
   chooseFile: "选一个要打印的文件",
-  fileRules: "PDF、JPG 或 PNG · 不超过 10 MB · 不超过 10 页",
+  fileRules: "照片或 PDF · 照片不超过 20 MB · PDF 不超过 10 MB、10 页",
+  guideChooseBodyHwpx: "一张照片、一个 PDF，或者一个 HWPX 文件。",
+  fileRulesHwpx: "照片、PDF 或 HWPX · 照片不超过 20 MB · 文档不超过 10 MB · PDF 不超过 10 页",
+  documentNeedsPdf:
+    "请在手机上把这个文档存成 PDF，然后重新选。我们不会把你的文档发给别的公司去转换。",
+  imageConversionUnsupported: "这台手机打不开这种照片。请在相册里存成 JPG，或者截图，然后重新选。",
+  hwpxUnavailable: "这台打印机打不开 HWPX 文件。请把文档存成 PDF 再选。",
+  hwpxPreview: "HWPX 文档 · 由 Windows 自助机打印",
   locationPhotos: "打开我的照片",
   locationFiles: "打开我的文件",
   cancelled: "还没有选文件。点下面两个按钮中的一个。",
@@ -280,8 +304,8 @@ const zhCN = {
   invalidQr: "这个链接不完整。请重新扫大屏幕上的二维码。",
   expiredQr: "这个二维码太旧了。请扫大屏幕上新的二维码。",
   usedQr: "这个二维码已经有人在用。请扫大屏幕上新的二维码。",
-  unsupportedType: "只能打印 PDF、JPG 和 PNG。请把内容存成 PDF，或者截一张清楚的图。",
-  tooLarge: "文件超过 10 MB。只保存需要的几页，或者截图。",
+  unsupportedType: "请选照片或 PDF。HWP、Word、Excel、PowerPoint 文件要先存成 PDF 再选。",
+  tooLarge: "文件太大了。照片要小于 20 MB，PDF 要小于 10 MB，或者只保存需要的几页。",
   tooManyPages: "这个 PDF 超过 10 页。只保存你需要的几页。",
   lockedPdf: "这个 PDF 有密码。请在手机上打开，把需要的页截图保存。",
   damagedFile: "这个文件打不开。请重新保存，或者截一张清楚的图。",
@@ -310,11 +334,10 @@ const zhCN = {
   helpAskStaff: "还是不会的话，请找打印机旁边的工作人员帮忙。",
 
   kioskScanTitle: "用手机相机扫这个二维码",
-  kioskNoWifi: "不用 Wi-Fi，用手机流量就行",
 } satisfies Translation;
 
 const id = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "Pilih bahasa Anda",
   selectLanguageHint: "Ketuk bahasa Anda. Lalu ketuk tombol di bawah.",
@@ -326,7 +349,7 @@ const id = {
   guideScanTitle: "1. Pindai kode QR",
   guideScanBody: "Anda sudah memindainya dengan kamera ponsel. Langkah ini selesai.",
   guideChooseTitle: "2. Pilih satu berkas",
-  guideChooseBody: "Satu foto, atau satu PDF yang tersimpan di ponsel Anda.",
+  guideChooseBody: "Satu foto dari galeri, atau satu PDF yang tersimpan di ponsel Anda.",
   guideCheckTitle: "3. Periksa, lalu cetak",
   guideCheckBody: "Lihat gambar di ponsel Anda, lalu ketuk tombol cetak.",
   guideCollectTitle: "4. Ambil kertas Anda",
@@ -337,7 +360,17 @@ const id = {
   guideReminder: "Baca empat langkah itu, lalu ketuk tombol di bawah.",
 
   chooseFile: "Pilih satu berkas untuk dicetak",
-  fileRules: "PDF, JPG, atau PNG · maksimal 10 MB · maksimal 10 halaman",
+  fileRules: "Foto atau PDF · foto maks. 20 MB · PDF maks. 10 MB dan 10 halaman",
+  guideChooseBodyHwpx: "Satu foto, satu PDF, atau satu berkas HWPX dari ponsel Anda.",
+  fileRulesHwpx:
+    "Foto, PDF, atau HWPX · foto maks. 20 MB · dokumen maks. 10 MB · PDF maks. 10 halaman",
+  documentNeedsPdf:
+    "Simpan dokumen ini sebagai PDF di ponsel Anda, lalu pilih lagi. Dokumen Anda tidak pernah dikirim ke perusahaan lain untuk dikonversi.",
+  imageConversionUnsupported:
+    "Ponsel ini tidak bisa membuka foto itu. Simpan sebagai JPG di aplikasi foto, atau ambil tangkapan layar, lalu pilih lagi.",
+  hwpxUnavailable:
+    "Printer ini tidak bisa membuka berkas HWPX. Simpan dokumen sebagai PDF lalu pilih lagi.",
+  hwpxPreview: "Dokumen HWPX · dicetak oleh kios Windows",
   locationPhotos: "Buka foto saya",
   locationFiles: "Buka berkas saya",
   cancelled: "Belum ada berkas. Ketuk salah satu dari dua tombol di bawah.",
@@ -367,9 +400,9 @@ const id = {
   expiredQr: "Kode QR ini sudah terlalu lama. Pindai kode QR baru di layar besar.",
   usedQr: "Kode QR ini sedang dipakai orang lain. Pindai kode QR baru di layar besar.",
   unsupportedType:
-    "Hanya PDF, JPG, dan PNG yang bisa dicetak. Simpan sebagai PDF, atau ambil tangkapan layar yang jelas.",
+    "Pilih foto atau PDF. Simpan berkas HWP, Word, Excel, atau PowerPoint sebagai PDF dulu, lalu pilih lagi.",
   tooLarge:
-    "Berkas ini lebih dari 10 MB. Simpan hanya halaman yang perlu, atau ambil tangkapan layar.",
+    "Berkas ini terlalu besar. Foto harus di bawah 20 MB dan PDF di bawah 10 MB, atau simpan hanya halaman yang perlu.",
   tooManyPages: "PDF ini lebih dari 10 halaman. Simpan hanya halaman yang Anda perlukan.",
   lockedPdf:
     "PDF ini punya kata sandi. Buka di ponsel Anda, lalu simpan halaman yang perlu sebagai tangkapan layar.",
@@ -405,11 +438,10 @@ const id = {
   helpAskStaff: "Masih bingung? Tanya petugas di dekat printer.",
 
   kioskScanTitle: "Pindai kode QR ini dengan kamera ponsel Anda",
-  kioskNoWifi: "Tidak perlu Wi-Fi — pakai data seluler Anda",
 } satisfies Translation;
 
 const fil = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "Piliin ang wika mo",
   selectLanguageHint: "I-tap ang wika mo. Pagkatapos, i-tap ang butones sa ibaba.",
@@ -421,7 +453,7 @@ const fil = {
   guideScanTitle: "1. I-scan ang QR code",
   guideScanBody: "Na-scan mo na ito sa camera ng telepono mo. Tapos na ang hakbang na ito.",
   guideChooseTitle: "2. Pumili ng isang file",
-  guideChooseBody: "Isang larawan, o isang PDF na nasa telepono mo.",
+  guideChooseBody: "Isang larawan sa gallery, o isang PDF na nasa telepono mo.",
   guideCheckTitle: "3. Tingnan, pagkatapos i-print",
   guideCheckBody: "Tingnan ang larawan sa telepono mo, pagkatapos i-tap ang butones ng print.",
   guideCollectTitle: "4. Kunin ang papel mo",
@@ -432,7 +464,17 @@ const fil = {
   guideReminder: "Basahin ang apat na hakbang, pagkatapos i-tap ang butones sa ibaba.",
 
   chooseFile: "Pumili ng isang file na ipi-print",
-  fileRules: "PDF, JPG, o PNG · hanggang 10 MB · hanggang 10 pahina",
+  fileRules: "Larawan o PDF · larawan hanggang 20 MB · PDF hanggang 10 MB at 10 pahina",
+  guideChooseBodyHwpx: "Isang larawan, isang PDF, o isang HWPX file sa telepono mo.",
+  fileRulesHwpx:
+    "Larawan, PDF, o HWPX · larawan hanggang 20 MB · dokumento hanggang 10 MB · PDF hanggang 10 pahina",
+  documentNeedsPdf:
+    "I-save ang dokumentong ito bilang PDF sa telepono mo, pagkatapos piliin itong muli. Hindi ipinapadala ang dokumento mo sa ibang kompanya para i-convert.",
+  imageConversionUnsupported:
+    "Hindi mabuksan ng teleponong ito ang larawang iyon. I-save itong JPG sa photo app, o kumuha ng screenshot, pagkatapos piliin itong muli.",
+  hwpxUnavailable:
+    "Hindi mabuksan ng printer na ito ang HWPX file. I-save ang dokumento bilang PDF at piliin itong muli.",
+  hwpxPreview: "Dokumentong HWPX · ipi-print ng Windows kiosk",
   locationPhotos: "Buksan ang mga larawan ko",
   locationFiles: "Buksan ang mga file ko",
   cancelled: "Wala pang file. I-tap ang isa sa dalawang butones sa ibaba.",
@@ -463,9 +505,9 @@ const fil = {
   expiredQr: "Masyado nang matagal ang QR code na ito. I-scan ang bago sa malaking screen.",
   usedQr: "May gumagamit na ng QR code na ito. I-scan ang bago sa malaking screen.",
   unsupportedType:
-    "PDF, JPG, at PNG lang ang maaaring i-print. I-save bilang PDF, o kumuha ng malinaw na screenshot.",
+    "Pumili ng larawan o PDF. I-save muna bilang PDF ang HWP, Word, Excel, o PowerPoint file, pagkatapos piliin itong muli.",
   tooLarge:
-    "Mahigit 10 MB ang file na ito. I-save lang ang mga pahinang kailangan, o kumuha ng screenshot.",
+    "Masyadong malaki ang file. Dapat wala pang 20 MB ang larawan at wala pang 10 MB ang PDF, o i-save lang ang mga pahinang kailangan.",
   tooManyPages: "Mahigit 10 pahina ang PDF na ito. I-save lang ang mga pahinang kailangan mo.",
   lockedPdf:
     "May password ang PDF na ito. Buksan ito sa telepono mo at i-screenshot ang mga pahinang kailangan.",
@@ -504,11 +546,10 @@ const fil = {
   helpAskStaff: "Hindi pa rin gumagana? Magtanong sa staff na malapit sa printer.",
 
   kioskScanTitle: "I-scan ang QR code na ito sa camera ng telepono mo",
-  kioskNoWifi: "Hindi kailangan ng Wi-Fi — gamitin ang mobile data mo",
 } satisfies Translation;
 
 const vi = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "Chọn ngôn ngữ của bạn",
   selectLanguageHint: "Nhấn vào ngôn ngữ của bạn. Rồi nhấn nút ở dưới.",
@@ -520,7 +561,7 @@ const vi = {
   guideScanTitle: "1. Quét mã QR",
   guideScanBody: "Bạn đã quét bằng camera điện thoại. Bước này xong rồi.",
   guideChooseTitle: "2. Chọn một tệp",
-  guideChooseBody: "Một ảnh, hoặc một tệp PDF đã lưu trong điện thoại.",
+  guideChooseBody: "Một ảnh trong thư viện, hoặc một tệp PDF đã lưu trong điện thoại.",
   guideCheckTitle: "3. Xem lại, rồi in",
   guideCheckBody: "Xem hình trên điện thoại, rồi nhấn nút in.",
   guideCollectTitle: "4. Lấy giấy của bạn",
@@ -531,7 +572,16 @@ const vi = {
   guideReminder: "Đọc bốn bước, rồi nhấn nút ở dưới.",
 
   chooseFile: "Chọn một tệp để in",
-  fileRules: "PDF, JPG hoặc PNG · tối đa 10 MB · tối đa 10 trang",
+  fileRules: "Ảnh hoặc PDF · ảnh tối đa 20 MB · PDF tối đa 10 MB và 10 trang",
+  guideChooseBodyHwpx: "Một ảnh, một tệp PDF, hoặc một tệp HWPX trong điện thoại.",
+  fileRulesHwpx:
+    "Ảnh, PDF hoặc HWPX · ảnh tối đa 20 MB · tài liệu tối đa 10 MB · PDF tối đa 10 trang",
+  documentNeedsPdf:
+    "Hãy lưu tài liệu này thành PDF trên điện thoại rồi chọn lại. Tài liệu của bạn không được gửi cho công ty khác để chuyển đổi.",
+  imageConversionUnsupported:
+    "Điện thoại này không mở được ảnh đó. Hãy lưu thành JPG trong ứng dụng ảnh, hoặc chụp ảnh màn hình, rồi chọn lại.",
+  hwpxUnavailable: "Máy in này không mở được tệp HWPX. Hãy lưu tài liệu thành PDF rồi chọn lại.",
+  hwpxPreview: "Tài liệu HWPX · in bằng kiosk Windows",
   locationPhotos: "Mở ảnh của tôi",
   locationFiles: "Mở tệp của tôi",
   cancelled: "Chưa có tệp nào. Nhấn một trong hai nút ở dưới.",
@@ -560,8 +610,10 @@ const vi = {
   invalidQr: "Liên kết này chưa đầy đủ. Hãy quét lại mã QR trên màn hình lớn.",
   expiredQr: "Mã QR này đã cũ. Hãy quét mã QR mới trên màn hình lớn.",
   usedQr: "Có người đang dùng mã QR này. Hãy quét mã mới trên màn hình lớn.",
-  unsupportedType: "Chỉ in được PDF, JPG và PNG. Hãy lưu thành PDF, hoặc chụp ảnh màn hình rõ nét.",
-  tooLarge: "Tệp này lớn hơn 10 MB. Chỉ lưu những trang cần, hoặc chụp ảnh màn hình.",
+  unsupportedType:
+    "Hãy chọn ảnh hoặc PDF. Tệp HWP, Word, Excel, PowerPoint phải lưu thành PDF trước rồi chọn lại.",
+  tooLarge:
+    "Tệp này quá lớn. Ảnh phải dưới 20 MB và PDF dưới 10 MB, hoặc chỉ lưu những trang bạn cần.",
   tooManyPages: "Tệp PDF này nhiều hơn 10 trang. Chỉ lưu những trang bạn cần.",
   lockedPdf:
     "Tệp PDF này có mật khẩu. Hãy mở trên điện thoại và chụp ảnh màn hình những trang cần.",
@@ -593,11 +645,10 @@ const vi = {
   helpAskStaff: "Vẫn không được? Hãy hỏi nhân viên ở gần máy in.",
 
   kioskScanTitle: "Quét mã QR này bằng camera điện thoại",
-  kioskNoWifi: "Không cần Wi-Fi — dùng dữ liệu di động",
 } satisfies Translation;
 
 const th = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "เลือกภาษาของคุณ",
   selectLanguageHint: "แตะภาษาของคุณ แล้วแตะปุ่มด้านล่าง",
@@ -609,7 +660,7 @@ const th = {
   guideScanTitle: "1. สแกนคิวอาร์โค้ด",
   guideScanBody: "คุณสแกนด้วยกล้องมือถือแล้ว ขั้นนี้เสร็จแล้ว",
   guideChooseTitle: "2. เลือกไฟล์หนึ่งไฟล์",
-  guideChooseBody: "รูปหนึ่งรูป หรือไฟล์ PDF หนึ่งไฟล์ที่เก็บไว้ในมือถือ",
+  guideChooseBody: "รูปหนึ่งรูปในแกลเลอรี หรือไฟล์ PDF หนึ่งไฟล์ที่เก็บไว้ในมือถือ",
   guideCheckTitle: "3. ดูให้ชัด แล้วสั่งพิมพ์",
   guideCheckBody: "ดูรูปบนมือถือ แล้วแตะปุ่มพิมพ์",
   guideCollectTitle: "4. รับกระดาษของคุณ",
@@ -620,7 +671,15 @@ const th = {
   guideReminder: "อ่านสี่ขั้นนี้ แล้วแตะปุ่มด้านล่าง",
 
   chooseFile: "เลือกไฟล์ที่จะพิมพ์หนึ่งไฟล์",
-  fileRules: "PDF, JPG หรือ PNG · ไม่เกิน 10 MB · ไม่เกิน 10 หน้า",
+  fileRules: "รูปหรือ PDF · รูปไม่เกิน 20 MB · PDF ไม่เกิน 10 MB และ 10 หน้า",
+  guideChooseBodyHwpx: "รูปหนึ่งรูป ไฟล์ PDF หนึ่งไฟล์ หรือไฟล์ HWPX หนึ่งไฟล์ในมือถือ",
+  fileRulesHwpx: "รูป PDF หรือ HWPX · รูปไม่เกิน 20 MB · เอกสารไม่เกิน 10 MB · PDF ไม่เกิน 10 หน้า",
+  documentNeedsPdf:
+    "บันทึกเอกสารนี้เป็น PDF ในมือถือ แล้วเลือกใหม่ เราไม่ส่งเอกสารของคุณไปให้บริษัทอื่นแปลงไฟล์",
+  imageConversionUnsupported:
+    "มือถือนี้เปิดรูปแบบนั้นไม่ได้ บันทึกเป็น JPG ในแอปรูปภาพ หรือถ่ายภาพหน้าจอ แล้วเลือกใหม่",
+  hwpxUnavailable: "เครื่องพิมพ์นี้เปิดไฟล์ HWPX ไม่ได้ บันทึกเอกสารเป็น PDF แล้วเลือกใหม่",
+  hwpxPreview: "เอกสาร HWPX · พิมพ์ด้วยคีออสก์ Windows",
   locationPhotos: "เปิดรูปของฉัน",
   locationFiles: "เปิดไฟล์ของฉัน",
   cancelled: "ยังไม่ได้เลือกไฟล์ แตะปุ่มใดปุ่มหนึ่งด้านล่าง",
@@ -649,8 +708,10 @@ const th = {
   invalidQr: "ลิงก์นี้ไม่ครบ สแกนคิวอาร์โค้ดบนจอใหญ่อีกครั้ง",
   expiredQr: "คิวอาร์โค้ดนี้เก่าเกินไป สแกนคิวอาร์โค้ดใหม่บนจอใหญ่",
   usedQr: "มีคนใช้คิวอาร์โค้ดนี้อยู่ สแกนอันใหม่บนจอใหญ่",
-  unsupportedType: "พิมพ์ได้เฉพาะ PDF, JPG และ PNG บันทึกเป็น PDF หรือถ่ายภาพหน้าจอให้ชัด",
-  tooLarge: "ไฟล์นี้ใหญ่กว่า 10 MB เก็บเฉพาะหน้าที่ต้องการ หรือถ่ายภาพหน้าจอ",
+  unsupportedType:
+    "เลือกรูปหรือ PDF ไฟล์ HWP, Word, Excel, PowerPoint ต้องบันทึกเป็น PDF ก่อนแล้วเลือกใหม่",
+  tooLarge:
+    "ไฟล์นี้ใหญ่เกินไป รูปต้องไม่เกิน 20 MB และ PDF ไม่เกิน 10 MB หรือเก็บเฉพาะหน้าที่ต้องการ",
   tooManyPages: "PDF นี้มากกว่า 10 หน้า เก็บเฉพาะหน้าที่คุณต้องการ",
   lockedPdf: "PDF นี้มีรหัสผ่าน เปิดในมือถือแล้วถ่ายภาพหน้าจอหน้าที่ต้องการ",
   damagedFile: "ไฟล์นี้เปิดไม่ได้ บันทึกใหม่ หรือถ่ายภาพหน้าจอให้ชัด",
@@ -680,11 +741,10 @@ const th = {
   helpAskStaff: "ยังไม่ได้อยู่ไหม ขอให้เจ้าหน้าที่ใกล้เครื่องพิมพ์ช่วย",
 
   kioskScanTitle: "สแกนคิวอาร์โค้ดนี้ด้วยกล้องมือถือ",
-  kioskNoWifi: "ไม่ต้องใช้ Wi-Fi — ใช้อินเทอร์เน็ตมือถือได้เลย",
 } satisfies Translation;
 
 const ne = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "आफ्नो भाषा छान्नुहोस्",
   selectLanguageHint: "आफ्नो भाषामा थिच्नुहोस्। त्यसपछि तलको बटन थिच्नुहोस्।",
@@ -696,7 +756,7 @@ const ne = {
   guideScanTitle: "1. QR कोड स्क्यान गर्नुहोस्",
   guideScanBody: "तपाईंले फोनको क्यामेराले स्क्यान गर्नुभयो। यो चरण सकियो।",
   guideChooseTitle: "2. एउटा फाइल छान्नुहोस्",
-  guideChooseBody: "एउटा फोटो, वा फोनमा राखेको एउटा PDF।",
+  guideChooseBody: "ग्यालेरीको एउटा फोटो, वा फोनमा राखेको एउटा PDF।",
   guideCheckTitle: "3. हेर्नुहोस्, त्यसपछि प्रिन्ट गर्नुहोस्",
   guideCheckBody: "फोनमा देखिने चित्र हेर्नुहोस्, त्यसपछि प्रिन्ट बटन थिच्नुहोस्।",
   guideCollectTitle: "4. आफ्नो कागज लिनुहोस्",
@@ -707,7 +767,16 @@ const ne = {
   guideReminder: "चारै चरण पढ्नुहोस्, त्यसपछि तलको बटन थिच्नुहोस्।",
 
   chooseFile: "प्रिन्ट गर्न एउटा फाइल छान्नुहोस्",
-  fileRules: "PDF, JPG वा PNG · 10 MB सम्म · 10 पृष्ठसम्म",
+  fileRules: "फोटो वा PDF · फोटो 20 MB सम्म · PDF 10 MB र 10 पृष्ठसम्म",
+  guideChooseBodyHwpx: "एउटा फोटो, एउटा PDF, वा एउटा HWPX फाइल।",
+  fileRulesHwpx: "फोटो, PDF वा HWPX · फोटो 20 MB सम्म · कागजात 10 MB सम्म · PDF 10 पृष्ठसम्म",
+  documentNeedsPdf:
+    "यो कागजातलाई फोनमा PDF मा सेभ गरेर फेरि छान्नुहोस्। तपाईंको कागजात रूपान्तरण गर्न अर्को कम्पनीमा पठाइँदैन।",
+  imageConversionUnsupported:
+    "यो फोनले त्यो फोटो खोल्न सक्दैन। फोटो एपमा JPG मा सेभ गर्नुहोस् वा स्क्रिनसट लिनुहोस्, त्यसपछि फेरि छान्नुहोस्।",
+  hwpxUnavailable:
+    "यो प्रिन्टरले HWPX फाइल खोल्न सक्दैन। कागजातलाई PDF मा सेभ गरेर फेरि छान्नुहोस्।",
+  hwpxPreview: "HWPX कागजात · Windows किओस्कले प्रिन्ट गर्छ",
   locationPhotos: "मेरो फोटो खोल्नुहोस्",
   locationFiles: "मेरो फाइल खोल्नुहोस्",
   cancelled: "अझै फाइल छानिएको छैन। तलका दुई बटनमध्ये एउटा थिच्नुहोस्।",
@@ -737,8 +806,9 @@ const ne = {
   expiredQr: "यो QR कोड धेरै पुरानो भयो। ठूलो पर्दाको नयाँ QR कोड स्क्यान गर्नुहोस्।",
   usedQr: "यो QR कोड कसैले प्रयोग गर्दै छ। ठूलो पर्दाको नयाँ कोड स्क्यान गर्नुहोस्।",
   unsupportedType:
-    "PDF, JPG र PNG मात्र प्रिन्ट हुन्छ। PDF बनाएर राख्नुहोस्, वा स्पष्ट स्क्रिनसट लिनुहोस्।",
-  tooLarge: "यो फाइल 10 MB भन्दा ठूलो छ। चाहिने पृष्ठ मात्र राख्नुहोस्, वा स्क्रिनसट लिनुहोस्।",
+    "फोटो वा PDF छान्नुहोस्। HWP, Word, Excel, PowerPoint फाइल पहिले PDF मा सेभ गरेर छान्नुहोस्।",
+  tooLarge:
+    "यो फाइल धेरै ठूलो छ। फोटो 20 MB र PDF 10 MB भन्दा कम हुनुपर्छ, वा चाहिने पृष्ठ मात्र राख्नुहोस्।",
   tooManyPages: "यो PDF मा 10 भन्दा बढी पृष्ठ छन्। चाहिने पृष्ठ मात्र राख्नुहोस्।",
   lockedPdf: "यो PDF मा पासवर्ड छ। फोनमा खोलेर चाहिने पृष्ठको स्क्रिनसट लिनुहोस्।",
   damagedFile: "यो फाइल खुल्दैन। फेरि सेभ गर्नुहोस्, वा स्पष्ट स्क्रिनसट लिनुहोस्।",
@@ -771,11 +841,10 @@ const ne = {
   helpAskStaff: "अझै नमिले प्रिन्टरनजिकको कर्मचारीलाई सोध्नुहोस्।",
 
   kioskScanTitle: "फोनको क्यामेराले यो QR कोड स्क्यान गर्नुहोस्",
-  kioskNoWifi: "Wi-Fi चाहिँदैन — मोबाइल डाटा प्रयोग गर्नुहोस्",
 } satisfies Translation;
 
 const km = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "ជ្រើសរើសភាសារបស់អ្នក",
   selectLanguageHint: "ចុចលើភាសារបស់អ្នក។ បន្ទាប់មកចុចប៊ូតុងខាងក្រោម។",
@@ -787,7 +856,7 @@ const km = {
   guideScanTitle: "1. ស្កេនកូដ QR",
   guideScanBody: "អ្នកបានស្កេនដោយកាមេរ៉ាទូរស័ព្ទរួចហើយ។ ជំហាននេះចប់។",
   guideChooseTitle: "2. ជ្រើសឯកសារមួយ",
-  guideChooseBody: "រូបថតមួយ ឬឯកសារ PDF មួយដែលរក្សាទុកក្នុងទូរស័ព្ទ។",
+  guideChooseBody: "រូបថតមួយក្នុងវិចិត្រសាល ឬឯកសារ PDF មួយក្នុងទូរស័ព្ទ។",
   guideCheckTitle: "3. ពិនិត្យ ហើយបោះពុម្ព",
   guideCheckBody: "មើលរូបនៅលើទូរស័ព្ទ ហើយចុចប៊ូតុងបោះពុម្ព។",
   guideCollectTitle: "4. យកក្រដាសរបស់អ្នក",
@@ -798,7 +867,16 @@ const km = {
   guideReminder: "អានជំហានទាំង ៤ រួចចុចប៊ូតុងខាងក្រោម។",
 
   chooseFile: "ជ្រើសឯកសារមួយដើម្បីបោះពុម្ព",
-  fileRules: "PDF, JPG ឬ PNG · មិនលើស 10 MB · មិនលើស 10 ទំព័រ",
+  fileRules: "រូបថត ឬ PDF · រូបថតរហូតដល់ 20 MB · PDF រហូតដល់ 10 MB និង 10 ទំព័រ",
+  guideChooseBodyHwpx: "រូបថតមួយ ឯកសារ PDF មួយ ឬឯកសារ HWPX មួយ។",
+  fileRulesHwpx:
+    "រូបថត PDF ឬ HWPX · រូបថតរហូតដល់ 20 MB · ឯកសាររហូតដល់ 10 MB · PDF រហូតដល់ 10 ទំព័រ",
+  documentNeedsPdf:
+    "រក្សាទុកឯកសារនេះជា PDF ក្នុងទូរស័ព្ទ រួចជ្រើសម្តងទៀត។ ឯកសាររបស់អ្នកមិនត្រូវបានផ្ញើទៅក្រុមហ៊ុនផ្សេងដើម្បីបំប្លែងទេ។",
+  imageConversionUnsupported:
+    "ទូរស័ព្ទនេះមិនអាចបើករូបថតនោះបានទេ។ រក្សាទុកជា JPG ក្នុងកម្មវិធីរូបថត ឬថតអេក្រង់ រួចជ្រើសម្តងទៀត។",
+  hwpxUnavailable: "ម៉ាស៊ីនបោះពុម្ពនេះមិនអាចបើកឯកសារ HWPX បានទេ។ រក្សាទុកជា PDF រួចជ្រើសម្តងទៀត។",
+  hwpxPreview: "ឯកសារ HWPX · បោះពុម្ពដោយគីអូស Windows",
   locationPhotos: "បើករូបថតរបស់ខ្ញុំ",
   locationFiles: "បើកឯកសាររបស់ខ្ញុំ",
   cancelled: "មិនទាន់មានឯកសារទេ។ ចុចប៊ូតុងមួយក្នុងចំណោមពីរខាងក្រោម។",
@@ -827,8 +905,10 @@ const km = {
   invalidQr: "តំណនេះមិនពេញលេញ។ ស្កេនកូដ QR លើអេក្រង់ធំម្តងទៀត។",
   expiredQr: "កូដ QR នេះចាស់ពេកហើយ។ ស្កេនកូដ QR ថ្មីលើអេក្រង់ធំ។",
   usedQr: "មានគេកំពុងប្រើកូដ QR នេះ។ ស្កេនកូដថ្មីលើអេក្រង់ធំ។",
-  unsupportedType: "បោះពុម្ពបានតែ PDF, JPG និង PNG។ រក្សាទុកជា PDF ឬថតអេក្រង់ឱ្យច្បាស់។",
-  tooLarge: "ឯកសារនេះធំជាង 10 MB។ រក្សាទុកតែទំព័រដែលត្រូវការ ឬថតអេក្រង់។",
+  unsupportedType:
+    "ជ្រើសរូបថត ឬ PDF។ ឯកសារ HWP, Word, Excel, PowerPoint ត្រូវរក្សាទុកជា PDF មុន រួចជ្រើសម្តងទៀត។",
+  tooLarge:
+    "ឯកសារនេះធំពេក។ រូបថតត្រូវតិចជាង 20 MB និង PDF តិចជាង 10 MB ឬរក្សាទុកតែទំព័រដែលត្រូវការ។",
   tooManyPages: "PDF នេះលើស 10 ទំព័រ។ រក្សាទុកតែទំព័រដែលអ្នកត្រូវការ។",
   lockedPdf: "PDF នេះមានពាក្យសម្ងាត់។ បើកក្នុងទូរស័ព្ទ ហើយថតអេក្រង់ទំព័រដែលត្រូវការ។",
   damagedFile: "ឯកសារនេះបើកមិនបាន។ រក្សាទុកម្តងទៀត ឬថតអេក្រង់ឱ្យច្បាស់។",
@@ -859,11 +939,10 @@ const km = {
   helpAskStaff: "នៅតែមិនបាន? សូមសួរបុគ្គលិកនៅជិតម៉ាស៊ីនបោះពុម្ព។",
 
   kioskScanTitle: "ស្កេនកូដ QR នេះដោយកាមេរ៉ាទូរស័ព្ទ",
-  kioskNoWifi: "មិនត្រូវការ Wi-Fi — ប្រើទិន្នន័យទូរស័ព្ទ",
 } satisfies Translation;
 
 const ar = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "اختر لغتك",
   selectLanguageHint: "اضغط على لغتك، ثم اضغط الزر في الأسفل.",
@@ -875,7 +954,7 @@ const ar = {
   guideScanTitle: "1. امسح رمز QR",
   guideScanBody: "مسحته بكاميرا هاتفك. انتهت هذه الخطوة.",
   guideChooseTitle: "2. اختر ملفًا واحدًا",
-  guideChooseBody: "صورة واحدة، أو ملف PDF واحد محفوظ في هاتفك.",
+  guideChooseBody: "صورة واحدة من المعرض، أو ملف PDF واحد محفوظ في هاتفك.",
   guideCheckTitle: "3. تحقّق ثم اطبع",
   guideCheckBody: "انظر إلى الصورة على هاتفك، ثم اضغط زر الطباعة.",
   guideCollectTitle: "4. خذ ورقتك",
@@ -886,7 +965,16 @@ const ar = {
   guideReminder: "اقرأ الخطوات الأربع، ثم اضغط الزر في الأسفل.",
 
   chooseFile: "اختر ملفًا واحدًا للطباعة",
-  fileRules: "PDF أو JPG أو PNG · حتى 10 MB · حتى 10 صفحات",
+  fileRules: "صورة أو PDF · الصور حتى 20 MB · ملف PDF حتى 10 MB و10 صفحات",
+  guideChooseBodyHwpx: "صورة واحدة، أو ملف PDF واحد، أو ملف HWPX واحد من هاتفك.",
+  fileRulesHwpx:
+    "صورة أو PDF أو HWPX · الصور حتى 20 MB · المستندات حتى 10 MB · ملف PDF حتى 10 صفحات",
+  documentNeedsPdf:
+    "احفظ هذا المستند بصيغة PDF على هاتفك، ثم اختره مرة أخرى. لا يُرسل مستندك إلى شركة أخرى لتحويله.",
+  imageConversionUnsupported:
+    "لا يستطيع هذا الهاتف فتح تلك الصورة. احفظها بصيغة JPG في تطبيق الصور، أو التقط صورة شاشة، ثم اخترها مرة أخرى.",
+  hwpxUnavailable: "لا تستطيع هذه الطابعة فتح ملف HWPX. احفظ المستند بصيغة PDF واختره مرة أخرى.",
+  hwpxPreview: "مستند HWPX · تطبعه محطة Windows",
   locationPhotos: "افتح صوري",
   locationFiles: "افتح ملفاتي",
   cancelled: "لا يوجد ملف بعد. اضغط أحد الزرين في الأسفل.",
@@ -915,8 +1003,10 @@ const ar = {
   invalidQr: "هذا الرابط غير مكتمل. امسح رمز QR على الشاشة الكبيرة مرة أخرى.",
   expiredQr: "رمز QR هذا قديم. امسح رمز QR الجديد على الشاشة الكبيرة.",
   usedQr: "هناك شخص يستخدم رمز QR هذا. امسح الرمز الجديد على الشاشة الكبيرة.",
-  unsupportedType: "يمكن طباعة PDF وJPG وPNG فقط. احفظ صفحتك بصيغة PDF، أو التقط صورة شاشة واضحة.",
-  tooLarge: "حجم هذا الملف أكبر من 10 MB. احفظ الصفحات التي تحتاجها فقط، أو التقط صورة شاشة.",
+  unsupportedType:
+    "اختر صورة أو ملف PDF. احفظ ملفات HWP وWord وExcel وPowerPoint بصيغة PDF أولًا، ثم اخترها.",
+  tooLarge:
+    "هذا الملف كبير جدًا. يجب أن تكون الصور أقل من 20 MB وملفات PDF أقل من 10 MB، أو احفظ الصفحات التي تحتاجها فقط.",
   tooManyPages: "ملف PDF هذا أكثر من 10 صفحات. احفظ الصفحات التي تحتاجها فقط.",
   lockedPdf: "ملف PDF هذا محمي بكلمة مرور. افتحه على هاتفك والتقط صورة شاشة للصفحات التي تحتاجها.",
   damagedFile: "هذا الملف لا يُفتح. احفظه مرة أخرى، أو التقط صورة شاشة واضحة.",
@@ -948,11 +1038,10 @@ const ar = {
   helpAskStaff: "ما زال الأمر صعبًا؟ اسأل أحد الموظفين قرب الطابعة.",
 
   kioskScanTitle: "امسح رمز QR هذا بكاميرا هاتفك",
-  kioskNoWifi: "لا حاجة إلى Wi-Fi — استخدم بيانات هاتفك",
 } satisfies Translation;
 
 const ru = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "Выберите язык",
   selectLanguageHint: "Нажмите на свой язык. Затем нажмите кнопку внизу.",
@@ -964,7 +1053,7 @@ const ru = {
   guideScanTitle: "1. Отсканируйте QR-код",
   guideScanBody: "Вы отсканировали его камерой телефона. Этот шаг сделан.",
   guideChooseTitle: "2. Выберите один файл",
-  guideChooseBody: "Одно фото или один PDF, сохранённый в телефоне.",
+  guideChooseBody: "Одно фото из галереи или один PDF, сохранённый в телефоне.",
   guideCheckTitle: "3. Проверьте и печатайте",
   guideCheckBody: "Посмотрите на картинку в телефоне и нажмите кнопку печати.",
   guideCollectTitle: "4. Заберите свой лист",
@@ -975,7 +1064,16 @@ const ru = {
   guideReminder: "Прочитайте четыре шага, затем нажмите кнопку внизу.",
 
   chooseFile: "Выберите один файл для печати",
-  fileRules: "PDF, JPG или PNG · до 10 МБ · до 10 страниц",
+  fileRules: "Фото или PDF · фото до 20 МБ · PDF до 10 МБ и 10 страниц",
+  guideChooseBodyHwpx: "Одно фото, один PDF или один файл HWPX из телефона.",
+  fileRulesHwpx: "Фото, PDF или HWPX · фото до 20 МБ · документы до 10 МБ · PDF до 10 страниц",
+  documentNeedsPdf:
+    "Сохраните этот документ на телефоне как PDF и выберите его снова. Ваш документ не отправляется в другую компанию для преобразования.",
+  imageConversionUnsupported:
+    "Этот телефон не может открыть такое фото. Сохраните его как JPG в приложении «Фото» или сделайте снимок экрана, затем выберите снова.",
+  hwpxUnavailable:
+    "Этот принтер не может открыть файл HWPX. Сохраните документ как PDF и выберите его снова.",
+  hwpxPreview: "Документ HWPX · печатает киоск Windows",
   locationPhotos: "Открыть мои фото",
   locationFiles: "Открыть мои файлы",
   cancelled: "Файл ещё не выбран. Нажмите одну из двух кнопок ниже.",
@@ -1005,8 +1103,9 @@ const ru = {
   expiredQr: "Этот QR-код устарел. Отсканируйте новый QR-код на большом экране.",
   usedQr: "Этим QR-кодом уже пользуются. Отсканируйте новый на большом экране.",
   unsupportedType:
-    "Печатаются только PDF, JPG и PNG. Сохраните страницу как PDF или сделайте чёткий снимок экрана.",
-  tooLarge: "Этот файл больше 10 МБ. Сохраните только нужные страницы или сделайте снимок экрана.",
+    "Выберите фото или PDF. Файл HWP, Word, Excel или PowerPoint сначала сохраните как PDF, затем выберите его.",
+  tooLarge:
+    "Этот файл слишком большой. Фото должно быть меньше 20 МБ, а PDF меньше 10 МБ, либо сохраните только нужные страницы.",
   tooManyPages: "В этом PDF больше 10 страниц. Сохраните только нужные страницы.",
   lockedPdf: "У этого PDF есть пароль. Откройте его на телефоне и снимите нужные страницы.",
   damagedFile: "Этот файл не открывается. Сохраните его снова или сделайте чёткий снимок экрана.",
@@ -1041,11 +1140,10 @@ const ru = {
   helpAskStaff: "Всё равно не получается? Попросите помощи у сотрудника рядом с принтером.",
 
   kioskScanTitle: "Отсканируйте этот QR-код камерой телефона",
-  kioskNoWifi: "Wi-Fi не нужен — используйте мобильный интернет",
 } satisfies Translation;
 
 const mn = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "Хэлээ сонгоно уу",
   selectLanguageHint: "Хэлээ дарна уу. Дараа нь доод товчийг дарна уу.",
@@ -1057,7 +1155,7 @@ const mn = {
   guideScanTitle: "1. QR код уншуулах",
   guideScanBody: "Та утасныхаа камераар уншуулсан. Энэ алхам дууслаа.",
   guideChooseTitle: "2. Нэг файл сонгох",
-  guideChooseBody: "Нэг зураг, эсвэл утсандаа хадгалсан нэг PDF.",
+  guideChooseBody: "Цомгийн нэг зураг, эсвэл утсандаа хадгалсан нэг PDF.",
   guideCheckTitle: "3. Шалгаад хэвлэх",
   guideCheckBody: "Утсан дээрх зургийг хараад хэвлэх товчийг дарна уу.",
   guideCollectTitle: "4. Цаасаа авах",
@@ -1068,7 +1166,17 @@ const mn = {
   guideReminder: "Дөрвөн алхмыг уншаад доод товчийг дарна уу.",
 
   chooseFile: "Хэвлэх нэг файлаа сонгоно уу",
-  fileRules: "PDF, JPG эсвэл PNG · 10 MB хүртэл · 10 хуудас хүртэл",
+  fileRules: "Зураг эсвэл PDF · зураг 20 MB хүртэл · PDF 10 MB, 10 хуудас хүртэл",
+  guideChooseBodyHwpx: "Нэг зураг, нэг PDF, эсвэл нэг HWPX файл.",
+  fileRulesHwpx:
+    "Зураг, PDF эсвэл HWPX · зураг 20 MB хүртэл · баримт 10 MB хүртэл · PDF 10 хуудас хүртэл",
+  documentNeedsPdf:
+    "Энэ баримтыг утсан дээрээ PDF болгож хадгалаад дахин сонгоно уу. Таны баримтыг хөрвүүлэхээр өөр компанид илгээдэггүй.",
+  imageConversionUnsupported:
+    "Энэ утас тэр зургийг нээж чадахгүй. Зургийн апп дээр JPG болгож хадгалах эсвэл дэлгэцийн зураг аваад дахин сонгоно уу.",
+  hwpxUnavailable:
+    "Энэ хэвлэгч HWPX файлыг нээж чадахгүй. Баримтыг PDF болгож хадгалаад дахин сонгоно уу.",
+  hwpxPreview: "HWPX баримт · Windows киоск хэвлэнэ",
   locationPhotos: "Зургаа нээх",
   locationFiles: "Файлаа нээх",
   cancelled: "Файл сонгоогүй байна. Доорх хоёр товчийн аль нэгийг дарна уу.",
@@ -1098,8 +1206,9 @@ const mn = {
   expiredQr: "Энэ QR код хэтэрхий хуучин. Том дэлгэцэн дээрх шинэ QR кодыг уншуулна уу.",
   usedQr: "Энэ QR кодыг өөр хүн ашиглаж байна. Том дэлгэцэн дээрх шинийг уншуулна уу.",
   unsupportedType:
-    "Зөвхөн PDF, JPG, PNG хэвлэнэ. Хуудсаа PDF болгож хадгалах эсвэл тод дэлгэцийн зураг авна уу.",
-  tooLarge: "Энэ файл 10 MB-аас том. Зөвхөн шаардлагатай хуудсаа хадгална уу.",
+    "Зураг эсвэл PDF сонгоно уу. HWP, Word, Excel, PowerPoint файлыг эхлээд PDF болгож хадгалаад сонгоно уу.",
+  tooLarge:
+    "Энэ файл хэтэрхий том. Зураг 20 MB, PDF 10 MB-аас бага байх ёстой, эсвэл шаардлагатай хуудсаа хадгална уу.",
   tooManyPages: "Энэ PDF 10 хуудсаас их. Зөвхөн шаардлагатай хуудсаа хадгална уу.",
   lockedPdf:
     "Энэ PDF нууц үгтэй. Утсан дээрээ нээгээд шаардлагатай хуудсуудын дэлгэцийн зургийг авна уу.",
@@ -1136,11 +1245,10 @@ const mn = {
   helpAskStaff: "Хэвээр болохгүй бол хэвлэгчийн хажууд байгаа ажилтнаас асууна уу.",
 
   kioskScanTitle: "Утасныхаа камераар энэ QR кодыг уншуулна уу",
-  kioskNoWifi: "Wi-Fi шаардлагагүй — мобайл дата хэрэглээрэй",
 } satisfies Translation;
 
 const uk = {
-  brand: "Print-cess by Paradiso",
+  brand: "Print-cess by Club Paradiso",
 
   selectLanguage: "Виберіть свою мову",
   selectLanguageHint: "Натисніть свою мову. Потім натисніть кнопку внизу.",
@@ -1152,7 +1260,7 @@ const uk = {
   guideScanTitle: "1. Відскануйте QR-код",
   guideScanBody: "Ви відсканували його камерою телефону. Цей крок готовий.",
   guideChooseTitle: "2. Виберіть один файл",
-  guideChooseBody: "Одне фото або один PDF, збережений у телефоні.",
+  guideChooseBody: "Одне фото з галереї або один PDF, збережений у телефоні.",
   guideCheckTitle: "3. Перевірте і друкуйте",
   guideCheckBody: "Подивіться на зображення в телефоні й натисніть кнопку друку.",
   guideCollectTitle: "4. Заберіть свій аркуш",
@@ -1163,7 +1271,16 @@ const uk = {
   guideReminder: "Прочитайте чотири кроки, потім натисніть кнопку внизу.",
 
   chooseFile: "Виберіть один файл для друку",
-  fileRules: "PDF, JPG або PNG · до 10 МБ · до 10 сторінок",
+  fileRules: "Фото або PDF · фото до 20 МБ · PDF до 10 МБ і 10 сторінок",
+  guideChooseBodyHwpx: "Одне фото, один PDF або один файл HWPX із телефону.",
+  fileRulesHwpx: "Фото, PDF або HWPX · фото до 20 МБ · документи до 10 МБ · PDF до 10 сторінок",
+  documentNeedsPdf:
+    "Збережіть цей документ на телефоні як PDF і виберіть його знову. Ваш документ не надсилається в іншу компанію для перетворення.",
+  imageConversionUnsupported:
+    "Цей телефон не може відкрити таке фото. Збережіть його як JPG у застосунку «Фото» або зробіть знімок екрана, потім виберіть знову.",
+  hwpxUnavailable:
+    "Цей принтер не може відкрити файл HWPX. Збережіть документ як PDF і виберіть його знову.",
+  hwpxPreview: "Документ HWPX · друкує кіоск Windows",
   locationPhotos: "Відкрити мої фото",
   locationFiles: "Відкрити мої файли",
   cancelled: "Файл ще не вибрано. Натисніть одну з двох кнопок нижче.",
@@ -1193,8 +1310,9 @@ const uk = {
   expiredQr: "Цей QR-код застарів. Відскануйте новий QR-код на великому екрані.",
   usedQr: "Цим QR-кодом уже користуються. Відскануйте новий на великому екрані.",
   unsupportedType:
-    "Друкуються лише PDF, JPG і PNG. Збережіть сторінку як PDF або зробіть чіткий знімок екрана.",
-  tooLarge: "Цей файл більший за 10 МБ. Збережіть лише потрібні сторінки.",
+    "Виберіть фото або PDF. Файл HWP, Word, Excel чи PowerPoint спочатку збережіть як PDF, а потім виберіть його.",
+  tooLarge:
+    "Цей файл завеликий. Фото має бути менше 20 МБ, а PDF менше 10 МБ, або збережіть лише потрібні сторінки.",
   tooManyPages: "У цьому PDF більше 10 сторінок. Збережіть лише потрібні сторінки.",
   lockedPdf: "Цей PDF має пароль. Відкрийте його на телефоні й зніміть потрібні сторінки.",
   damagedFile: "Цей файл не відкривається. Збережіть його ще раз або зробіть чіткий знімок.",
@@ -1229,7 +1347,6 @@ const uk = {
   helpAskStaff: "Усе одно не виходить? Попросіть допомоги у працівника біля принтера.",
 
   kioskScanTitle: "Відскануйте цей QR-код камерою телефону",
-  kioskNoWifi: "Wi-Fi не потрібен — використовуйте мобільний інтернет",
 } satisfies Translation;
 
 export const TRANSLATIONS: Record<SupportedLocale, Translation> = {

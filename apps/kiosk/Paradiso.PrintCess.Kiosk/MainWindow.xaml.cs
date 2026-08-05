@@ -14,6 +14,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly IAdminAuthenticator _adminAuthenticator;
+    private readonly AdminAuthenticationThrottle _adminAuthenticationThrottle = new();
     private readonly PrintRecoveryReport _recoveryReport;
     private readonly IKioskAdminRuntime? _runtime;
     private readonly IPrintSubmissionJournal? _journal;
@@ -42,7 +43,12 @@ public partial class MainWindow : Window
             Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             e.Handled = true;
-            var login = new AdminLoginWindow(_adminAuthenticator, _recoveryReport, _journal, _runtime)
+            var login = new AdminLoginWindow(
+                _adminAuthenticator,
+                _adminAuthenticationThrottle,
+                _recoveryReport,
+                _journal,
+                _runtime)
             {
                 Owner = this,
             };

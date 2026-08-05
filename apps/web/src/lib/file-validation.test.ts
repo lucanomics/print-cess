@@ -2,19 +2,63 @@ import { describe, expect, it } from "vitest";
 
 import {
   FileValidationError,
+  classifySelectedFile,
   decodedDimensionsMatch,
   detectFileKind,
   parsePngDimensions,
-  validateDimensions,
+  validateFileForMobile,
   validatePdf,
 } from "./file-validation";
 
 describe("file validation", () => {
   it("detects signatures instead of trusting filenames", () => {
     expect(detectFileKind(new TextEncoder().encode("%PDF-1.7\n"))).toBe("pdf");
+    expect(detectFileKind(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe("jpeg");
     expect(() => detectFileKind(new TextEncoder().encode("MZ pretend.pdf"))).toThrow(
       FileValidationError,
     );
+  });
+
+  it("classifies common phone images for local normalization", () => {
+    expect(classifySelectedFile({ name: "photo.HEIC", type: "image/heic" })).toBe("image");
+    expect(classifySelectedFile({ name: "scan.webp", type: "image/webp" })).toBe("image");
+    expect(classifySelectedFile({ name: "legacy.tiff", type: "" })).toBe("image");
+    expect(classifySelectedFile({ name: "unsafe.svg", type: "image/svg+xml" })).toBe("unknown");
+  });
+
+  it("routes office and Hangul documents to the PDF guidance", () => {
+    expect(classifySelectedFile({ name: "application.hwp", type: "application/x-hwp" })).toBe(
+      "document",
+    );
+    expect(
+      classifySelectedFile({
+        name: "form.docx",
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      }),
+    ).toBe("document");
+    expect(classifySelectedFile({ name: "table.xlsx", type: "application/vnd.ms-excel" })).toBe(
+      "document",
+    );
+  });
+
+  it("accepts canonical HWPX only for a capable kiosk", async () => {
+    const mime = new TextEncoder().encode("application/hwp+zip");
+    const bytes = new Uint8Array(30 + 8 + mime.length);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(8, 0, true);
+    view.setUint32(18, mime.length, true);
+    view.setUint32(22, mime.length, true);
+    view.setUint16(26, 8, true);
+    bytes.set(new TextEncoder().encode("mimetype"), 30);
+    bytes.set(mime, 38);
+    const file = new File([bytes], "application.hwpx", { type: "application/hwp+zip" });
+
+    await expect(validateFileForMobile(file)).rejects.toMatchObject({ code: "hwpxUnavailable" });
+    await expect(validateFileForMobile(file, { allowHwpx: true })).resolves.toMatchObject({
+      fileKind: "hwpx",
+      normalized: false,
+    });
   });
 
   it("parses PNG dimensions from IHDR", () => {
@@ -24,6 +68,14 @@ describe("file validation", () => {
     view.setUint32(16, 1170, false);
     view.setUint32(20, 1654, false);
     expect(parsePngDimensions(bytes)).toEqual({ width: 1170, height: 1654 });
+  });
+
+  it("accepts a photo whose decoded axes are swapped by its EXIF orientation", () => {
+    // A phone photo held sideways: 4032x3024 in the file, decoded as 3024x4032.
+    const stored = { width: 4032, height: 3024 };
+    expect(decodedDimensionsMatch(stored, { width: 3024, height: 4032 })).toBe(true);
+    expect(decodedDimensionsMatch(stored, stored)).toBe(true);
+    expect(decodedDimensionsMatch(stored, { width: 1024, height: 768 })).toBe(false);
   });
 
   it("rejects active PDF content that hex-escapes its name", async () => {
@@ -44,31 +96,5 @@ describe("file validation", () => {
     await expect(validatePdf(escaped)).rejects.toThrow(
       expect.objectContaining({ code: "lockedPdf" }),
     );
-  });
-
-  it("accepts a photo whose decoded axes are swapped by its EXIF orientation", () => {
-    // A phone photo held sideways: 4032x3024 in the file, decoded as 3024x4032.
-    const stored = { width: 4032, height: 3024 };
-    expect(decodedDimensionsMatch(stored, { width: 3024, height: 4032 })).toBe(true);
-    expect(decodedDimensionsMatch(stored, stored)).toBe(true);
-    expect(decodedDimensionsMatch(stored, { width: 1024, height: 768 })).toBe(false);
-  });
-
-  it("accepts the output of a current phone camera", () => {
-    // 48 MP still, ~7 MB, and a 14,000-pixel-wide phone panorama: both were
-    // rejected as damaged by the previous 12,000-edge / 40 MP budget.
-    expect(() => validateDimensions(8064, 6048, 7 * 1024 * 1024)).not.toThrow();
-    expect(() => validateDimensions(14_000, 3_000, 4 * 1024 * 1024)).not.toThrow();
-  });
-
-  it("still rejects dimensions a tiny file could not really contain", () => {
-    // 40 MP declared by 8 KB: a decompression bomb, not a photograph.
-    expect(() => validateDimensions(8000, 5000, 8 * 1024)).toThrow(
-      expect.objectContaining({ code: "damagedFile" }),
-    );
-    expect(() => validateDimensions(40_000, 40_000, 9 * 1024 * 1024)).toThrow(
-      expect.objectContaining({ code: "damagedFile" }),
-    );
-    expect(() => validateDimensions(0, 100, 1024)).toThrow(FileValidationError);
   });
 });

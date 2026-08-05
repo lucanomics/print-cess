@@ -13,6 +13,7 @@ const originConfig = {
   cleanupProvider: "qstash",
   publicBaseUrl: "https://print-cess.vercel.app",
   allowedOrigins: ["https://print-cess.vercel.app"],
+  qrTtlMs: 120_000,
   sessionTtlMs: 180_000,
   signedUrlTtlMs: 120_000,
   demoEnabled: false,

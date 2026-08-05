@@ -17,6 +17,7 @@ const configSchema = z.object({
   cleanupProvider: z.enum(CLEANUP_PROVIDERS).nullable(),
   publicBaseUrl: z.string().url(),
   allowedOrigins: z.array(z.string().url()).min(1),
+  qrTtlMs: z.number().int().min(30_000).max(300_000),
   sessionTtlMs: z.number().int().min(30_000).max(300_000),
   signedUrlTtlMs: z.number().int().min(15_000).max(180_000),
   demoEnabled: z.boolean(),
@@ -57,10 +58,15 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
+    qrTtlMs: Number(environment.QR_TTL_SECONDS ?? 120) * 1000,
     sessionTtlMs: Number(environment.SESSION_TTL_SECONDS ?? 180) * 1000,
     signedUrlTtlMs: Number(environment.SIGNED_URL_TTL_SECONDS ?? 120) * 1000,
     demoEnabled: isDemoRouteEnabled(environment) || environment.NODE_ENV !== "production",
   });
+
+  if (config.qrTtlMs > config.sessionTtlMs) {
+    throw new Error("QR_TTL_SECONDS must not exceed SESSION_TTL_SECONDS");
+  }
 
   if (environment.NODE_ENV === "production") {
     assertExactHttpsOrigin(config.publicBaseUrl, "PUBLIC_BASE_URL");

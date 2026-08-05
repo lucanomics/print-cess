@@ -56,9 +56,9 @@ import {
 import { BrowserSpeechSynthesisGuide } from "@/lib/audio-guide";
 import {
   FileValidationError,
-  validateFileForMobile,
+  validateMobileDocument,
   type ValidatedMobileFile,
-} from "@/lib/file-validation";
+} from "@/lib/mobile-document-validation";
 import { parseSessionFragment } from "@/lib/session-fragment";
 import { DocumentPreview } from "./document-preview";
 
@@ -89,12 +89,19 @@ const HELP_KEYS: Record<Stage, string> = {
   error: "helpError",
 };
 
-const GUIDE_STEPS = [
-  { icon: ScanLine, title: "guideScanTitle", body: "guideScanBody", completed: true },
-  { icon: ImageIcon, title: "guideChooseTitle", body: "guideChooseBody", completed: false },
-  { icon: FileCheck2, title: "guideCheckTitle", body: "guideCheckBody", completed: false },
-  { icon: Printer, title: "guideCollectTitle", body: "guideCollectBody", completed: false },
-] as const;
+function guideStepsFor(supportsHancom: boolean) {
+  return [
+    { icon: ScanLine, title: "guideScanTitle", body: "guideScanBody", completed: true },
+    {
+      icon: ImageIcon,
+      title: "guideChooseTitle",
+      body: supportsHancom ? "guideChooseBodyHwpx" : "guideChooseBody",
+      completed: false,
+    },
+    { icon: FileCheck2, title: "guideCheckTitle", body: "guideCheckBody", completed: false },
+    { icon: Printer, title: "guideCollectTitle", body: "guideCollectBody", completed: false },
+  ] as const;
+}
 
 export function MobileFlow({ sessionId }: { sessionId: string }) {
   const [stage, setStage] = useState<Stage>("boot");
@@ -107,6 +114,8 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   const [fileErrorKey, setFileErrorKey] = useState<string>();
   const [fileNoticeKey, setFileNoticeKey] = useState<string>();
   const [progressKey, setProgressKey] = useState("encrypting");
+  const [supportsHwpx, setSupportsHwpx] = useState(false);
+  const [supportsHwp, setSupportsHwp] = useState(false);
   const [reminderStage, setReminderStage] = useState<Stage>();
   const [helpOpen, setHelpOpen] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -190,6 +199,8 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         return;
       }
       try {
+        setSupportsHwpx(fragment.supportsHwpx);
+        setSupportsHwp(fragment.supportsHwp);
         const nextMobileToken = generateToken();
         const claimId = generateToken();
         const response = await claimSession({
@@ -237,7 +248,10 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       try {
         setFileErrorKey(undefined);
         setFileNoticeKey(undefined);
-        const result = await validateFileForMobile(selected);
+        const result = await validateMobileDocument(selected, {
+          allowHwp: supportsHwp,
+          allowHwpx: supportsHwpx,
+        });
         setFile(selected);
         setValidated(result);
         setStage("preview");
@@ -246,7 +260,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         setFileErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
       }
     },
-    [clearDocument],
+    [clearDocument, supportsHwp, supportsHwpx],
   );
 
   const print = useCallback(async () => {
@@ -320,6 +334,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       : stage === "guide"
         ? "guideReminder"
         : HELP_KEYS[stage];
+  const supportsHancom = supportsHwp || supportsHwpx;
 
   return (
     <ScreenShell>
@@ -352,7 +367,10 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       {stage === "guide" ? (
         <GuideStep
           text={text}
-          onListen={() => void speak(GUIDE_STEPS.flatMap(({ title, body }) => [title, body]))}
+          supportsHancom={supportsHancom}
+          onListen={() =>
+            void speak(guideStepsFor(supportsHancom).flatMap(({ title, body }) => [title, body]))
+          }
           onContinue={() => setStage("file")}
         />
       ) : null}
@@ -362,13 +380,13 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             <FileImage size={32} aria-hidden="true" />
           </StatusIcon>
           <h1>{text("chooseFile")}</h1>
-          <p>{text("fileRules")}</p>
+          <p>{expandHancomLabel(text(supportsHancom ? "fileRulesHwpx" : "fileRules"))}</p>
           <input
             ref={photoInput}
             data-testid="photo-input"
             hidden
             type="file"
-            accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+            accept="image/*,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
           <input
@@ -376,12 +394,12 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             data-testid="file-input"
             hidden
             type="file"
-            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+            accept="application/pdf,application/x-hwp,application/haansofthwp,application/hwp+zip,image/*,.pdf,.hwp,.hwpx,.jpg,.jpeg,.png,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
           {fileErrorKey ? (
             <p className="mobile-file-error" role="alert">
-              {text(fileErrorKey)}
+              {expandHancomLabel(text(fileErrorKey))}
             </p>
           ) : null}
           {!fileErrorKey && fileNoticeKey ? (
@@ -411,6 +429,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
               selectedDocumentPreview: text("selectedDocumentPreview"),
               pdfPreview: text("pdfPreview"),
               firstPagePreview: text("firstPagePreview"),
+              hwpxPreview: expandHancomLabel(text("hwpxPreview")),
             }}
           />
           <div className="mobile-summary">
@@ -516,10 +535,12 @@ function LanguageStep({
 
 function GuideStep({
   text,
+  supportsHancom,
   onContinue,
   onListen,
 }: {
   text: Text;
+  supportsHancom: boolean;
   onContinue: () => void;
   onListen: () => void;
 }) {
@@ -530,7 +551,7 @@ function GuideStep({
         <p>{text("guideIntro")}</p>
       </div>
       <ol className="mobile-guide" aria-label={text("guideTitle")}>
-        {GUIDE_STEPS.map(({ icon: Icon, title, body, completed }) => (
+        {guideStepsFor(supportsHancom).map(({ icon: Icon, title, body, completed }) => (
           <li key={title} className={completed ? "is-complete" : undefined}>
             <span className="mobile-guide__icon" aria-hidden="true">
               <Icon />
@@ -538,7 +559,7 @@ function GuideStep({
             </span>
             <span>
               <strong>{text(title)}</strong>
-              <small>{text(body)}</small>
+              <small>{expandHancomLabel(text(body))}</small>
             </span>
           </li>
         ))}
@@ -668,4 +689,8 @@ function ProgressState({ text, keepPageOpen }: { text: string; keepPageOpen: str
       <p>{keepPageOpen}</p>
     </section>
   );
+}
+
+function expandHancomLabel(value: string): string {
+  return value.replaceAll("HWPX", "HWP/HWPX");
 }

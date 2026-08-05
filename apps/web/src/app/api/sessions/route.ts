@@ -31,7 +31,8 @@ export async function POST(request: Request) {
     after(async () => {
       await sweepDueOrphans(server, Date.now(), 3).catch(() => undefined);
     });
-    const qrUrl = `${server.config.publicBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}`;
+    const capability = input.supportsHwpx || input.supportsHwp ? "&hwpx=1" : "";
+    const qrUrl = `${server.config.publicBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}${capability}`;
     return json(
       {
         protocolVersion: 1,

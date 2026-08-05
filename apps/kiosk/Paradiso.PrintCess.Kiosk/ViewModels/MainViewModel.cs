@@ -10,7 +10,7 @@ namespace Paradiso.PrintCess.Kiosk.ViewModels;
 public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly DispatcherTimer _timer;
-    private readonly string _productName = "Print-cess by Paradiso";
+    private readonly string _productName = "Print-cess by Club Paradiso";
     private KioskUiState _state = KioskUiState.Preparing;
     private DateTimeOffset? _deadline;
     private ImageSource? _qrCodeImage;
@@ -106,14 +106,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         State = KioskUiState.Waiting;
         StatusLabel = "준비";
         PrimaryInstruction = "휴대전화 카메라로 QR코드를 스캔하세요";
-        SecondaryInstruction = "Wi-Fi는 필요하지 않습니다. 휴대전화 모바일 데이터를 사용하세요";
+        SecondaryInstruction = "QR코드를 비춘 뒤 휴대전화 화면에 나타나는 링크를 누르세요";
         UpdateCountdown();
     }
 
     public void ShowClaimed()
     {
         ClearQr();
-        SetProgress(KioskUiState.Claimed, "휴대전화 연결됨", "휴대전화에서 문서를 선택해 주세요", "PDF, JPG, PNG 파일 한 개를 보낼 수 있습니다", preserveDeadline: true);
+        SetProgress(KioskUiState.Claimed, "휴대전화 연결됨", "휴대전화에서 문서를 선택해 주세요", "휴대전화 화면에 표시되는 지원 형식의 파일 한 개를 보낼 수 있습니다", preserveDeadline: true);
     }
 
     public void ShowUploading() =>

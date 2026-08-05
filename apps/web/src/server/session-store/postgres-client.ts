@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 
 import { ServiceError } from "../errors";
@@ -6,6 +8,9 @@ const TABLE_NAME = "print_cess_preview_state_v1";
 const CONNECT_TIMEOUT_MS = 10_000;
 const IDLE_TIMEOUT_MS = 30_000;
 const MAX_POOL_SIZE = 4;
+const DEFAULT_TLS_SERVER_NAME = "localhost";
+const DNS_SERVER_NAME_PATTERN =
+  /^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)*[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/u;
 
 export interface PostgresQueryClient {
   query<R extends QueryResultRow = QueryResultRow>(
@@ -40,19 +45,29 @@ export function createPostgresExecutor(
   }
   assertPemCertificate(ca);
   assertPostgresUrl(url);
-  const cacheKey = `${url}\u0000${ca}`;
+  const tlsServerName = readPostgresTlsServerName(environment);
+  const cacheKey = `${url}\u0000${ca}\u0000${tlsServerName}`;
   const cached = executors.get(cacheKey);
   if (cached) return cached;
-  const executor = new NodePostgresExecutor(url, ca);
+  const executor = new NodePostgresExecutor(url, ca, tlsServerName);
   executors.set(cacheKey, executor);
   return executor;
+}
+
+export function readPostgresTlsServerName(environment: NodeJS.ProcessEnv = process.env): string {
+  const raw = environment.POSTGRES_TLS_SERVER_NAME ?? DEFAULT_TLS_SERVER_NAME;
+  const value = raw.trim();
+  if (value !== raw || !DNS_SERVER_NAME_PATTERN.test(value) || isIP(value) !== 0) {
+    throw new Error("POSTGRES_TLS_SERVER_NAME must be one valid DNS host name");
+  }
+  return value;
 }
 
 class NodePostgresExecutor implements PostgresExecutor {
   readonly #pool: Pool;
   readonly #ready: Promise<void>;
 
-  public constructor(url: string, ca: string) {
+  public constructor(url: string, ca: string, tlsServerName: string) {
     this.#pool = new Pool({
       connectionString: url,
       connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
@@ -61,10 +76,10 @@ class NodePostgresExecutor implements PostgresExecutor {
       ssl: {
         ca,
         rejectUnauthorized: true,
-        // Railway's database certificate is issued for localhost while the
-        // external TCP proxy supplies a generated hostname. Pin the database's
-        // private root CA instead of disabling certificate-chain verification.
-        checkServerIdentity: () => undefined,
+        // Railway's database certificate can be issued for an internal TLS
+        // identity such as localhost while the TCP proxy has a generated host.
+        // Verify that identity explicitly instead of disabling hostname checks.
+        servername: tlsServerName,
       },
     });
     this.#pool.on("error", () => {});

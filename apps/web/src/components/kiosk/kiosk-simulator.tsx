@@ -8,10 +8,8 @@ import {
   Languages,
   LockKeyhole,
   Printer,
-  ScanLine,
   ShieldCheck,
   Smartphone,
-  WifiOff,
 } from "lucide-react";
 import QRCode from "qrcode";
 
@@ -65,12 +63,6 @@ const SPOTLIGHT_LOCALES: readonly SupportedLocale[] = SUPPORTED_LOCALES.filter(
 );
 const SPOTLIGHT_INTERVAL_MS = 4500;
 
-const KIOSK_STEPS = [
-  { icon: ScanLine, korean: "QR코드 스캔", english: "Scan the QR code" },
-  { icon: Smartphone, korean: "휴대전화에서 문서 한 개 고르기", english: "Pick one file" },
-  { icon: Printer, korean: "여기에서 종이 받기", english: "Take your paper here" },
-] as const;
-
 type RegisteredSession = {
   sessionId: string;
   expiresAt: number;
@@ -84,7 +76,7 @@ type RegisteredSession = {
 export function KioskSimulator({ automaticPrinting = false }: { automaticPrinting?: boolean }) {
   const [session, setSession] = useState<RegisteredSession>();
   const [status, setStatus] = useState<KioskStatus>("preparing");
-  const [remaining, setRemaining] = useState(180);
+  const [remaining, setRemaining] = useState(120);
   const [completionRemaining, setCompletionRemaining] = useState(60);
   const [artifact, setArtifact] = useState<PrintArtifact>();
   const [generation, setGeneration] = useState(0);
@@ -103,6 +95,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
     replaceArtifact(undefined);
     setSession(undefined);
     setStatus("preparing");
+    setRemaining(120);
     setCompletionRemaining(60);
     setGeneration((value) => value + 1);
   }, [replaceArtifact]);
@@ -156,6 +149,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
           color: { dark: "#071737", light: "#ffffff" },
         });
         if (!active) return;
+        setRemaining(Math.max(0, Math.ceil((body.expiresAt - Date.now()) / 1000)));
         setSession({ ...body, qrImage, privateKey: keyPair.privateKey, fingerprint });
         setStatus("waiting");
       } catch (error) {
@@ -193,7 +187,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
             cache: "no-store",
           });
           if (!response.ok) return;
-          const body = (await response.json()) as { status: string };
+          const body = (await response.json()) as { status: string; expiresAt?: number };
           if (!active) return;
           if (body.status === "expired" || body.status === "cancelled") {
             reset();
@@ -202,6 +196,14 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
           if (body.status === "failed") {
             setStatus("failed");
             return;
+          }
+          if (typeof body.expiresAt === "number" && Number.isFinite(body.expiresAt)) {
+            setSession((current) =>
+              current && current.sessionId === session.sessionId
+                ? { ...current, expiresAt: body.expiresAt as number }
+                : current,
+            );
+            setRemaining(Math.max(0, Math.ceil((body.expiresAt - Date.now()) / 1000)));
           }
           if (body.status === "claimed") setStatus("claimed");
           if (body.status === "upload_authorized" || body.status === "uploading")
@@ -250,20 +252,33 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
 
   const spotlight = SPOTLIGHT_LOCALES[spotlightIndex] ?? "zh-CN";
+  const countdownLabel =
+    status === "preparing" || status === "waiting" ? "QR코드 변경까지" : "작업 만료까지";
 
   return (
     <main className="kiosk-shell" lang="ko">
       <Wordmark />
       <div className="kiosk-layout">
         <section className="kiosk-instructions">
-          <h1>
-            휴대전화 카메라로
-            <br />
-            QR코드를 스캔하세요
+          <h1
+            className="kiosk-step-heading"
+            aria-label="휴대전화에서 카메라를 여세요. QR코드를 스캔하세요"
+          >
+            <span className="kiosk-step-number" aria-hidden="true">
+              1
+            </span>
+            <span className="kiosk-step-heading__text">
+              <span>휴대전화에서</span>
+              <span>카메라를 여세요</span>
+            </span>
           </h1>
           <p className="kiosk-english" lang="en">
-            Scan the QR code with your phone camera
+            Open the camera on your phone
           </p>
+          {/* One line, rotating through the languages that are not permanently
+              on screen, so a visitor who reads neither Korean nor English still
+              sees what to do. Hidden from assistive technology because a line
+              that changes on a timer would interrupt it repeatedly. */}
           <p
             className="kiosk-spotlight"
             lang={spotlight}
@@ -273,35 +288,13 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
             <span>{LOCALE_NAMES[spotlight]}</span>
             {translate(spotlight, "kioskScanTitle")}
           </p>
-          <ol className="kiosk-steps">
-            {KIOSK_STEPS.map(({ icon: Icon, korean, english }, index) => (
-              <li key={korean}>
-                <span className="kiosk-steps__number" aria-hidden="true">
-                  {index + 1}
-                </span>
-                <span className="kiosk-steps__text">
-                  <strong>{korean}</strong>
-                  <small lang="en">{english}</small>
-                </span>
-                <Icon className="kiosk-steps__icon" aria-hidden="true" />
-              </li>
-            ))}
-          </ol>
           <div className="kiosk-facts">
-            <p>
-              <WifiOff aria-hidden="true" />
-              <span>
-                Wi-Fi는 필요 없습니다
-                <br />
-                <strong>모바일 데이터 사용</strong>
-              </span>
-            </p>
             <p>
               <FileCheck2 aria-hidden="true" />
               <span>
                 인쇄할 수 있는 파일
                 <br />
-                <strong>PDF, JPG, PNG</strong>
+                <strong>PDF · JPG/JPEG · HEIC 등 사진</strong>
               </span>
             </p>
             <p>
@@ -319,32 +312,47 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
             </span>
             <strong>{statusLabel(status)}</strong>
             <span className="kiosk-countdown">
-              남은 시간 <b>{formatTime(remaining)}</b>
+              {countdownLabel} <b>{formatTime(remaining)}</b>
             </span>
           </div>
         </section>
         <section
           className="kiosk-qr"
-          aria-label="Mobile session QR code"
+          aria-label="휴대전화로 스캔할 QR코드"
           // The QR URL carries the one-time upload token and key fingerprint.
           // End-to-end tests need to read it, but a Production kiosk must not
           // publish it as page text where a DOM snapshot or an extension could
           // pick it up; the QR image alone is enough there.
           data-session-url={process.env.NODE_ENV === "production" ? undefined : session?.qrUrl}
         >
+          <div className="kiosk-qr__instruction">
+            <span className="kiosk-step-number" aria-hidden="true">
+              2
+            </span>
+            <div>
+              <strong>QR코드를 카메라로 비추세요</strong>
+              <small>Point your camera at the QR code</small>
+            </div>
+          </div>
           {session ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={session.qrImage} alt="휴대전화로 스캔할 Print-cess 보안 QR코드" />
           ) : (
             <div className="kiosk-qr__loading" aria-busy="true" />
           )}
+          <div className="kiosk-qr__action">
+            <span className="kiosk-step-number" aria-hidden="true">
+              3
+            </span>
+            <Smartphone aria-hidden="true" />
+            <div>
+              <strong>화면에 나타나는 링크를 누르세요</strong>
+              <small>사진을 찍을 필요는 없습니다 · Tap the link that appears</small>
+            </div>
+          </div>
           <p className="kiosk-languages">
             <Languages aria-hidden="true" />
-            <span>
-              {SUPPORTED_LOCALES.length}개 언어로 안내합니다
-              <br />
-              <small lang="en">Guidance in {SUPPORTED_LOCALES.length} languages</small>
-            </span>
+            <span>{SUPPORTED_LOCALES.length}개 언어 · languages</span>
           </p>
         </section>
       </div>
@@ -400,12 +408,16 @@ async function consumeAndPrint(
     if (detected !== decrypted.fileKind) throw new Error("file kind mismatch");
     if (detected === "pdf") {
       await validatePdf(plaintext);
-    } else {
+    } else if (detected === "png" || detected === "jpeg") {
       // `docs/SECURITY.md` requires the kiosk to enforce the image dimension
       // and resource budget itself, not to inherit the phone's verdict.
       const { width, height } =
         detected === "png" ? parsePngDimensions(plaintext) : parseJpegDimensions(plaintext);
-      validateDimensions(width, height, plaintext.byteLength);
+      validateDimensions(width, height);
+    } else {
+      // Only the Windows kiosk carries a Hancom renderer, and this browser
+      // kiosk never advertises HWP/HWPX support, so anything else fails closed.
+      throw new Error("unsupported file kind for the browser kiosk");
     }
     const artifact = createPrintArtifact(plaintext, decrypted.fileKind);
     setArtifact(artifact);

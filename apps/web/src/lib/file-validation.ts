@@ -1,38 +1,69 @@
 import { MAX_PDF_PAGES, MAX_PLAINTEXT_BYTES, type FileKind } from "@print-cess/protocol";
 
+import { isHwpxSelection, validateHwpxHeader } from "./hwpx-validation";
+
 export type ValidatedMobileFile = {
   bytes: Uint8Array;
   fileKind: FileKind;
   pageCount: number;
   width?: number;
   height?: number;
+  normalized: boolean;
 };
 
 export type FileValidationCode =
-  "unsupportedType" | "tooLarge" | "tooManyPages" | "lockedPdf" | "damagedFile";
+  | "unsupportedType"
+  | "documentNeedsPdf"
+  | "hwpxUnavailable"
+  | "imageConversionUnsupported"
+  | "tooLarge"
+  | "tooManyPages"
+  | "lockedPdf"
+  | "damagedFile";
 
 const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 const ACTIVE_PDF_MARKERS = ["/JavaScript", "/OpenAction", "/Launch", "/EmbeddedFile", "/AA"];
+const MAX_IMAGE_EDGE = 12_000;
+const MAX_IMAGE_PIXELS = 40_000_000;
+const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
+const NORMALIZED_IMAGE_EDGE = 6_000;
+const NORMALIZED_IMAGE_PIXELS = 16_000_000;
+const JPEG_QUALITIES = [0.92, 0.84, 0.72, 0.6] as const;
 
-// Current phone cameras reach 48 MP, and a phone panorama is routinely longer
-// than 12,000 pixels on one edge, so the previous budget rejected ordinary
-// gallery photographs. These bounds admit real camera output; the ratio below
-// is what actually keeps a decompression bomb out.
-const MAX_IMAGE_EDGE = 30_000;
-const MAX_IMAGE_PIXELS = 100_000_000;
+const IMAGE_EXTENSIONS = new Set([
+  "avif",
+  "bmp",
+  "gif",
+  "heic",
+  "heif",
+  "jfif",
+  "jpeg",
+  "jpg",
+  "png",
+  "tif",
+  "tiff",
+  "webp",
+]);
 
-// A real file carries far more than one compressed byte for every few thousand
-// pixels; a bomb is the inverse, declaring enormous dimensions from a tiny
-// file. The ratio is deliberately generous — a sparse 600 dpi scan of a mostly
-// blank page is legitimate and compresses extremely well — because the absolute
-// ceiling above is what bounds memory, and rejecting a visitor's real document
-// is the more likely harm here.
-const MIN_PIXELS_PER_COMPRESSED_BYTE = 2048;
-
-// Decoding at native size is the strongest check available on the phone, but a
-// 100 MP bitmap can exhaust a modest device. Above this size the header parse,
-// the ratio gate, and the kiosk's own validation carry the check instead.
-const MAX_VERIFIED_DECODE_PIXELS = 40_000_000;
+const DOCUMENT_EXTENSIONS = new Set([
+  "csv",
+  "doc",
+  "docx",
+  "hwp",
+  "hwpx",
+  "key",
+  "numbers",
+  "odp",
+  "ods",
+  "odt",
+  "pages",
+  "ppt",
+  "pptx",
+  "rtf",
+  "txt",
+  "xls",
+  "xlsx",
+]);
 
 export class FileValidationError extends Error {
   public constructor(public readonly code: FileValidationCode) {
@@ -51,19 +82,87 @@ export function detectFileKind(bytes: Uint8Array): FileKind {
     fixedBytesEqual(bytes.subarray(0, 8), PNG_SIGNATURE)
   )
     return "png";
-  throw new FileValidationError("unsupportedType");
+  try {
+    validateHwpxHeader(bytes);
+    return "hwpx";
+  } catch {
+    throw new FileValidationError("unsupportedType");
+  }
 }
 
-export async function validateFileForMobile(file: File): Promise<ValidatedMobileFile> {
+export function classifySelectedFile(
+  file: Pick<File, "name" | "type">,
+): "image" | "hwpx" | "document" | "unknown" {
+  const extension = fileExtension(file.name);
+  if (isHwpxSelection(file)) return "hwpx";
+  if (file.type === "image/svg+xml" || extension === "svg") return "unknown";
+  if (file.type.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) return "image";
+  if (
+    DOCUMENT_EXTENSIONS.has(extension) ||
+    file.type.startsWith("application/vnd") ||
+    file.type.startsWith("text/")
+  )
+    return "document";
+  return "unknown";
+}
+
+export async function validateFileForMobile(
+  file: File,
+  options: { allowHwpx?: boolean } = {},
+): Promise<ValidatedMobileFile> {
   if (file.size < 1) throw new FileValidationError("damagedFile");
-  if (file.size > MAX_PLAINTEXT_BYTES) throw new FileValidationError("tooLarge");
+
+  const classification = classifySelectedFile(file);
+  const sourceLimit = classification === "image" ? MAX_SOURCE_IMAGE_BYTES : MAX_PLAINTEXT_BYTES;
+  if (file.size > sourceLimit) throw new FileValidationError("tooLarge");
+
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const fileKind = detectFileKind(bytes);
-  if (fileKind === "pdf") return { bytes, fileKind, pageCount: await validatePdf(bytes) };
+  if (classification === "hwpx") {
+    if (!options.allowHwpx) throw new FileValidationError("hwpxUnavailable");
+    try {
+      validateHwpxHeader(bytes);
+    } catch {
+      throw new FileValidationError("damagedFile");
+    }
+    return { bytes, fileKind: "hwpx", pageCount: 1, normalized: false };
+  }
+
+  let fileKind: FileKind;
+  try {
+    fileKind = detectFileKind(bytes);
+  } catch (error) {
+    if (!(error instanceof FileValidationError) || error.code !== "unsupportedType") throw error;
+    if (classification === "document") throw new FileValidationError("documentNeedsPdf");
+    if (classification === "image") return normalizeBrowserImage(file);
+    throw error;
+  }
+
+  if (fileKind === "hwpx") {
+    if (!options.allowHwpx) throw new FileValidationError("hwpxUnavailable");
+    return { bytes, fileKind, pageCount: 1, normalized: false };
+  }
+
+  if (fileKind === "pdf") {
+    if (bytes.byteLength > MAX_PLAINTEXT_BYTES) throw new FileValidationError("tooLarge");
+    return {
+      bytes,
+      fileKind,
+      pageCount: await validatePdf(bytes),
+      normalized: false,
+    };
+  }
+
   const dimensions = fileKind === "png" ? parsePngDimensions(bytes) : parseJpegDimensions(bytes);
-  validateDimensions(dimensions.width, dimensions.height, bytes.byteLength);
+  if (
+    bytes.byteLength > MAX_PLAINTEXT_BYTES ||
+    !dimensionsWithinLimits(dimensions.width, dimensions.height)
+  ) {
+    return normalizeBrowserImage(file);
+  }
+
+  validateDimensions(dimensions.width, dimensions.height);
   await verifyBrowserImageDecode(file, dimensions);
-  return { bytes, fileKind, pageCount: 1, ...dimensions };
+  return { bytes, fileKind, pageCount: 1, ...dimensions, normalized: false };
 }
 
 export async function validatePdf(bytes: Uint8Array): Promise<number> {
@@ -148,17 +247,157 @@ export function parseJpegDimensions(bytes: Uint8Array): { width: number; height:
   throw new FileValidationError("damagedFile");
 }
 
-export function validateDimensions(width: number, height: number, compressedBytes: number): void {
-  if (
-    width < 1 ||
-    height < 1 ||
-    width > MAX_IMAGE_EDGE ||
-    height > MAX_IMAGE_EDGE ||
-    width * height > MAX_IMAGE_PIXELS ||
-    width * height > compressedBytes * MIN_PIXELS_PER_COMPRESSED_BYTE
-  ) {
-    throw new FileValidationError("damagedFile");
+async function normalizeBrowserImage(file: File): Promise<ValidatedMobileFile> {
+  let decoded: Awaited<ReturnType<typeof decodeBrowserImage>> | undefined;
+  try {
+    const source = await convertHeicIfNeeded(file);
+    decoded = await decodeBrowserImage(source);
+    const dimensions = normalizedDimensions(decoded.width, decoded.height);
+    const canvas = document.createElement("canvas");
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new FileValidationError("imageConversionUnsupported");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, dimensions.width, dimensions.height);
+    context.drawImage(decoded.source, 0, 0, dimensions.width, dimensions.height);
+    const blob = await encodeJpeg(canvas);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    return {
+      bytes,
+      fileKind: "jpeg",
+      pageCount: 1,
+      ...dimensions,
+      normalized: true,
+    };
+  } catch (error) {
+    if (error instanceof FileValidationError) throw error;
+    throw new FileValidationError("imageConversionUnsupported");
+  } finally {
+    decoded?.dispose();
   }
+}
+
+async function convertHeicIfNeeded(file: File): Promise<Blob> {
+  if (!isHeicFile(file)) return file;
+  try {
+    const { heicTo } = await import("heic-to/csp");
+    const converted = await heicTo({
+      blob: file,
+      type: "image/jpeg",
+      quality: 0.92,
+    });
+    if (!(converted instanceof Blob) || converted.size < 1)
+      throw new FileValidationError("imageConversionUnsupported");
+    return converted;
+  } catch (error) {
+    if (error instanceof FileValidationError) throw error;
+    throw new FileValidationError("imageConversionUnsupported");
+  }
+}
+
+function isHeicFile(file: File): boolean {
+  const extension = fileExtension(file.name);
+  return (
+    extension === "heic" ||
+    extension === "heif" ||
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    file.type === "image/heic-sequence" ||
+    file.type === "image/heif-sequence"
+  );
+}
+
+async function decodeBrowserImage(file: Blob): Promise<{
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  dispose: () => void;
+}> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        dispose: () => bitmap.close(),
+      };
+    } catch {
+      // Fall back to the browser image element for formats it decodes there.
+    }
+  }
+
+  if (typeof document === "undefined") throw new FileValidationError("imageConversionUnsupported");
+  const url = URL.createObjectURL(file);
+  const image = document.createElement("img");
+  image.decoding = "async";
+  const loaded = new Promise<void>((resolve, reject) => {
+    image.addEventListener("load", () => resolve(), { once: true });
+    image.addEventListener("error", () => reject(new Error("image decode failed")), { once: true });
+  });
+  image.src = url;
+  try {
+    await loaded;
+    if (image.naturalWidth < 1 || image.naturalHeight < 1)
+      throw new FileValidationError("imageConversionUnsupported");
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      dispose: () => URL.revokeObjectURL(url),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
+async function encodeJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
+  for (const quality of JPEG_QUALITIES) {
+    const blob = await canvasToBlob(canvas, "image/jpeg", quality);
+    if (blob.size <= MAX_PLAINTEXT_BYTES) return blob;
+  }
+  throw new FileValidationError("tooLarge");
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new FileValidationError("imageConversionUnsupported"));
+      },
+      type,
+      quality,
+    );
+  });
+}
+
+function normalizedDimensions(width: number, height: number): { width: number; height: number } {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1)
+    throw new FileValidationError("damagedFile");
+  const edgeScale = Math.min(1, NORMALIZED_IMAGE_EDGE / Math.max(width, height));
+  const pixelScale = Math.min(1, Math.sqrt(NORMALIZED_IMAGE_PIXELS / (width * height)));
+  const scale = Math.min(edgeScale, pixelScale);
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function dimensionsWithinLimits(width: number, height: number): boolean {
+  return (
+    width >= 1 &&
+    height >= 1 &&
+    width <= MAX_IMAGE_EDGE &&
+    height <= MAX_IMAGE_EDGE &&
+    width * height <= MAX_IMAGE_PIXELS
+  );
+}
+
+export function validateDimensions(width: number, height: number): void {
+  if (!dimensionsWithinLimits(width, height)) throw new FileValidationError("damagedFile");
 }
 
 export function decodedDimensionsMatch(
@@ -166,12 +405,11 @@ export function decodedDimensionsMatch(
   decoded: { width: number; height: number },
 ): boolean {
   if (decoded.width === expected.width && decoded.height === expected.height) return true;
-  // Browsers disagree about whether `createImageBitmap` applies the EXIF
-  // orientation tag, and the `imageOrientation: "none"` request below is
-  // ignored by some of them. A photo held sideways — which is most photos in a
-  // phone gallery — then decodes with its axes swapped relative to the width
-  // and height stored in the file. That is a valid, printable photograph, not a
-  // damaged one, so accept the quarter-turn form as well.
+  // The decode below asks for the EXIF orientation to be applied, and a photo
+  // taken sideways — most photos in a phone gallery — then reports its axes
+  // swapped relative to the width and height stored in the file. That is a
+  // valid, printable photograph, not a damaged one. Browsers also disagree
+  // about honouring the orientation request at all, so accept both forms.
   return decoded.width === expected.height && decoded.height === expected.width;
 }
 
@@ -180,9 +418,8 @@ async function verifyBrowserImageDecode(
   expected: { width: number; height: number },
 ): Promise<void> {
   if (typeof createImageBitmap !== "function") return;
-  if (expected.width * expected.height > MAX_VERIFIED_DECODE_PIXELS) return;
   try {
-    const bitmap = await createImageBitmap(file, { imageOrientation: "none" });
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     try {
       if (!decodedDimensionsMatch(expected, bitmap)) throw new FileValidationError("damagedFile");
     } finally {
@@ -202,6 +439,11 @@ function decodePdfNameEscapes(source: string): string {
     // rather than inventing a NUL that the real parser would reject.
     return code === 0 ? match : String.fromCharCode(code);
   });
+}
+
+function fileExtension(name: string): string {
+  const separator = name.lastIndexOf(".");
+  return separator < 0 ? "" : name.slice(separator + 1).toLowerCase();
 }
 
 function isStartOfFrame(marker: number): boolean {
