@@ -62,6 +62,9 @@ jobs:
       - name: External readiness evidence policy tests
         run: pnpm test:acceptance-evidence
 
+      - name: Browser kiosk launcher tests
+        run: pnpm test:kiosk-scripts
+
       - name: Integration tests
         run: pnpm test:integration
 

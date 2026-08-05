@@ -14,7 +14,7 @@ readonly service_domain="gui/$(id -u)"
 readonly service_target="${service_domain}/${label}"
 
 usage() {
-  printf '%s\n' "Usage: $0 --check|--install|--start|--stop|--status|--uninstall"
+  printf '%s\n' "Usage: $0 --check|--install|--start|--stop|--reset|--status|--uninstall"
 }
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -64,7 +64,22 @@ case "$action" in
   --stop)
     /bin/launchctl disable "$service_target"
     /bin/launchctl bootout "$service_target" >/dev/null 2>&1 || true
-    printf '%s\n' "Stopped ${label}."
+    printf '%s\n' "Stopped ${label}. The browser was terminated with it."
+    ;;
+  --reset)
+    if [[ ! -f "$plist_path" ]]; then
+      printf '%s\n' "The kiosk is not installed. Run --install first." >&2
+      exit 66
+    fi
+    # Stop the browser, take its profile with it, then start clean. The launcher
+    # also resets the profile on every launch; this covers a station that must be
+    # cleared without waiting for the next launch.
+    /bin/launchctl bootout "$service_target" >/dev/null 2>&1 || true
+    "$source_launcher" --reset-profile
+    /bin/launchctl enable "$service_target"
+    /bin/launchctl bootstrap "$service_domain" "$plist_path"
+    /bin/launchctl kickstart -k "$service_target"
+    printf '%s\n' "Restarted ${label} with an empty browser profile."
     ;;
   --status)
     exec /bin/launchctl print "$service_target"
@@ -73,7 +88,8 @@ case "$action" in
     /bin/launchctl disable "$service_target"
     /bin/launchctl bootout "$service_target" >/dev/null 2>&1 || true
     /bin/rm -f "$plist_path" "$installed_launcher"
-    printf '%s\n' "Removed the LaunchAgent and launcher. The dedicated Chrome profile was preserved."
+    "$source_launcher" --reset-profile
+    printf '%s\n' "Removed the LaunchAgent, the launcher and the dedicated Chrome profile."
     ;;
   *)
     usage >&2

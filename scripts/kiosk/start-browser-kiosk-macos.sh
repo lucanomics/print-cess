@@ -10,8 +10,9 @@ mode="run"
 case "${1:-}" in
   "") ;;
   --check) mode="check" ;;
+  --reset-profile) mode="reset-profile" ;;
   --help|-h)
-    printf '%s\n' "Usage: $0 [--check]"
+    printf '%s\n' "Usage: $0 [--check|--reset-profile]"
     exit 0
     ;;
   *)
@@ -19,6 +20,48 @@ case "${1:-}" in
     exit 64
     ;;
 esac
+
+# The dedicated profile is application-owned scratch space: it accumulates the
+# browsing history, cache and cookies of every visitor who used the station.
+# Deleting it is the only way this project can clear a browser history, so the
+# path is checked before anything is removed. A typo must not reach a home
+# directory.
+assert_disposable_profile_dir() {
+  local dir="${1%/}"
+
+  if [[ -z "$dir" || "$dir" != /* ]]; then
+    printf 'Refusing to reset a Chrome profile path that is not absolute: %s\n' "$1" >&2
+    exit 78
+  fi
+  if [[ "$dir" == "${HOME%/}" ]]; then
+    printf '%s\n' "Refusing to reset the home directory as a Chrome profile." >&2
+    exit 78
+  fi
+
+  local depth
+  depth="$(printf '%s' "$dir" | /usr/bin/tr -cd '/' | /usr/bin/wc -c | /usr/bin/tr -d '[:space:]')"
+  if (( depth < 3 )); then
+    printf 'Refusing to reset a Chrome profile path this shallow: %s\n' "$dir" >&2
+    exit 78
+  fi
+}
+
+reset_profile_dir() {
+  local dir="$1"
+  assert_disposable_profile_dir "$dir"
+  /bin/rm -rf -- "${dir%/}"
+  printf 'Chrome profile reset: %s\n' "${dir%/}"
+  printf '%s\n' 'The previous shift left no browsing history, cache or cookies behind.'
+}
+
+profile_dir="${PRINT_CESS_CHROME_PROFILE_DIR:-$default_profile_dir}"
+
+# Clearing the profile needs no printer, no network and no browser, so it runs
+# before the launch preflight. An operator uses it at the end of a shift.
+if [[ "$mode" == "reset-profile" ]]; then
+  reset_profile_dir "$profile_dir"
+  exit 0
+fi
 
 kiosk_url="${PRINT_CESS_KIOSK_URL:-$production_kiosk_url}"
 case "$kiosk_url" in
@@ -70,7 +113,14 @@ if [[ "${PRINT_CESS_SKIP_NETWORK_CHECK:-0}" != "1" ]]; then
   fi
 fi
 
-profile_dir="${PRINT_CESS_CHROME_PROFILE_DIR:-$default_profile_dir}"
+keep_profile="${PRINT_CESS_KEEP_CHROME_PROFILE:-0}"
+if [[ "$keep_profile" == "1" ]]; then
+  printf '%s\n' 'Chrome profile: preserved because PRINT_CESS_KEEP_CHROME_PROFILE=1'
+else
+  assert_disposable_profile_dir "$profile_dir"
+  printf '%s\n' 'Chrome profile: reset before launch, so no visitor history carries over'
+fi
+
 command=(
   "$chrome_binary"
   "--user-data-dir=$profile_dir"
@@ -90,9 +140,12 @@ printf ' %q' "${command[@]}"
 printf '\n'
 
 if [[ "$mode" == "check" ]]; then
-  printf '%s\n' "Preflight passed. No browser was started."
+  printf '%s\n' "Preflight passed. No browser was started and no profile was reset."
   exit 0
 fi
 
+if [[ "$keep_profile" != "1" ]]; then
+  reset_profile_dir "$profile_dir"
+fi
 /bin/mkdir -p "$profile_dir"
 exec "${command[@]}"

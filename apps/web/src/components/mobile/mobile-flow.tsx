@@ -61,6 +61,7 @@ import {
   type ValidatedMobileFile,
 } from "@/lib/mobile-document-validation";
 import { parseSessionFragment } from "@/lib/session-fragment";
+import { clearBrowserSiteData } from "@/lib/session-teardown";
 import { DocumentPreview } from "./document-preview";
 
 type Stage =
@@ -152,6 +153,9 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
 
   const shutdownPage = useCallback(() => {
     guide.stop();
+    // Started before the close attempt so the wipe is already under way if the
+    // browser does close the tab, and `keepalive` carries the last request out.
+    void clearBrowserSiteData();
     try {
       window.close();
     } catch {
