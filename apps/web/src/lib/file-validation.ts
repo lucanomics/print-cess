@@ -13,8 +13,26 @@ export type FileValidationCode =
 
 const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 const ACTIVE_PDF_MARKERS = ["/JavaScript", "/OpenAction", "/Launch", "/EmbeddedFile", "/AA"];
-const MAX_IMAGE_EDGE = 12_000;
-const MAX_IMAGE_PIXELS = 40_000_000;
+
+// Current phone cameras reach 48 MP, and a phone panorama is routinely longer
+// than 12,000 pixels on one edge, so the previous budget rejected ordinary
+// gallery photographs. These bounds admit real camera output; the ratio below
+// is what actually keeps a decompression bomb out.
+const MAX_IMAGE_EDGE = 30_000;
+const MAX_IMAGE_PIXELS = 100_000_000;
+
+// A real file carries far more than one compressed byte for every few thousand
+// pixels; a bomb is the inverse, declaring enormous dimensions from a tiny
+// file. The ratio is deliberately generous — a sparse 600 dpi scan of a mostly
+// blank page is legitimate and compresses extremely well — because the absolute
+// ceiling above is what bounds memory, and rejecting a visitor's real document
+// is the more likely harm here.
+const MIN_PIXELS_PER_COMPRESSED_BYTE = 2048;
+
+// Decoding at native size is the strongest check available on the phone, but a
+// 100 MP bitmap can exhaust a modest device. Above this size the header parse,
+// the ratio gate, and the kiosk's own validation carry the check instead.
+const MAX_VERIFIED_DECODE_PIXELS = 40_000_000;
 
 export class FileValidationError extends Error {
   public constructor(public readonly code: FileValidationCode) {
@@ -43,7 +61,7 @@ export async function validateFileForMobile(file: File): Promise<ValidatedMobile
   const fileKind = detectFileKind(bytes);
   if (fileKind === "pdf") return { bytes, fileKind, pageCount: await validatePdf(bytes) };
   const dimensions = fileKind === "png" ? parsePngDimensions(bytes) : parseJpegDimensions(bytes);
-  validateDimensions(dimensions.width, dimensions.height);
+  validateDimensions(dimensions.width, dimensions.height, bytes.byteLength);
   await verifyBrowserImageDecode(file, dimensions);
   return { bytes, fileKind, pageCount: 1, ...dimensions };
 }
@@ -130,16 +148,31 @@ export function parseJpegDimensions(bytes: Uint8Array): { width: number; height:
   throw new FileValidationError("damagedFile");
 }
 
-function validateDimensions(width: number, height: number): void {
+export function validateDimensions(width: number, height: number, compressedBytes: number): void {
   if (
     width < 1 ||
     height < 1 ||
     width > MAX_IMAGE_EDGE ||
     height > MAX_IMAGE_EDGE ||
-    width * height > MAX_IMAGE_PIXELS
+    width * height > MAX_IMAGE_PIXELS ||
+    width * height > compressedBytes * MIN_PIXELS_PER_COMPRESSED_BYTE
   ) {
     throw new FileValidationError("damagedFile");
   }
+}
+
+export function decodedDimensionsMatch(
+  expected: { width: number; height: number },
+  decoded: { width: number; height: number },
+): boolean {
+  if (decoded.width === expected.width && decoded.height === expected.height) return true;
+  // Browsers disagree about whether `createImageBitmap` applies the EXIF
+  // orientation tag, and the `imageOrientation: "none"` request below is
+  // ignored by some of them. A photo held sideways — which is most photos in a
+  // phone gallery — then decodes with its axes swapped relative to the width
+  // and height stored in the file. That is a valid, printable photograph, not a
+  // damaged one, so accept the quarter-turn form as well.
+  return decoded.width === expected.height && decoded.height === expected.width;
 }
 
 async function verifyBrowserImageDecode(
@@ -147,11 +180,11 @@ async function verifyBrowserImageDecode(
   expected: { width: number; height: number },
 ): Promise<void> {
   if (typeof createImageBitmap !== "function") return;
+  if (expected.width * expected.height > MAX_VERIFIED_DECODE_PIXELS) return;
   try {
-    const bitmap = await createImageBitmap(file);
+    const bitmap = await createImageBitmap(file, { imageOrientation: "none" });
     try {
-      if (bitmap.width !== expected.width || bitmap.height !== expected.height)
-        throw new FileValidationError("damagedFile");
+      if (!decodedDimensionsMatch(expected, bitmap)) throw new FileValidationError("damagedFile");
     } finally {
       bitmap.close();
     }

@@ -68,6 +68,13 @@ beyond the stated threat model.
   success, page count, PDF encryption/actions, and image dimensions/resource budget.
 - Reject HWP, Office formats, archives, HTML, SVG, executables, locked/damaged PDF, malformed
   images, disguised extensions, and unsupported image encodings.
+- Size the image budget so that current phone-camera output — 48 MP stills and panoramas longer
+  than 12,000 pixels on one edge — is accepted, and separate a decompression bomb from a real
+  photograph by requiring a minimum pixel density per compressed byte rather than by lowering the
+  pixel ceiling. Rejecting a visitor's ordinary photograph as damaged is a defect, not caution.
+- Do not compare a decoded bitmap's width and height against the stored dimensions without
+  allowing the transposed form. Browsers disagree about applying the EXIF orientation tag, so a
+  photo taken sideways legitimately decodes with its axes swapped.
 - Do not execute PDF JavaScript, OpenAction, Launch actions, attachments, external links, or embed a
   PDF as active HTML. Because a PDF name may hex-escape any character, scan for those markers in
   both the raw bytes and the form with `#xx` escapes decoded; a substring scan of the raw bytes

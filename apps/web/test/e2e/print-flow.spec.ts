@@ -3,6 +3,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 import {
   createBoundaryBytes,
+  createSidewaysSyntheticJpeg,
   createSyntheticPdf,
   createSyntheticPng,
 } from "@print-cess/test-fixtures";
@@ -127,6 +128,23 @@ test("cancelling a file picker keeps the claimed session ready", async ({ page, 
   await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "Open my photos" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "Open my files" })).toBeVisible();
+});
+
+test("a gallery photo taken sideways reaches the preview", async ({ page, context }) => {
+  const { mobile } = await openMobileAtLanguage(page, context);
+  await reachFilePicker(mobile);
+  await mobile.getByTestId("photo-input").setInputFiles({
+    name: "synthetic-sideways.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.from(await createSidewaysSyntheticJpeg()),
+  });
+
+  // The EXIF orientation tag makes the browser decode this photo with its axes
+  // swapped relative to the dimensions stored in the file. It is a valid,
+  // printable photograph and must not be reported as damaged.
+  await expect(mobile.getByRole("heading", { name: "Is this the right page?" })).toBeVisible();
+  await expect(mobile.getByRole("img", { name: "Preview of the file you picked" })).toBeVisible();
+  await expect(mobile.getByText(/will not open/u)).toHaveCount(0);
 });
 
 test("a locked PDF is rejected with a safe alternative", async ({ page, context }) => {

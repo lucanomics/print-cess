@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   FileValidationError,
+  decodedDimensionsMatch,
   detectFileKind,
   parsePngDimensions,
+  validateDimensions,
   validatePdf,
 } from "./file-validation";
 
@@ -42,5 +44,31 @@ describe("file validation", () => {
     await expect(validatePdf(escaped)).rejects.toThrow(
       expect.objectContaining({ code: "lockedPdf" }),
     );
+  });
+
+  it("accepts a photo whose decoded axes are swapped by its EXIF orientation", () => {
+    // A phone photo held sideways: 4032x3024 in the file, decoded as 3024x4032.
+    const stored = { width: 4032, height: 3024 };
+    expect(decodedDimensionsMatch(stored, { width: 3024, height: 4032 })).toBe(true);
+    expect(decodedDimensionsMatch(stored, stored)).toBe(true);
+    expect(decodedDimensionsMatch(stored, { width: 1024, height: 768 })).toBe(false);
+  });
+
+  it("accepts the output of a current phone camera", () => {
+    // 48 MP still, ~7 MB, and a 14,000-pixel-wide phone panorama: both were
+    // rejected as damaged by the previous 12,000-edge / 40 MP budget.
+    expect(() => validateDimensions(8064, 6048, 7 * 1024 * 1024)).not.toThrow();
+    expect(() => validateDimensions(14_000, 3_000, 4 * 1024 * 1024)).not.toThrow();
+  });
+
+  it("still rejects dimensions a tiny file could not really contain", () => {
+    // 40 MP declared by 8 KB: a decompression bomb, not a photograph.
+    expect(() => validateDimensions(8000, 5000, 8 * 1024)).toThrow(
+      expect.objectContaining({ code: "damagedFile" }),
+    );
+    expect(() => validateDimensions(40_000, 40_000, 9 * 1024 * 1024)).toThrow(
+      expect.objectContaining({ code: "damagedFile" }),
+    );
+    expect(() => validateDimensions(0, 100, 1024)).toThrow(FileValidationError);
   });
 });

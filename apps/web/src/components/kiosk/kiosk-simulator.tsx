@@ -36,6 +36,7 @@ import {
   detectFileKind,
   parseJpegDimensions,
   parsePngDimensions,
+  validateDimensions,
   validatePdf,
 } from "@/lib/file-validation";
 import {
@@ -397,9 +398,15 @@ async function consumeAndPrint(
     await kioskTransition(session, "validating");
     const detected = detectFileKind(plaintext);
     if (detected !== decrypted.fileKind) throw new Error("file kind mismatch");
-    if (detected === "pdf") await validatePdf(plaintext);
-    else if (detected === "png") parsePngDimensions(plaintext);
-    else parseJpegDimensions(plaintext);
+    if (detected === "pdf") {
+      await validatePdf(plaintext);
+    } else {
+      // `docs/SECURITY.md` requires the kiosk to enforce the image dimension
+      // and resource budget itself, not to inherit the phone's verdict.
+      const { width, height } =
+        detected === "png" ? parsePngDimensions(plaintext) : parseJpegDimensions(plaintext);
+      validateDimensions(width, height, plaintext.byteLength);
+    }
     const artifact = createPrintArtifact(plaintext, decrypted.fileKind);
     setArtifact(artifact);
     setStatus("printing");
