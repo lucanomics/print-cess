@@ -41,8 +41,35 @@ opened by scanning a QR code was not opened by script, so most browsers refuse t
 then replaces itself with a screen that holds no preview, no session fragment in the address bar,
 and no control other than the confirmation that printing is done.
 
-State this honestly to reviewers and visitors: shutting the page down removes what the page itself
-was holding. It does not reach the browser's memory, cache, or history, it does not remove the
+Alongside that, the page empties every store this origin can reach — `localStorage`,
+`sessionStorage`, IndexedDB, Cache Storage, service-worker registrations, and this origin's cookies
+— and asks the server for a `Clear-Site-Data: "cache", "cookies", "storage"` response so the browser
+drops copies the page cannot see for itself. Each step is best effort; a browser that refuses one
+must never stop the visitor from reaching the finished screen. `executionContexts` is deliberately
+excluded from that header: it would reload the browsing context, landing the visitor back on a spent
+session and replacing the confirmation with an error.
+
+### What this cannot do
+
+Two things are asked for often enough to write down plainly, because neither is possible from a web
+page and neither should be promised to a reviewer or a visitor:
+
+- **A page cannot quit the browser.** `window.close()` is the only close mechanism available to a
+  page, it applies to the current tab only, and browsers grant it only to a tab that a script
+  opened. There is no API that terminates a browser process.
+- **A page cannot erase the browser's history.** `history.replaceState` rewrites the current entry —
+  which is how the session fragment leaves the address bar — and nothing more. No API removes past
+  entries or the visited-URL list.
+
+Forcing the browser to quit and clearing its history are possible on the **station**, where the
+project owns the browser, not on the visitor's phone. `scripts/kiosk/install-browser-kiosk-macos.sh
+--reset` stops the kiosk browser, deletes its dedicated profile, and starts it clean; the launcher
+also resets that profile on every launch, so one visitor's browsing history, cache, and cookies
+never reach the next. `--uninstall` removes the profile as well. The visitor's own phone stays under
+the visitor's control, which is the correct boundary.
+
+State the rest honestly to reviewers and visitors: shutting the page down removes what the page and
+this origin were holding. It does not reach the browser's own history, it does not remove the
 file from the visitor's own gallery, and a phone left unlocked on the counter is still a phone left
 unlocked on the counter. It is a hygiene measure, not an erasure guarantee.
 

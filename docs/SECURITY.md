@@ -37,6 +37,10 @@ remediation.
   a missing or malformed fragment.
 - The QR image is the only place a Production kiosk publishes that fragment. Do not also write the
   session URL into page text, a DOM attribute, a log line, or a test hook that ships to Production.
+- When a visit ends, empty every store the origin can reach and answer with `Clear-Site-Data` for
+  cache, cookies, and storage. Never include `executionContexts`: reloading a spent session replaces
+  the visitor's confirmation with an error. Claim only what this reaches — not browser history, and
+  not the browser process. See `docs/PRIVACY.md`.
 - Store only domain-separated SHA-256 token hashes. Protocol version 1 hashes the canonical
   32-byte token after
   `UTF8("print-cess-by-paradiso:token-hash:<role>:v1") || 00`, where role is upload, kiosk, or

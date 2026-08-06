@@ -56,14 +56,27 @@ restarts Chrome after a crash or ordinary exit.
 # Return the station to service
 ./scripts/kiosk/install-browser-kiosk-macos.sh --start
 
-# Remove auto-start while preserving the dedicated Chrome profile
+# Force the browser to quit and start again with an empty profile
+./scripts/kiosk/install-browser-kiosk-macos.sh --reset
+
+# Remove auto-start and the dedicated Chrome profile
 ./scripts/kiosk/install-browser-kiosk-macos.sh --uninstall
+
+# Clear the profile without starting the browser, for the end of a shift
+./scripts/kiosk/start-browser-kiosk-macos.sh --reset-profile
 ```
 
 Logs are written to `~/Library/Logs/Paradiso Print-cess Kiosk/`. The dedicated browser profile is
-kept outside the visitor's personal Chrome profile. Recovery downloads are intentionally not
-deleted by automation; the site operator clears the kiosk account's Downloads folder manually
-under the agreed local procedure.
+kept outside the visitor's personal Chrome profile and is **deleted before every launch**, so one
+visitor's browsing history, cache, and cookies never reach the next. Set
+`PRINT_CESS_KEEP_CHROME_PROFILE=1` only for a diagnosis window, and clear it afterwards. The
+launcher refuses to reset a profile path that is relative, is the home directory, or is shallow
+enough that a typo could reach one.
+
+`--reset` is the only place in this project where a browser is forced to quit and its history is
+cleared. Neither is possible from a web page; `docs/PRIVACY.md` records why. Recovery downloads are
+still intentionally not deleted by automation; the site operator clears the kiosk account's
+Downloads folder manually under the agreed local procedure.
 
 ## Acceptance test
 

@@ -73,12 +73,33 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   // Shutting the page down closes the tab where the browser allows it. A tab
   // opened by scanning a QR was not opened by script, so most browsers refuse;
   // the visitor then gets a screen that carries nothing from the visit.
+  // Chromium's network service consumes `Clear-Site-Data` before Playwright can
+  // read it back, which is the point of sending it. Assert the phone asks here,
+  // and assert what the answer contains in the request-level test below.
+  const clearSiteData = mobile.waitForRequest(
+    (request) => request.url().endsWith("/api/session-end"),
+    { timeout: 15_000 },
+  );
   await mobile.getByRole("button", { name: "Close this page" }).click();
+  await clearSiteData;
+
   if (!mobile.isClosed()) {
     await expect(mobile.getByRole("heading", { name: "Printing is finished" })).toBeVisible();
     await expect(mobile.getByRole("button", { name: "Need help?" })).toHaveCount(0);
     expect(mobile.url()).not.toMatch(/#/u);
   }
+});
+
+test("ending a visit tells the browser to drop this origin's data", async ({ request }) => {
+  // Uses the request fixture rather than a page: a browser applies the header
+  // and removes it, so only an HTTP-level check can see what was sent. This
+  // covers the Next.js header merge that the route unit test cannot.
+  const response = await request.post("/api/session-end");
+
+  expect(response.status()).toBe(204);
+  expect(response.headers()["clear-site-data"]).toBe('"cache", "cookies", "storage"');
+  // Reloading a spent session would replace the visitor's confirmation with an error.
+  expect(response.headers()["clear-site-data"]).not.toContain("executionContexts");
 });
 
 test("a captured QR cannot be claimed by a second phone", async ({ page, context }) => {
