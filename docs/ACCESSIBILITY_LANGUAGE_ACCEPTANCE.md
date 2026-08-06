@@ -75,6 +75,42 @@ concrete instruction. Whenever visible copy changes, every locale is reviewed ag
 sign-off does not carry over, because the wording of one locale is no longer maintained separately
 from the rest.
 
+### Pre-review pass already performed
+
+Before this reaches a native reviewer, the copy has had a systematic authoring pass and now carries
+automated guards. This exists to make a reviewer's hour productive, **not** to reduce what they are
+signing for. It is not a substitute for their judgement and does not satisfy the closure evidence
+for R-17.
+
+What the automated tests in `packages/i18n` now guarantee, so no reviewer needs to spend time on it:
+
+- every key exists in every locale, with the same interpolation placeholders;
+- help text that quotes a button label quotes a label that actually exists in that same locale, so
+  an instruction can never name a control that is not on the screen;
+- the `HWPX` token stays literal, so the phone can still rewrite it to `HWP/HWPX`;
+- no locale mixes native and Latin numerals for the same kind of count;
+- Korean stays in one politeness register across the whole flow.
+
+What the authoring pass found and corrected, as examples of the class of defect that remains
+possible and that only a reader of the language can catch:
+
+| Locale | Defect                                                                                                               | Correction                               |
+| ------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| all 13 | The confirmation screen called the thing being closed a "tab" while the button above it called it a "page"           | One noun everywhere, matching the button |
+| `ko`   | Three strings in `합니다체` inside a `해요체` flow, one of them mixing both registers in a single pair of sentences  | Normalised to `해요체`                   |
+| `km`   | Khmer numerals for counts on the same screen as Latin-numbered step titles                                           | Latin numerals throughout                |
+| `ru`   | `шаг сделан` (calque); imperfective `Забирайте` contradicting the perfective used for the same instruction elsewhere | `шаг уже выполнен`; `Заберите`           |
+| `uk`   | `крок готовий` reads as an object being ready rather than a step being done                                          | `крок уже виконано`                      |
+| `mn`   | Ablative marker governed only the second size limit, so the first read as a bare apposition                          | Marked both limits                       |
+| `id`   | `halaman yang perlu` missing the passive                                                                             | `halaman yang diperlukan`                |
+| `fil`  | Doubled `wala pang` construction, hard to parse aloud                                                                | `mas maliit sa`                          |
+
+**What this pass cannot establish.** Whether the copy sounds like a person rather than a translation;
+whether the register suits a public counter in that language; whether an instruction is
+understandable to someone reading slowly under stress; whether a word carries an unintended
+connotation; whether the audio is intelligible. Those require a qualified speaker, and R-17 stays
+open until thirteen of them have signed.
+
 ## Approval record
 
 Acceptance is complete only when the product/accessibility owner and all thirteen language reviewers
