@@ -47,14 +47,24 @@ On pull requests and pushes to `main`:
   Playwright screenshots and traces are disabled because QR images and network bodies can contain
   short-lived credentials.
 - **Windows kiosk** on `windows-latest` with .NET 8: restore, Release build, xUnit/TRX tests, a
-  self-contained `win-x64` publish smoke test, signing/acceptance evidence-contract tests, a
-  synthetic-only TRX artifact, and the smoke binary.
+  self-contained `win-x64` publish smoke test whose single-file executable is then asserted to
+  exist, signing/acceptance evidence-contract tests, a synthetic-only TRX artifact, and the smoke
+  binary.
 
 The Web workflow uploads only coverage and the HTML Playwright report for three days; raw
-`test-results`, screenshots, and traces are excluded. Windows TRX and publish-smoke artifacts are
-retained for seven days. Artifact names contain only run identifiers. If a failure output includes
-a URL, token, fragment, filename, document data, or provider body, cancel sharing, delete the
-artifact, rotate any affected credential, and treat the run as a security/privacy incident.
+`test-results`, screenshots, and traces are excluded. Windows TRX is retained for seven days and
+the publish-smoke binary — the largest thing this repository uploads — for one. Artifact names
+contain only run identifiers. If a failure output includes a URL, token, fragment, filename,
+document data, or provider body, cancel sharing, delete the artifact, rotate any affected
+credential, and treat the run as a security/privacy incident.
+
+Every artifact upload is `continue-on-error`, and the Gitleaks SARIF upload is disabled outright
+because that step is inside the action and has no such seam. Uploads preserve evidence; they are not
+the verdict, which is always the exit code of the step that produced the result. A full account
+Actions storage quota once reported a clean secret scan, a clean dependency audit, and a passing
+26-test end-to-end run as three failed checks, and no change to this repository could have made
+those checks pass. A failed upload still shows in the job, so the loss of evidence stays visible.
+Do not extend `continue-on-error` to a step that decides something.
 
 External service credentials are not supplied. Tests run in local/mock mode. A successful Windows
 job proves WPF compilation and test behavior on a hosted VM; it does not prove the real printer,

@@ -98,8 +98,12 @@ jobs:
       - name: End-to-end tests
         run: pnpm test:e2e
 
+      # The verdict is the exit code of the steps above; this upload only makes
+      # the run inspectable afterwards. It stays visible when it fails, but a
+      # full Actions storage quota must not turn a passing test run red.
       - name: Upload web test evidence
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: web-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
@@ -156,8 +160,22 @@ jobs:
           -p:PublishSingleFile=true
           -o artifacts/kiosk-win-x64
 
+      # The publish step only proves the project compiles into a single file if
+      # something checks the file is there. Assert it here rather than through
+      # `if-no-files-found`, so the assertion holds even when the upload cannot
+      # run. Released binaries come from `release-kiosk.yml`, not from this job.
+      - name: Verify the publish produced a single-file executable
+        shell: pwsh
+        run: |
+          $exe = "artifacts/kiosk-win-x64/Print-cess Kiosk.exe"
+          if (-not (Test-Path -LiteralPath $exe)) {
+            throw "The publish did not produce '$exe'."
+          }
+          Get-Item -LiteralPath $exe | Select-Object Name, Length | Format-List
+
       - name: Upload Windows test evidence
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: windows-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
@@ -165,11 +183,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      # A self-contained single-file build is the largest thing this repository
+      # uploads. Keep it briefly for inspection; the verification step above,
+      # not this artifact, is what the job asserts.
       - name: Upload kiosk publish smoke artifact
         if: success()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: kiosk-win-x64-smoke-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/kiosk-win-x64/**
-          if-no-files-found: error
-          retention-days: 7
+          if-no-files-found: warn
+          retention-days: 1
