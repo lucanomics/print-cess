@@ -158,7 +158,7 @@ const ko = {
   continue: "계속",
 
   guideTitle: "인쇄 방법",
-  guideIntro: "네 단계만 하면 됩니다. 앱을 설치하거나 로그인하지 않아도 돼요.",
+  guideIntro: "네 단계만 하면 끝나요. 앱을 설치하거나 로그인하지 않아도 돼요.",
   guideScanTitle: "1. QR코드 스캔하기",
   guideScanBody: "휴대전화 카메라로 스캔했어요. 이 단계는 끝났어요.",
   guideChooseTitle: "2. 문서 한 개 고르기",
@@ -187,9 +187,9 @@ const ko = {
   cancelled: "아직 고른 문서가 없어요. 아래 두 버튼 중 하나를 누르세요.",
 
   checkDocument: "이 문서가 맞나요?",
-  previewHelp: "아래에 보이는 그대로 인쇄됩니다. 잘 확인하세요.",
+  previewHelp: "아래에 보이는 그대로 인쇄돼요. 잘 확인하세요.",
   printSummary: "한 부 · A4 용지 · 흑백 · 단면",
-  privacySummary: "문서는 보내는 동안 잠겨 있고, 인쇄가 끝나면 바로 지워집니다.",
+  privacySummary: "문서는 보내는 동안 잠겨 있고, 인쇄가 끝나면 바로 지워져요.",
   printOneCopy: "A4 한 부 인쇄",
   chooseAnother: "다른 문서 고르기",
 
@@ -242,7 +242,7 @@ const ko = {
   helpPreview:
     "그림을 보세요. 맞으면 ‘A4 한 부 인쇄’를 누르세요. 아니면 ‘다른 문서 고르기’를 누르세요.",
   helpProgress:
-    "지금은 아무것도 누르지 않아도 돼요. 이 화면을 열어 둔 채 기다리세요. 곧 종이가 나옵니다.",
+    "지금은 아무것도 누르지 않아도 돼요. 이 화면을 열어 둔 채 기다리세요. 곧 종이가 나와요.",
   helpDone: "큰 화면 옆 프린터에 종이가 나와 있어요. 종이를 가져가세요.",
   helpError: "큰 화면으로 가서 QR코드를 다시 스캔한 뒤 처음부터 하세요.",
   helpAskStaff: "그래도 어려우면 프린터 옆 직원에게 도움을 요청하세요.",

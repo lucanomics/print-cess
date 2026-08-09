@@ -184,8 +184,11 @@ jobs:
           retention-days: 7
 
       # A self-contained single-file build is the largest thing this repository
-      # uploads. Keep it briefly for inspection; the verification step above,
-      # not this artifact, is what the job asserts.
+      # uploads, so shortening its retention is the obvious way to relieve
+      # storage pressure — and the wrong one. `PRODUCTION_BLOCKERS.md` still
+      # carries an unchecked blocker requiring publish-smoke evidence to expire
+      # after seven days, and `TEST_PLAN.md` makes uploaded Windows evidence a
+      # release exit criterion. Seven days it stays; free the quota instead.
       - name: Upload kiosk publish smoke artifact
         if: success()
         continue-on-error: true
@@ -194,4 +197,4 @@ jobs:
           name: kiosk-win-x64-smoke-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/kiosk-win-x64/**
           if-no-files-found: warn
-          retention-days: 1
+          retention-days: 7

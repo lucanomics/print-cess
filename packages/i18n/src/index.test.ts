@@ -192,12 +192,27 @@ describe("translations", () => {
     }
   });
 
-  it("keeps one politeness register in Korean", () => {
+  it("keeps one politeness register in every Korean sentence", () => {
     // Korean carries register in every sentence ending, and the flow reads as
-    // one voice only if they agree. The review found three that had slipped.
-    const values = Object.values(TRANSLATIONS.ko);
-    const formal = values.filter((value) => /(습니다|입니다)[.!?]?$/u.test(value.trim()));
-    expect(formal, "Korean copy mixing 합니다체 into a 해요체 flow").toEqual([]);
+    // one voice only if they all agree.
+    //
+    // Two ways to write this guard too weakly, both of which let the exact
+    // defect the review found walk straight back in. Anchoring on the end of
+    // the whole value only sees the last sentence, so a formal sentence
+    // followed by an informal one passes — and a value mixing registers across
+    // its own two sentences is what `guideScanBody` actually contained.
+    // Listing 습니다 and 입니다 only catches two conjugations, so 됩니다 and
+    // 합니다 pass — and `closedBody` actually contained 됩니다. Match the
+    // 합니다체 endings themselves, at every sentence boundary.
+    const formalEnding = /(니다|니까|십시오|십시다|읍시다)$/u;
+    const offenders: string[] = [];
+    for (const [key, value] of Object.entries(TRANSLATIONS.ko)) {
+      for (const sentence of value.split(/[.!?\n]+/u)) {
+        const trimmed = sentence.trim();
+        if (formalEnding.test(trimmed)) offenders.push(`${key}: ${trimmed}`);
+      }
+    }
+    expect(offenders, "Korean copy mixing 합니다체 into a 해요체 flow").toEqual([]);
   });
 
   it("marks only right-to-left locales as right-to-left", () => {

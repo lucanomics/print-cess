@@ -52,11 +52,11 @@ On pull requests and pushes to `main`:
   binary.
 
 The Web workflow uploads only coverage and the HTML Playwright report for three days; raw
-`test-results`, screenshots, and traces are excluded. Windows TRX is retained for seven days and
-the publish-smoke binary — the largest thing this repository uploads — for one. Artifact names
-contain only run identifiers. If a failure output includes a URL, token, fragment, filename,
-document data, or provider body, cancel sharing, delete the artifact, rotate any affected
-credential, and treat the run as a security/privacy incident.
+`test-results`, screenshots, and traces are excluded. Windows TRX and publish-smoke artifacts are
+retained for seven days, which `PRODUCTION_BLOCKERS.md` requires and which storage pressure is not a
+reason to shorten. Artifact names contain only run identifiers. If a failure output includes a URL,
+token, fragment, filename, document data, or provider body, cancel sharing, delete the artifact,
+rotate any affected credential, and treat the run as a security/privacy incident.
 
 Every artifact upload is `continue-on-error`, and the Gitleaks SARIF upload is disabled outright
 because that step is inside the action and has no such seam. Uploads preserve evidence; they are not
@@ -64,7 +64,8 @@ the verdict, which is always the exit code of the step that produced the result.
 Actions storage quota once reported a clean secret scan, a clean dependency audit, and a passing
 26-test end-to-end run as three failed checks, and no change to this repository could have made
 those checks pass. A failed upload still shows in the job, so the loss of evidence stays visible.
-Do not extend `continue-on-error` to a step that decides something.
+Do not extend `continue-on-error` to a step that decides something, and do not buy quota headroom by
+shortening a retention window that an acceptance criterion names — free the storage instead.
 
 External service credentials are not supplied. Tests run in local/mock mode. A successful Windows
 job proves WPF compilation and test behavior on a hosted VM; it does not prove the real printer,
