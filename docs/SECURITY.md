@@ -142,6 +142,12 @@ No production credentials were present or used during the initial implementation
   upgrade or move it before enabling those jobs and push protection.
 - Review package provenance, maintainer activity, security history, transitive graph, and license
   before adding a parser, renderer, crypto package, Action, or native binary.
+- Raise the floor on a vulnerable transitive dependency with a ranged `overrides` entry in
+  `pnpm-workspace.yaml` — `nanoid@<3.3.17: 3.3.17`, in the shape `undici` already uses — rather than
+  a bare pin, so a package that legitimately needs a different major is not dragged backwards. Take
+  the lowest version the advisory accepts unless a later one fixes something the changelog names;
+  the advisory's floor has had the most time in the field, which is the point of the release-age
+  delay this workspace runs under.
 - Require CODEOWNERS review for cryptography, protocol, API, kiosk infrastructure, and workflows.
 - Produce a SHA-256 checksum for kiosk artifacts. The release workflow now requires Authenticode
   signing and `/pa` verification in `windows-signing`; Production still requires an approved
