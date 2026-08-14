@@ -160,7 +160,7 @@ const en = {
   dropSendingHint: "Keep this page open until it finishes.",
   dropPercent: "{{percent}}% sent",
   dropReady: "Ready to hand over",
-  dropReadyHint: "Let the other phone scan this code, or read the twelve characters out loud.",
+  dropReadyHint: "Let the other phone scan the QR code, or read the twelve characters out loud.",
   dropCodeLabel: "Transfer code",
   dropScanToReceive: "Scan this with the other phone's camera",
   dropCopyLink: "Copy the link",
@@ -197,6 +197,17 @@ const en = {
   dropTooManyTries: "That was a lot of tries. Wait a moment, then try again.",
   dropDamaged: "This file did not arrive complete. Ask for it again.",
   dropCancelled: "Stopped. Nothing was left behind.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "Scan the QR code",
+  dropScanTitle: "Point at the other phone",
+  dropScanHint: "Hold the sending phone's QR code inside the frame.",
+  dropTypeInstead: "Type the code instead",
+  dropCameraRefused: "The camera stayed closed. Type the twelve characters instead.",
+  dropScannerUnavailable: "This browser cannot scan. Type the twelve characters instead.",
+  dropRemaining: "about {{minutes}} min left",
+  dropShareLink: "Share the link",
 };
 
 export type TranslationKey = keyof typeof en;
@@ -317,7 +328,7 @@ const ko = {
   dropSendingHint: "끝날 때까지 이 화면을 열어둬요.",
   dropPercent: "{{percent}}% 보냈어요",
   dropReady: "건네줄 준비가 됐어요",
-  dropReadyHint: "상대방 휴대전화로 이 코드를 찍거나, 열두 글자를 불러줘요.",
+  dropReadyHint: "상대방 휴대전화로 QR을 찍거나, 열두 글자를 불러줘요.",
   dropCodeLabel: "받기 코드",
   dropScanToReceive: "상대방 카메라로 이 QR을 찍어요",
   dropCopyLink: "링크 복사하기",
@@ -346,14 +357,25 @@ const ko = {
     "파일은 이 휴대전화에서 잠기고, 받기 코드로만 열려요. 시간이 지나면 모두 지워져요.",
   dropNoFiles: "파일을 하나 이상 골라요.",
   dropTooManyFiles: "한 번에 20개까지 보낼 수 있어요. 나눠서 보내면 다 보낼 수 있어요.",
-  dropTooLarge: "한 번에 보낼 수 있는 크기를 넘었어요. 두 번에 나눠 보내요.",
+  dropTooLarge: "한 번에 보내기엔 너무 커요. 두 번에 나눠 보내요.",
   dropFileUnreadable: "이 파일을 읽지 못했어요. 휴대전화에서 다시 골라요.",
   dropNetworkError: "연결이 끊겼어요. 신호를 확인하고 다시 해봐요.",
-  dropCodeNotFound: "이 코드에 맞는 전송이 없어요. 열두 글자를 확인하고 다시 입력해요.",
-  dropExpired: "이 전송은 이미 사라졌어요. 다시 보내달라고 해요.",
-  dropTooManyTries: "여러 번 시도했어요. 잠시 뒤에 다시 해봐요.",
+  dropCodeNotFound: "이 코드로 열리는 파일이 없어요. 열두 글자를 확인하고 다시 입력해요.",
+  dropExpired: "보낸 파일이 이미 사라졌어요. 다시 보내달라고 해요.",
+  dropTooManyTries: "너무 여러 번 열어봤어요. 잠시 뒤에 다시 해봐요.",
   dropDamaged: "파일이 온전히 도착하지 않았어요. 다시 보내달라고 해요.",
-  dropCancelled: "그만뒀어요. 남은 파일은 없어요.",
+  dropCancelled: "그만뒀어요. 보내던 파일은 모두 지웠어요.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "QR 찍기",
+  dropScanTitle: "상대방 화면을 비춰요",
+  dropScanHint: "보내는 휴대전화의 QR을 네모 안에 넣어요.",
+  dropTypeInstead: "코드 입력하기",
+  dropCameraRefused: "카메라가 열리지 않았어요. 열두 글자를 입력하면 받을 수 있어요.",
+  dropScannerUnavailable: "이 브라우저는 QR을 못 읽어요. 열두 글자를 입력하면 받을 수 있어요.",
+  dropRemaining: "약 {{minutes}}분 남았어요",
+  dropShareLink: "링크 보내기",
 } satisfies Translation;
 
 const zhCN = {
@@ -465,7 +487,7 @@ const zhCN = {
   dropSendingHint: "发送完成前请保持这个页面打开。",
   dropPercent: "已发送 {{percent}}%",
   dropReady: "可以交给对方了",
-  dropReadyHint: "让对方扫这个码，或者把这十二个字符念给对方。",
+  dropReadyHint: "让对方扫这个二维码，或者把这十二个字符念给对方。",
   dropCodeLabel: "接收码",
   dropScanToReceive: "用对方手机的相机扫这个二维码",
   dropCopyLink: "复制链接",
@@ -501,6 +523,17 @@ const zhCN = {
   dropTooManyTries: "尝试次数有点多。稍等一会儿再试。",
   dropDamaged: "文件没有完整送达。请对方重新发送。",
   dropCancelled: "已停止，没有留下任何内容。",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "扫二维码",
+  dropScanTitle: "对准对方的屏幕",
+  dropScanHint: "把发送方手机上的二维码放进取景框。",
+  dropTypeInstead: "改为输入接收码",
+  dropCameraRefused: "相机没有打开。输入这十二个字符也可以接收。",
+  dropScannerUnavailable: "这个浏览器不能扫码。输入这十二个字符也可以接收。",
+  dropRemaining: "大约还剩 {{minutes}} 分钟",
+  dropShareLink: "分享链接",
 } satisfies Translation;
 
 const id = {
@@ -624,7 +657,7 @@ const id = {
   dropSendingHint: "Biarkan halaman ini terbuka sampai selesai.",
   dropPercent: "{{percent}}% terkirim",
   dropReady: "Siap diserahkan",
-  dropReadyHint: "Minta ponsel lain memindai kode ini, atau bacakan dua belas karakternya.",
+  dropReadyHint: "Minta ponsel lain memindai kode QR, atau bacakan dua belas karakternya.",
   dropCodeLabel: "Kode transfer",
   dropScanToReceive: "Pindai ini dengan kamera ponsel satunya",
   dropCopyLink: "Salin tautan",
@@ -662,6 +695,18 @@ const id = {
   dropTooManyTries: "Sudah terlalu banyak percobaan. Tunggu sebentar, lalu coba lagi.",
   dropDamaged: "File tidak sampai dengan utuh. Minta dikirim ulang.",
   dropCancelled: "Dihentikan. Tidak ada yang tertinggal.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "Pindai kode QR",
+  dropScanTitle: "Arahkan ke ponsel satunya",
+  dropScanHint: "Letakkan kode QR ponsel pengirim di dalam bingkai.",
+  dropTypeInstead: "Ketik kodenya saja",
+  dropCameraRefused: "Kamera tidak terbuka. Ketik dua belas karakternya untuk menerima.",
+  dropScannerUnavailable:
+    "Peramban ini tidak bisa memindai. Ketik dua belas karakternya untuk menerima.",
+  dropRemaining: "sekitar {{minutes}} menit lagi",
+  dropShareLink: "Bagikan tautan",
 } satisfies Translation;
 
 const fil = {
@@ -790,7 +835,7 @@ const fil = {
   dropSendingHint: "Huwag isara ang page hangga't hindi tapos.",
   dropPercent: "{{percent}}% naipadala",
   dropReady: "Handa nang ibigay",
-  dropReadyHint: "Pa-scan ang code sa kabilang telepono, o basahin ang labindalawang karakter.",
+  dropReadyHint: "Pa-scan ang QR code sa kabilang telepono, o basahin ang labindalawang karakter.",
   dropCodeLabel: "Transfer code",
   dropScanToReceive: "I-scan ito gamit ang camera ng kabilang telepono",
   dropCopyLink: "Kopyahin ang link",
@@ -828,6 +873,19 @@ const fil = {
   dropTooManyTries: "Marami nang subok. Sandali lang, tapos subukan ulit.",
   dropDamaged: "Hindi kumpletong dumating ang file. Ipapadala ulit nila.",
   dropCancelled: "Itinigil. Walang naiwan.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "I-scan ang QR code",
+  dropScanTitle: "Itutok sa kabilang telepono",
+  dropScanHint: "Ilagay sa loob ng frame ang QR code ng nagpapadala.",
+  dropTypeInstead: "I-type na lang ang code",
+  dropCameraRefused:
+    "Hindi bumukas ang camera. I-type ang labindalawang karakter para makatanggap.",
+  dropScannerUnavailable:
+    "Hindi makaka-scan ang browser na ito. I-type ang labindalawang karakter para makatanggap.",
+  dropRemaining: "mga {{minutes}} minuto na lang",
+  dropShareLink: "Ibahagi ang link",
 } satisfies Translation;
 
 const vi = {
@@ -946,7 +1004,7 @@ const vi = {
   dropSendingHint: "Giữ trang này mở cho đến khi xong.",
   dropPercent: "Đã gửi {{percent}}%",
   dropReady: "Sẵn sàng trao đi",
-  dropReadyHint: "Cho điện thoại kia quét mã này, hoặc đọc mười hai ký tự cho họ.",
+  dropReadyHint: "Cho điện thoại kia quét mã QR, hoặc đọc mười hai ký tự cho họ.",
   dropCodeLabel: "Mã nhận",
   dropScanToReceive: "Quét mã này bằng camera của điện thoại kia",
   dropCopyLink: "Sao chép liên kết",
@@ -983,6 +1041,17 @@ const vi = {
   dropTooManyTries: "Bạn đã thử khá nhiều lần. Đợi một chút rồi thử lại.",
   dropDamaged: "Tệp chưa đến đầy đủ. Hãy nhờ gửi lại.",
   dropCancelled: "Đã dừng. Không còn gì sót lại.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "Quét mã QR",
+  dropScanTitle: "Hướng vào điện thoại kia",
+  dropScanHint: "Đưa mã QR trên điện thoại gửi vào trong khung.",
+  dropTypeInstead: "Nhập mã thay vì quét",
+  dropCameraRefused: "Máy ảnh chưa mở. Nhập mười hai ký tự là nhận được.",
+  dropScannerUnavailable: "Trình duyệt này không quét được. Nhập mười hai ký tự là nhận được.",
+  dropRemaining: "còn khoảng {{minutes}} phút",
+  dropShareLink: "Chia sẻ liên kết",
 } satisfies Translation;
 
 const th = {
@@ -1098,7 +1167,7 @@ const th = {
   dropSendingHint: "เปิดหน้านี้ไว้จนกว่าจะเสร็จ",
   dropPercent: "ส่งแล้ว {{percent}}%",
   dropReady: "พร้อมส่งต่อแล้ว",
-  dropReadyHint: "ให้อีกเครื่องสแกนโค้ดนี้ หรืออ่านสิบสองตัวอักษรให้ฟัง",
+  dropReadyHint: "ให้อีกเครื่องสแกนคิวอาร์โค้ด หรืออ่านสิบสองตัวอักษรให้ฟัง",
   dropCodeLabel: "รหัสรับไฟล์",
   dropScanToReceive: "สแกนด้วยกล้องของอีกเครื่อง",
   dropCopyLink: "คัดลอกลิงก์",
@@ -1135,6 +1204,17 @@ const th = {
   dropTooManyTries: "ลองหลายครั้งแล้ว รอสักครู่แล้วลองใหม่",
   dropDamaged: "ไฟล์มาไม่ครบ ขอให้ส่งใหม่อีกครั้ง",
   dropCancelled: "หยุดแล้ว ไม่มีอะไรค้างอยู่",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "สแกนคิวอาร์โค้ด",
+  dropScanTitle: "หันไปที่อีกเครื่อง",
+  dropScanHint: "วางคิวอาร์โค้ดของเครื่องที่ส่งให้อยู่ในกรอบ",
+  dropTypeInstead: "พิมพ์รหัสแทน",
+  dropCameraRefused: "กล้องยังไม่เปิด พิมพ์สิบสองตัวอักษรก็รับได้",
+  dropScannerUnavailable: "เบราว์เซอร์นี้สแกนไม่ได้ พิมพ์สิบสองตัวอักษรก็รับได้",
+  dropRemaining: "เหลืออีกประมาณ {{minutes}} นาที",
+  dropShareLink: "แชร์ลิงก์",
 } satisfies Translation;
 
 const ne = {
@@ -1254,7 +1334,7 @@ const ne = {
   dropSendingHint: "सकिने बेलासम्म यो पृष्ठ खुला राख्नुहोस्।",
   dropPercent: "{{percent}}% पठाइयो",
   dropReady: "दिन तयार भयो",
-  dropReadyHint: "अर्को मोबाइलले यो कोड स्क्यान गरोस्, वा बाह्र अक्षर भनिदिनुहोस्।",
+  dropReadyHint: "अर्को मोबाइलले QR स्क्यान गरोस्, वा बाह्र अक्षर भनिदिनुहोस्।",
   dropCodeLabel: "लिने कोड",
   dropScanToReceive: "अर्को मोबाइलको क्यामेराले यो स्क्यान गर्नुहोस्",
   dropCopyLink: "लिंक कपी गर्नुहोस्",
@@ -1290,6 +1370,17 @@ const ne = {
   dropTooManyTries: "धेरै पटक प्रयास भयो। केही बेरपछि फेरि गर्नुहोस्।",
   dropDamaged: "फाइल पूरा आएन। फेरि पठाइदिन भन्नुहोस्।",
   dropCancelled: "रोकियो। केही बाँकी छैन।",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "QR स्क्यान गर्नुहोस्",
+  dropScanTitle: "अर्को मोबाइलतिर तेर्स्याउनुहोस्",
+  dropScanHint: "पठाउने मोबाइलको QR लाई खापभित्र राख्नुहोस्।",
+  dropTypeInstead: "बरु कोड टाइप गर्नुहोस्",
+  dropCameraRefused: "क्यामेरा खुलेन। बाह्र अक्षर टाइप गरे पनि लिन सकिन्छ।",
+  dropScannerUnavailable: "यो ब्राउजरले स्क्यान गर्न सक्दैन। बाह्र अक्षर टाइप गरे पनि लिन सकिन्छ।",
+  dropRemaining: "लगभग {{minutes}} मिनेट बाँकी",
+  dropShareLink: "लिंक पठाउनुहोस्",
 } satisfies Translation;
 
 const km = {
@@ -1408,7 +1499,7 @@ const km = {
   dropSendingHint: "ទុកទំព័រនេះបើករហូតដល់ចប់។",
   dropPercent: "ផ្ញើបាន {{percent}}%",
   dropReady: "រួចរាល់ដើម្បីប្រគល់",
-  dropReadyHint: "ឲ្យទូរស័ព្ទម្ខាងទៀតស្កេនកូដនេះ ឬអានអក្សរដប់ពីរឲ្យគេ។",
+  dropReadyHint: "ឲ្យទូរស័ព្ទម្ខាងទៀតស្កេនកូដ QR ឬអានអក្សរដប់ពីរឲ្យគេ។",
   dropCodeLabel: "កូដទទួល",
   dropScanToReceive: "ស្កេនកូដនេះដោយកាមេរ៉ាទូរស័ព្ទម្ខាងទៀត",
   dropCopyLink: "ចម្លងតំណ",
@@ -1445,6 +1536,17 @@ const km = {
   dropTooManyTries: "ព្យាយាមច្រើនដងហើយ។ រង់ចាំបន្តិច រួចព្យាយាមម្តងទៀត។",
   dropDamaged: "ឯកសារមកមិនគ្រប់។ សុំឲ្យផ្ញើម្តងទៀត។",
   dropCancelled: "បានឈប់។ គ្មានអ្វីនៅសល់ទេ។",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "ស្កេនកូដ QR",
+  dropScanTitle: "តម្រង់ទៅទូរស័ព្ទម្ខាងទៀត",
+  dropScanHint: "ដាក់កូដ QR របស់ទូរស័ព្ទផ្ញើឲ្យនៅក្នុងស៊ុម។",
+  dropTypeInstead: "វាយកូដជំនួសវិញ",
+  dropCameraRefused: "កាមេរ៉ាមិនបានបើកទេ។ វាយអក្សរដប់ពីរក៏ទទួលបានដែរ។",
+  dropScannerUnavailable: "កម្មវិធីរុករកនេះស្កេនមិនបាន។ វាយអក្សរដប់ពីរក៏ទទួលបានដែរ។",
+  dropRemaining: "នៅសល់ប្រហែល {{minutes}} នាទី",
+  dropShareLink: "ចែករំលែកតំណ",
 } satisfies Translation;
 
 const ar = {
@@ -1563,7 +1665,7 @@ const ar = {
   dropSendingHint: "أبقِ هذه الصفحة مفتوحة حتى ينتهي الإرسال.",
   dropPercent: "تم إرسال {{percent}}%",
   dropReady: "جاهز للتسليم",
-  dropReadyHint: "دع الهاتف الآخر يمسح هذا الرمز، أو اقرأ الأحرف الاثني عشر بصوت عالٍ.",
+  dropReadyHint: "دع الهاتف الآخر يمسح رمز QR، أو اقرأ الأحرف الاثني عشر بصوت عالٍ.",
   dropCodeLabel: "رمز الاستلام",
   dropScanToReceive: "امسح هذا بكاميرا الهاتف الآخر",
   dropCopyLink: "انسخ الرابط",
@@ -1600,6 +1702,17 @@ const ar = {
   dropTooManyTries: "كانت المحاولات كثيرة. انتظر لحظة ثم حاول مرة أخرى.",
   dropDamaged: "لم يصل هذا الملف كاملًا. اطلب إرساله من جديد.",
   dropCancelled: "تم الإيقاف. لم يبق شيء.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "امسح رمز QR",
+  dropScanTitle: "وجّه الكاميرا إلى الهاتف الآخر",
+  dropScanHint: "ضع رمز QR الظاهر على هاتف المُرسِل داخل الإطار.",
+  dropTypeInstead: "اكتب الرمز بدلًا من ذلك",
+  dropCameraRefused: "لم تفتح الكاميرا. اكتب الأحرف الاثني عشر لتستلم الملفات.",
+  dropScannerUnavailable: "هذا المتصفح لا يمسح الرموز. اكتب الأحرف الاثني عشر لتستلم الملفات.",
+  dropRemaining: "يتبقى نحو {{minutes}} دقيقة",
+  dropShareLink: "شارك الرابط",
 } satisfies Translation;
 
 const ru = {
@@ -1721,7 +1834,7 @@ const ru = {
   dropSendingHint: "Держите страницу открытой до конца отправки.",
   dropPercent: "Отправлено {{percent}}%",
   dropReady: "Готово к передаче",
-  dropReadyHint: "Пусть другой телефон отсканирует код, или продиктуйте двенадцать символов.",
+  dropReadyHint: "Пусть другой телефон отсканирует QR-код, или продиктуйте двенадцать символов.",
   dropCodeLabel: "Код получения",
   dropScanToReceive: "Отсканируйте камерой другого телефона",
   dropCopyLink: "Скопировать ссылку",
@@ -1759,6 +1872,17 @@ const ru = {
   dropTooManyTries: "Слишком много попыток. Подождите немного и попробуйте снова.",
   dropDamaged: "Файл пришёл не полностью. Попросите отправить заново.",
   dropCancelled: "Остановлено. Ничего не осталось.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "Отсканировать QR-код",
+  dropScanTitle: "Наведите на другой телефон",
+  dropScanHint: "Поместите QR-код отправляющего телефона в рамку.",
+  dropTypeInstead: "Ввести код вручную",
+  dropCameraRefused: "Камера не открылась. Введите двенадцать символов, и файлы придут.",
+  dropScannerUnavailable: "Этот браузер не сканирует. Введите двенадцать символов, и файлы придут.",
+  dropRemaining: "осталось около {{minutes}} мин",
+  dropShareLink: "Отправить ссылку",
 } satisfies Translation;
 
 const mn = {
@@ -1883,7 +2007,7 @@ const mn = {
   dropSendingHint: "Дуустал энэ хуудсыг нээлттэй байлга.",
   dropPercent: "{{percent}}% илгээгдлээ",
   dropReady: "Дамжуулахад бэлэн",
-  dropReadyHint: "Нөгөө утсаар энэ кодыг уншуулах эсвэл арван хоёр тэмдэгтийг уншиж өг.",
+  dropReadyHint: "Нөгөө утсаар QR кодыг уншуулах эсвэл арван хоёр тэмдэгтийг уншиж өг.",
   dropCodeLabel: "Хүлээн авах код",
   dropScanToReceive: "Нөгөө утасны камераар үүнийг уншуул",
   dropCopyLink: "Холбоосыг хуулах",
@@ -1921,6 +2045,17 @@ const mn = {
   dropTooManyTries: "Хэт олон удаа оролдлоо. Хэсэг хүлээгээд дахин оролдоно уу.",
   dropDamaged: "Файл бүтнээрээ ирсэнгүй. Дахин илгээхийг хүс.",
   dropCancelled: "Зогсоолоо. Юу ч үлдсэнгүй.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "QR уншуулах",
+  dropScanTitle: "Нөгөө утас руу чиглүүлээрэй",
+  dropScanHint: "Илгээгч утасны QR кодыг хүрээн дотор оруулаарай.",
+  dropTypeInstead: "Оронд нь код бичих",
+  dropCameraRefused: "Камер нээгдсэнгүй. Арван хоёр тэмдэгтийг бичвэл авч болно.",
+  dropScannerUnavailable: "Энэ хөтөч уншиж чадахгүй. Арван хоёр тэмдэгтийг бичвэл авч болно.",
+  dropRemaining: "ойролцоогоор {{minutes}} мин үлдлээ",
+  dropShareLink: "Холбоос илгээх",
 } satisfies Translation;
 
 const uk = {
@@ -2042,7 +2177,7 @@ const uk = {
   dropSendingHint: "Тримайте цю сторінку відкритою до кінця.",
   dropPercent: "Надіслано {{percent}}%",
   dropReady: "Готово до передавання",
-  dropReadyHint: "Хай інший телефон відсканує цей код, або продиктуйте дванадцять символів.",
+  dropReadyHint: "Хай інший телефон відсканує QR-код, або продиктуйте дванадцять символів.",
   dropCodeLabel: "Код отримання",
   dropScanToReceive: "Відскануйте камерою іншого телефона",
   dropCopyLink: "Скопіювати посилання",
@@ -2080,6 +2215,17 @@ const uk = {
   dropTooManyTries: "Забагато спроб. Зачекайте трохи й спробуйте ще раз.",
   dropDamaged: "Файл надійшов не повністю. Попросіть надіслати ще раз.",
   dropCancelled: "Зупинено. Нічого не залишилося.",
+
+  // Scanning the sending phone's code, and the two numbers a
+  // waiting visitor actually wants: how long is left, and how to pass it on.
+  dropScanCta: "Відсканувати QR-код",
+  dropScanTitle: "Наведіть на інший телефон",
+  dropScanHint: "Розмістіть QR-код телефона-відправника в рамці.",
+  dropTypeInstead: "Ввести код вручну",
+  dropCameraRefused: "Камера не відкрилася. Введіть дванадцять символів, і файли надійдуть.",
+  dropScannerUnavailable: "Цей браузер не сканує. Введіть дванадцять символів, і файли надійдуть.",
+  dropRemaining: "лишилось близько {{minutes}} хв",
+  dropShareLink: "Надіслати посилання",
 } satisfies Translation;
 
 export const TRANSLATIONS: Record<SupportedLocale, Translation> = {

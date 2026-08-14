@@ -25,6 +25,11 @@ The transfer code travels between two people — read aloud, or scanned from a Q
 it in the URL fragment. It never reaches the service, and the service is never able to read a file
 it stores.
 
+Scanning is the primary path on the receiving side: `/receive` opens the camera and reads the
+sending phone's QR through `BarcodeDetector`, so nobody types twelve characters unless their browser
+cannot scan or refuses the camera. The keypad stays as the fallback and accepts either shape a code
+can arrive in — the full link, or a bare code somebody re-encoded.
+
 ---
 
 ## The transfer code
@@ -77,6 +82,10 @@ blob, so opening a transfer costs one request and reveals nothing until the code
 
 Ceilings: 20 files, 4096 parts, and `DROP_MAX_TOTAL_MB` (default 2048) per transfer.
 
+The hand-off is deliberately format-blind, which is what makes it safe for Hancom documents: a
+`.hwp` or `.hwpx` moves as bytes with its name intact, including Korean names and the empty MIME
+type most phones report for them. `test/e2e/hancom-handoff.spec.ts` pins that round trip by digest.
+
 ---
 
 ## Moving bytes reliably
@@ -96,6 +105,12 @@ Neither phone ever holds more than one chunk in memory.
 - **Commits are checked.** `POST /api/drops/:dropId/parts/complete` reads each part's real size back
   from the storage provider instead of trusting the request, so a truncated upload fails on the
   sending side rather than much later on the receiving one.
+- **The screen is held awake** for the length of a transfer. A phone that sleeps mid-upload
+  throttles its timers and can stall a large hand-off, which a visitor experiences as the service
+  quietly failing.
+- **Time remaining is estimated** from throughput over the last twenty seconds, rounded to whole
+  minutes, and withheld entirely when the transfer has stalled or the answer would exceed an hour.
+  A number nobody would act on is worse than no number.
 
 A transfer opens for reading only after every part is committed and the sender seals it.
 

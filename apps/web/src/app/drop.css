@@ -241,3 +241,18 @@
   width: 20px;
   height: 20px;
 }
+
+/* Camera scanning. The preview is the whole instruction, so it gets the room a
+   phone held at arm's length needs, and a frame that says where to aim. */
+.drop-scan {
+  justify-items: stretch;
+}
+.drop-scan__preview {
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 60vh;
+  object-fit: cover;
+  border: 3px solid var(--pc-teal);
+  border-radius: var(--pc-radius);
+  background: #000;
+}

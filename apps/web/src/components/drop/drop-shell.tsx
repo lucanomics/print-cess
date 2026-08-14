@@ -99,9 +99,11 @@ export function DropShell({
 export function TransferBar({
   progress,
   text,
+  minutesRemaining,
 }: {
   progress: { transferredBytes: number; totalBytes: number };
   text: Text;
+  minutesRemaining?: number | null;
 }) {
   const percent =
     progress.totalBytes > 0
@@ -122,6 +124,7 @@ export function TransferBar({
       <p className="drop-progress__label">
         {text("dropPercent", { percent })} · {formatBytes(progress.transferredBytes)} /{" "}
         {formatBytes(progress.totalBytes)}
+        {minutesRemaining ? ` · ${text("dropRemaining", { minutes: minutesRemaining })}` : ""}
       </p>
     </div>
   );

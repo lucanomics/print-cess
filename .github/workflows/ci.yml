@@ -21,6 +21,11 @@ jobs:
     timeout-minutes: 35
     env:
       CI: "true"
+      # Without a UTF-8 locale the browser sanitizes non-ASCII download names
+      # down to "download", so a Korean file name would fail here for a reason
+      # that has nothing to do with the service.
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
       PUBLIC_BASE_URL: http://127.0.0.1:3000
       ALLOWED_ORIGINS: http://127.0.0.1:3000
       PRINT_CESS_ADAPTER_MODE: local

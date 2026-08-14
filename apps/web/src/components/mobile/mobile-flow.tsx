@@ -347,6 +347,8 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         ? "guideReminder"
         : HELP_KEYS[stage];
   const supportsHancom = supportsHwp || supportsHwpx;
+  const hancomLabel = hancomFormatLabel(supportsHwp, supportsHwpx);
+  const naming = (value: string) => applyHancomLabel(value, hancomLabel);
 
   return (
     <ScreenShell>
@@ -380,6 +382,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         <GuideStep
           text={text}
           supportsHancom={supportsHancom}
+          hancomLabel={hancomLabel}
           onContinue={() => setStage("file")}
         />
       ) : null}
@@ -389,7 +392,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             <FileImage size={32} aria-hidden="true" />
           </StatusIcon>
           <h1>{text("chooseFile")}</h1>
-          <p>{expandHancomLabel(text(supportsHancom ? "fileRulesHwpx" : "fileRules"))}</p>
+          <p>{naming(text(supportsHancom ? "fileRulesHwpx" : "fileRules"))}</p>
           <input
             ref={photoInput}
             data-testid="photo-input"
@@ -403,12 +406,12 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
             data-testid="file-input"
             hidden
             type="file"
-            accept="application/pdf,application/x-hwp,application/haansofthwp,application/hwp+zip,image/*,.pdf,.hwp,.hwpx,.jpg,.jpeg,.png,.heic,.heif,.webp,.avif,.bmp,.gif,.tif,.tiff"
+            accept={documentAccept(supportsHwp, supportsHwpx)}
             onChange={(event) => void chooseFile(event.target.files?.[0])}
           />
           {fileErrorKey ? (
             <p className="mobile-file-error" role="alert">
-              {expandHancomLabel(text(fileErrorKey))}
+              {naming(text(fileErrorKey))}
             </p>
           ) : null}
           {!fileErrorKey && fileNoticeKey ? (
@@ -438,7 +441,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
               selectedDocumentPreview: text("selectedDocumentPreview"),
               pdfPreview: text("pdfPreview"),
               firstPagePreview: text("firstPagePreview"),
-              hwpxPreview: expandHancomLabel(text("hwpxPreview")),
+              hwpxPreview: naming(text("hwpxPreview")),
             }}
           />
           <div className="mobile-summary">
@@ -543,10 +546,12 @@ function LanguageStep({
 function GuideStep({
   text,
   supportsHancom,
+  hancomLabel,
   onContinue,
 }: {
   text: Text;
   supportsHancom: boolean;
+  hancomLabel: string;
   onContinue: () => void;
 }) {
   return (
@@ -564,7 +569,7 @@ function GuideStep({
             </span>
             <span>
               <strong>{text(title)}</strong>
-              <small>{expandHancomLabel(text(body))}</small>
+              <small>{applyHancomLabel(text(body), hancomLabel)}</small>
             </span>
           </li>
         ))}
@@ -690,6 +695,43 @@ function ProgressState({ text, keepPageOpen }: { text: string; keepPageOpen: str
   );
 }
 
-function expandHancomLabel(value: string): string {
-  return value.replaceAll("HWPX", "HWP/HWPX");
+/**
+ * Names only the Hancom formats this kiosk actually declared. Saying
+ * "HWP/HWPX" to a printer that can open just one of them sends the visitor
+ * away to convert a file it would have accepted, or promises one it cannot.
+ */
+function hancomFormatLabel(supportsHwp: boolean, supportsHwpx: boolean): string {
+  // Narrow the name only when the kiosk genuinely supports one format and not
+  // the other. When it supports both — or neither, where the only message is a
+  // refusal covering both — naming both is what is accurate.
+  if (supportsHwp === supportsHwpx) return "HWP/HWPX";
+  return supportsHwp ? "HWP" : "HWPX";
+}
+
+function applyHancomLabel(value: string, label: string): string {
+  return value.replaceAll("HWPX", label);
+}
+
+/** The picker only offers what the kiosk can print. */
+function documentAccept(supportsHwp: boolean, supportsHwpx: boolean): string {
+  const base = [
+    "application/pdf",
+    ".pdf",
+    "image/*",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".heic",
+    ".heif",
+    ".webp",
+    ".avif",
+    ".bmp",
+    ".gif",
+    ".tif",
+    ".tiff",
+  ];
+  const hancom: string[] = [];
+  if (supportsHwp) hancom.push("application/x-hwp", "application/haansofthwp", ".hwp");
+  if (supportsHwpx) hancom.push("application/hwp+zip", ".hwpx");
+  return [...base, ...hancom].join(",");
 }
