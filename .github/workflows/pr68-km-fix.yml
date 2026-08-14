@@ -1,0 +1,48 @@
+name: PR68 one-shot Khmer numeral fix
+
+on:
+  push:
+    branches:
+      - claude/print-cess-file-sharing-gtrt2n
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Keep Khmer locale on one numeral script
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p = Path('packages/i18n/src/index.ts')
+          s = p.read_text()
+          before = s.count('២០')
+          if before != 2:
+              raise SystemExit(f'Expected exactly 2 Khmer 20 tokens, found {before}')
+          p.write_text(s.replace('២០', '20'))
+          PY
+          pnpm exec prettier --write packages/i18n/src/index.ts
+      - name: Verify i18n tests
+        run: pnpm --filter @print-cess/i18n test
+      - name: Commit fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/i18n/src/index.ts
+          git commit -m "fix(i18n): keep Khmer transfer numerals consistent"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
