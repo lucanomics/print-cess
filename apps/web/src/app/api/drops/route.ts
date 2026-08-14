@@ -28,6 +28,20 @@ export async function POST(request: Request) {
     }
     const drop = await createDrop(body);
 
+    // QStash deployments do not have the Railway worker's periodic sweep. A
+    // newly created drop therefore needs its own expiry-time sweep scheduled
+    // before we tell the sender that the transfer exists. If scheduling fails,
+    // roll the still-empty record back so no unscheduled ciphertext can later
+    // be uploaded under it.
+    if (server.cleanup.scheduleSweep) {
+      try {
+        await server.cleanup.scheduleSweep(drop.expiresAt);
+      } catch (error) {
+        await server.drops.remove(drop.dropId).catch(() => undefined);
+        throw error;
+      }
+    }
+
     after(async () => {
       await sweepExpiredDrops(server, Date.now(), 3).catch(() => undefined);
     });
