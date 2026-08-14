@@ -117,7 +117,7 @@ and Ukrainian. No locale may keep its wording in a separate override layer; ever
 edited and reviewed in the same table so a change to one is visible against all the others.
 
 Machine translation is a development placeholder only. Native-speaker review must cover accuracy,
-politeness, line-breaking, screen-reader output, audio guidance, error instructions, the plain-
+politeness, line-breaking, screen-reader output, error instructions, the plain-
 language help sheet, and privacy/security meaning before Production.
 
 The shared kiosk display keeps Korean and English on screen permanently and rotates the single

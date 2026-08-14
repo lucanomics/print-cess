@@ -28,8 +28,8 @@ Run keyboard-only navigation and visible focus on every action. With VoiceOver, 
 target Windows screen reader, verify reading order, labels, selected language, step/progress changes,
 error announcements, dialog/focus return, file-picker recovery, and completion. Verify at 200% text
 zoom and 400% browser zoom/reflow where applicable, high contrast, portrait/landscape, large text,
-reduced motion, speech unavailable, and muted audio. Text must remain sufficient without color,
-icon, animation, or audio.
+reduced motion, and muted audio. The visitor flow carries no spoken guidance, so text must be
+sufficient on its own — without color, icon, animation, or sound.
 
 Measure the real rendered foreground/background colors and require WCAG 2.2 AA contrast: 4.5:1 for
 normal text, 3:1 for large text and non-text controls/focus. Confirm 64px primary actions remain
@@ -41,7 +41,8 @@ blocking error, contrast failure, or inability to finish the primary flow is rel
 
 ## Native-language review
 
-One qualified native reviewer per locale must review all visible text and speech in context:
+One qualified native reviewer per locale must review all visible text in context, for both the
+print flow and the file hand-off:
 
 | Locale  | Language         | Reviewer/sign-off required |
 | ------- | ---------------- | -------------------------- |
@@ -63,8 +64,7 @@ Reviewers must confirm plain meaning, respectful neutral tone, action consistenc
 instructions, the exact `A4 한 부 인쇄` intent, no implication of government endorsement, no
 promise the service cannot keep, correct response when the user lacks a phone/data/file, and
 professional error recovery. Review at actual device widths; a string-level spreadsheet alone is
-insufficient. Pre-recorded operational audio, if adopted, needs the same reviewer and a second
-listening check on the target kiosk.
+insufficient.
 
 Reviewers must also judge the copy against the reading level the service actually needs. Every
 visible string is written for a visitor who has never used a kiosk and may read slowly, so each
@@ -108,7 +108,7 @@ possible and that only a reader of the language can catch:
 **What this pass cannot establish.** Whether the copy sounds like a person rather than a translation;
 whether the register suits a public counter in that language; whether an instruction is
 understandable to someone reading slowly under stress; whether a word carries an unintended
-connotation; whether the audio is intelligible. Those require a qualified speaker, and R-17 stays
+connotation. Those require a qualified speaker, and R-17 stays
 open until thirteen of them have signed.
 
 ## Approval record

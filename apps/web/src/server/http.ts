@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { SESSION_ID_PATTERN } from "@print-cess/protocol";
+import { DROP_ID_PATTERN, SESSION_ID_PATTERN } from "@print-cess/protocol";
 
 import type { ServerConfig } from "./config";
 import { ServiceError, publicErrorBody } from "./errors";
@@ -37,6 +37,16 @@ export async function readSessionId(context: {
     throw new ServiceError("bad_request", "The print session identifier is invalid.", 400);
   }
   return sessionId;
+}
+
+export async function readDropId(context: {
+  params: Promise<{ dropId: string }>;
+}): Promise<string> {
+  const { dropId } = await context.params;
+  if (!DROP_ID_PATTERN.test(dropId)) {
+    throw new ServiceError("bad_request", "The transfer identifier is invalid.", 400);
+  }
+  return dropId;
 }
 
 export async function readJson<T>(

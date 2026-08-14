@@ -1,6 +1,11 @@
 import { BlobNotFoundError, head as headBlob, issueSignedToken, presignUrl } from "@vercel/blob";
 
-import type { BlobMetadata, BlobTransport, SignedBlobOperation } from "../contracts";
+import type {
+  BlobMetadata,
+  BlobTransport,
+  SignedBlobOperation,
+  UploadAuthorizationOptions,
+} from "../contracts";
 import { ServiceError } from "../errors";
 
 export class VercelBlobTransport implements BlobTransport {
@@ -8,7 +13,9 @@ export class VercelBlobTransport implements BlobTransport {
     pathname: string,
     expiresAt: number,
     maximumSize: number,
+    options?: UploadAuthorizationOptions,
   ): Promise<SignedBlobOperation> {
+    const allowOverwrite = options?.allowOverwrite === true;
     const token = await issueSignedToken({
       pathname,
       operations: ["put"],
@@ -23,7 +30,7 @@ export class VercelBlobTransport implements BlobTransport {
       validUntil: expiresAt,
       allowedContentTypes: ["application/octet-stream"],
       maximumSizeInBytes: maximumSize,
-      allowOverwrite: false,
+      allowOverwrite,
       addRandomSuffix: false,
     });
     return {

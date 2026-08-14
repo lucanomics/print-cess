@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MAX_DROP_TOTAL_BYTES } from "@print-cess/protocol";
+
 import { isDemoRouteEnabled } from "./demo";
 
 export const SESSION_PROVIDERS = ["upstash-redis", "railway-redis", "railway-postgres"] as const;
@@ -20,6 +22,19 @@ const configSchema = z.object({
   qrTtlMs: z.number().int().min(30_000).max(300_000),
   sessionTtlMs: z.number().int().min(30_000).max(300_000),
   signedUrlTtlMs: z.number().int().min(15_000).max(180_000),
+  // A hand-off between two people is not a print job: the receiver may be in
+  // another room, or on their way, so a drop lives minutes to hours rather
+  // than the two minutes a kiosk QR code is worth.
+  dropTtlMs: z
+    .number()
+    .int()
+    .min(5 * 60_000)
+    .max(24 * 60 * 60_000),
+  dropMaxTotalBytes: z
+    .number()
+    .int()
+    .min(16 * 1024 * 1024)
+    .max(MAX_DROP_TOTAL_BYTES),
   demoEnabled: z.boolean(),
 });
 
@@ -61,6 +76,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     qrTtlMs: Number(environment.QR_TTL_SECONDS ?? 120) * 1000,
     sessionTtlMs: Number(environment.SESSION_TTL_SECONDS ?? 180) * 1000,
     signedUrlTtlMs: Number(environment.SIGNED_URL_TTL_SECONDS ?? 120) * 1000,
+    dropTtlMs: Number(environment.DROP_TTL_SECONDS ?? 1800) * 1000,
+    dropMaxTotalBytes: Number(environment.DROP_MAX_TOTAL_MB ?? 2048) * 1024 * 1024,
     demoEnabled: isDemoRouteEnabled(environment) || environment.NODE_ENV !== "production",
   });
 

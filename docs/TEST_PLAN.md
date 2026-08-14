@@ -129,10 +129,17 @@ At minimum:
 - locked/damaged/11-page/unsupported/oversized/excess-dimension files;
 - iPhone-like and Android-like viewports and current Safari/Chrome manual spot check;
 - keyboard-only navigation, focus visibility, labels/name/role, progress announcement, contrast
-  check, reduced motion, 30-second reminder, audio unavailable/replay;
+  check, reduced motion, and the 30-second reminder;
 - no admin link in public UI and Production demo-route denial;
 - no token/signed URL in page URL after fragment consumption, console, trace, screenshot name, or
   application log.
+
+File hand-off adds its own coverage: transfer-code normalization and derivation, chunk
+authentication under reordering and truncation, the store contract on every provider adapter, the
+route sequence end to end against the local adapters, and a browser test that moves a real
+multi-chunk file between two contexts and compares its digest. Verify by hand that a transfer
+survives losing signal mid-upload, that a stale or mistyped code fails with a plain sentence, and
+that erasing a transfer from the sending screen leaves nothing to open.
 
 Automated Playwright runs disable raw trace and screenshot capture because network bodies and QR
 images contain short-lived credentials. CI uploads only the HTML report and assertion output; use a
@@ -172,10 +179,11 @@ queue version, connection, policies, operator, and date. With synthetic fixtures
   after submit, completion, and cleanup;
 - one job at most under double click, duplicated API requests, app restart, and staff action;
 - spool files/job history/printer storage, temp directory, crash dump/page file, and prior-user UI;
-- QR readability, mobile data flow, audio, 15-second reset, admin authentication, and kiosk escape;
+- QR readability, mobile data flow, the completion chime, 15-second reset, admin authentication,
+  and kiosk escape;
 - authenticated printer selection/status, synthetic print, active server/Redis/Blob/QStash health,
   recovery acknowledgement, force-discard, bounded orphan sweep, restart, redacted diagnostics,
-  and audio-test actions;
+  and sound-test actions;
 - network/provider outage and later orphan cleanup.
 
 Do not auto-retry an ambiguous job during testing. Count physical sheets and inspect the queue before

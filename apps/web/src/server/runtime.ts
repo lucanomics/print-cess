@@ -1,5 +1,12 @@
 import { generateToken, hashToken } from "@print-cess/crypto";
-import { MAX_ENVELOPE_BYTES, PROTOCOL_VERSION, type PrintSession } from "@print-cess/protocol";
+import {
+  DROP_PROTOCOL_VERSION,
+  MAX_ENVELOPE_BYTES,
+  PROTOCOL_VERSION,
+  dropPartPath,
+  type DropRecord,
+  type PrintSession,
+} from "@print-cess/protocol";
 
 import { LocalEncryptedBlobTransport } from "./blob/local";
 import { S3BlobTransport } from "./blob/s3";
@@ -8,16 +15,25 @@ import { InProcessCleanupScheduler } from "./cleanup/in-process";
 import { PersistentSweepCleanupScheduler } from "./cleanup/persistent-sweep";
 import { QStashCleanupScheduler } from "./cleanup/qstash";
 import { loadConfig, type ServerConfig } from "./config";
-import type { BlobTransport, CleanupScheduler, SessionStore } from "./contracts";
+import type { BlobTransport, CleanupScheduler, DropStore, SessionStore } from "./contracts";
+import { MemoryDropStore } from "./drop-store/memory";
+import { RailwayPostgresDropStore } from "./drop-store/postgres";
+import { RedisDropStore } from "./drop-store/redis";
+import { UpstashScriptClient } from "./drop-store/upstash-client";
 import { MemorySessionStore } from "./session-store/memory";
 import { RailwayPostgresSessionStore } from "./session-store/postgres";
+import { createNodeRedisScriptClient } from "./session-store/redis-client";
 import { RailwayRedisSessionStore } from "./session-store/redis";
 import { UpstashSessionStore } from "./session-store/upstash";
 import { ServiceError } from "./errors";
 
+/** Retention past expiry, so a sweep still finds the parts it has to delete. */
+const DROP_RETENTION_MS = 10 * 60_000;
+
 export type ServerRuntime = {
   config: ServerConfig;
   sessions: SessionStore;
+  drops: DropStore;
   blobs: BlobTransport;
   cleanup: CleanupScheduler;
 };
@@ -37,20 +53,29 @@ export function getRuntime(): ServerRuntime {
         : config.sessionProvider === "railway-postgres"
           ? new RailwayPostgresSessionStore()
           : new UpstashSessionStore();
+    // Drops follow whichever backing service already holds session state, so a
+    // deployment never has to provision or pay for a second one.
+    const drops: DropStore =
+      config.sessionProvider === "railway-redis"
+        ? new RedisDropStore(createNodeRedisScriptClient())
+        : config.sessionProvider === "railway-postgres"
+          ? new RailwayPostgresDropStore()
+          : new RedisDropStore(new UpstashScriptClient());
     const blobs: BlobTransport =
       config.blobProvider === "railway-s3" ? new S3BlobTransport() : new VercelBlobTransport();
     const cleanup: CleanupScheduler =
       config.cleanupProvider === "railway-worker"
         ? new PersistentSweepCleanupScheduler()
         : new QStashCleanupScheduler(`${config.publicBaseUrl}/api/cleanup`);
-    runtime = { config, sessions, blobs, cleanup };
+    runtime = { config, sessions, drops, blobs, cleanup };
   } else {
     const sessions = new MemorySessionStore();
+    const drops = new MemoryDropStore();
     const blobs = new LocalEncryptedBlobTransport(config.publicBaseUrl);
     const cleanup = new InProcessCleanupScheduler(async (sessionId) => {
       await cleanupSession(runtime, sessionId);
     });
-    runtime = { config, sessions, blobs, cleanup };
+    runtime = { config, sessions, drops, blobs, cleanup };
   }
   globalThis.__printCessRuntime = runtime;
   return runtime;
@@ -121,6 +146,74 @@ export async function cleanupSession(
     throw new ServiceError("conflict", "Cleanup state changed before it could be finalized.", 409);
   }
   return "deleted";
+}
+
+export async function createDrop(input: {
+  dropId: string;
+  ownerTokenHash: string;
+  manifest: string;
+  fileCount: number;
+  partCount: number;
+}): Promise<DropRecord> {
+  const runtime = getRuntime();
+  const now = Date.now();
+  const drop: DropRecord = {
+    protocolVersion: DROP_PROTOCOL_VERSION,
+    dropId: input.dropId,
+    status: "collecting",
+    ownerTokenHash: input.ownerTokenHash,
+    manifest: input.manifest,
+    fileCount: input.fileCount,
+    partCount: input.partCount,
+    parts: Array.from({ length: input.partCount }, () => null),
+    totalCiphertextBytes: 0,
+    downloadCount: 0,
+    createdAt: now,
+    expiresAt: now + runtime.config.dropTtlMs,
+    revision: 0,
+  };
+  await runtime.drops.create(drop, DROP_RETENTION_MS);
+  return drop;
+}
+
+/**
+ * Deletes every part a drop ever authorized, then the record. Part paths are
+ * derived from the identifier rather than stored, so a record that was written
+ * before a crash still names all of its ciphertext.
+ */
+export async function deleteDrop(runtime: ServerRuntime, drop: DropRecord): Promise<void> {
+  for (let index = 0; index < drop.partCount; index += 1) {
+    const part = drop.parts[index];
+    try {
+      await runtime.blobs.delete(dropPartPath(drop.dropId, index));
+    } catch (error) {
+      // A part that was authorized but never uploaded is simply absent.
+      if (error instanceof ServiceError && error.status === 404) continue;
+      if (!part) continue;
+      throw error;
+    }
+  }
+  await runtime.drops.remove(drop.dropId);
+}
+
+export type DropSweepResult = { attempted: number; deleted: number; failed: number };
+
+export async function sweepExpiredDrops(
+  runtime: ServerRuntime,
+  now = Date.now(),
+  limit = 5,
+): Promise<DropSweepResult> {
+  const expired = await runtime.drops.listExpired(now, limit);
+  const result: DropSweepResult = { attempted: expired.length, deleted: 0, failed: 0 };
+  for (const drop of expired) {
+    try {
+      await deleteDrop(runtime, drop);
+      result.deleted += 1;
+    } catch {
+      result.failed += 1;
+    }
+  }
+  return result;
 }
 
 export type OrphanSweepResult = {

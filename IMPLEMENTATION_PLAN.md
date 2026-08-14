@@ -71,7 +71,7 @@ The detailed component and failure model is in `docs/ARCHITECTURE.md`. The norma
 4. Implement Redis atomic transitions, Vercel Blob scoped signed URLs, QStash verification, and
    orphan tracking behind the same interfaces.
 5. Implement the mobile flow, public browser kiosk, development-only administrator simulator,
-   internationalization, accessibility, and audio-provider boundary.
+   internationalization and accessibility.
 6. Implement kiosk Core, Infrastructure, WPF UI, validation, mock print engine, Windows print
    engine, session reset, and crash recovery.
 7. Generate only synthetic fixtures and cover units, API integration, browser E2E, cryptographic
@@ -140,7 +140,7 @@ macOS host cannot establish WPF runtime correctness.
   policy are not yet known.
 - PDF/image parsing and rendering libraries require final license, maintenance, exploit-resistance,
   and representative-driver review.
-- Browser speech voices and all non-English copy require device testing and native-speaker review.
+- All non-English copy requires device testing and native-speaker review.
 - Code signing, installer format, and update trust chain require institutional configuration. The
   `windows-signing` environment exists with a `v*` tag-ref restriction, and the workflow requires
   the input tag, workflow ref, commit, and protected-main ancestry to agree. The signed candidate

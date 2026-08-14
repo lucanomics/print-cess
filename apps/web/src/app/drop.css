@@ -1,0 +1,243 @@
+/* File hand-off between two phones. The screens reuse the mobile print flow's
+   shell, spacing, and button sizes so the two halves of the service feel like
+   one product; only what is genuinely new to a transfer is styled here. */
+
+.drop-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.drop-language {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 2px solid var(--pc-line);
+  border-radius: 999px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+}
+.drop-language svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--pc-teal-dark);
+}
+.drop-language select {
+  max-width: 8.5rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.drop-selection {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 2px solid var(--pc-line);
+  border-radius: var(--pc-radius);
+  background: var(--pc-subtle);
+}
+.drop-selection__summary {
+  margin: 0;
+  color: var(--pc-ink) !important;
+  font-size: 17px !important;
+  font-weight: 750;
+}
+
+.drop-file-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.drop-file-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  font-size: 16px;
+}
+.drop-file-list li + li {
+  border-block-start: 1px solid var(--pc-line);
+}
+.drop-file-list__name {
+  min-width: 0;
+  color: var(--pc-ink);
+  font-weight: 650;
+  /* A name arrives from another device and can be long or unbroken. Wrap it
+     rather than letting one file push the whole screen sideways. */
+  overflow-wrap: anywhere;
+}
+.drop-file-list__size {
+  flex: none;
+  color: var(--pc-muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.drop-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--pc-muted) !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+}
+.drop-privacy svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--pc-teal-dark);
+}
+
+.drop-notice {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--pc-paper-warm);
+  color: var(--pc-text) !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+}
+
+.drop-progress {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.drop-progress__track {
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pc-line);
+}
+.drop-progress__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 999px;
+  background: var(--pc-teal);
+  transition: inline-size 200ms ease-out;
+}
+.drop-progress__label {
+  margin: 0;
+  color: var(--pc-muted) !important;
+  font-size: 15px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.drop-ready {
+  justify-items: stretch;
+  gap: 16px;
+}
+.drop-qr {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  margin: 0;
+  padding: 16px;
+  border: 2px solid var(--pc-line);
+  border-radius: var(--pc-radius);
+  background: white;
+  box-shadow: var(--pc-shadow);
+}
+.drop-qr img {
+  width: min(100%, 264px);
+  height: auto;
+  image-rendering: pixelated;
+}
+.drop-qr figcaption {
+  color: var(--pc-muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+/* The code is read out loud and typed on another phone, so it is set wide,
+   monospaced, and large enough to be legible at arm's length. */
+.drop-code {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding: 14px;
+  border: 2px dashed var(--pc-teal);
+  border-radius: var(--pc-radius);
+  background: var(--pc-teal-soft);
+}
+.drop-code__label {
+  color: var(--pc-teal-dark);
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.drop-code strong {
+  direction: ltr;
+  color: var(--pc-ink);
+  font-family: "SF Mono", ui-monospace, "Roboto Mono", monospace;
+  font-size: clamp(26px, 8vw, 34px);
+  letter-spacing: 0.08em;
+}
+
+.drop-code-field input {
+  width: 100%;
+  min-height: 68px;
+  padding: 12px 16px;
+  border: 2px solid var(--pc-line);
+  border-radius: 14px;
+  background: white;
+  color: var(--pc-ink);
+  direction: ltr;
+  font-family: "SF Mono", ui-monospace, "Roboto Mono", monospace;
+  font-size: clamp(22px, 7vw, 30px);
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.drop-code-field input::placeholder {
+  color: #a8b4c4;
+  letter-spacing: 0.08em;
+}
+
+.drop-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--pc-text) !important;
+  font-size: 16px !important;
+}
+.drop-status svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--pc-teal-dark);
+}
+
+.drop-link,
+.mobile-drop-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 4px;
+  color: var(--pc-teal-dark);
+  font-size: 16px;
+  font-weight: 750;
+}
+.drop-link svg,
+.mobile-drop-link svg {
+  width: 20px;
+  height: 20px;
+}

@@ -1,7 +1,14 @@
 # Cryptography protocol
 
-This document is normative for protocol version 1. Implementations must reject unknown versions,
-non-zero reserved fields, unexpected lengths, and envelopes whose total length is not exact.
+This document is normative for protocol version 1 of the **print** envelope. Implementations must
+reject unknown versions, non-zero reserved fields, unexpected lengths, and envelopes whose total
+length is not exact.
+
+The phone-to-phone file hand-off uses a separate scheme with a separate threat model: a
+human-readable transfer code stretched with PBKDF2, one AES-GCM key per file, and position-binding
+additional data per chunk. It is specified in `FILE_TRANSFER.md` and must not be confused with the
+print envelope below — in particular, the hand-off's key material comes from a sixty-bit code
+rather than an ECDH exchange, so the two are not interchangeable.
 
 ## Primitives and encodings
 

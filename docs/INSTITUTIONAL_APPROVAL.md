@@ -13,7 +13,7 @@ image, and printer/driver. Repository checkboxes are a routing aid, not authoriz
 | Procurement/provider    | Contract and service owners                         | Vercel/Upstash contracts, DPA/subprocessors, regions, support access, availability, exit/erasure limits   |
 | Windows endpoint        | Endpoint authority                                  | Signed package, image/Assigned Access, allow-lists, patching, disk/spool policy, install/update/rollback  |
 | Printer/site operations | Site and printer owners                             | Exact model/driver/firmware acceptance, supplies, physical layout/output handling, error ownership        |
-| Accessibility/content   | Accessibility owner and thirteen language reviewers | Device matrix, assistive-technology evidence, native-language and audio sign-off                          |
+| Accessibility/content   | Accessibility owner and thirteen language reviewers | Device matrix, assistive-technology evidence, and native-language sign-off                                |
 | Incident readiness      | Incident commander and privacy/security owners      | Synthetic incident/rollback drill, contact tree, recovery objectives, rotation and notification decisions |
 | Brand/service ownership | Product and institutional communications            | Naming/trademark, no official-service confusion, approved public text and support boundary                |
 | Final go/no-go          | Named executive/service owner                       | All blocker evidence linked, dated residual-risk acceptance, launch window and rollback authority         |
