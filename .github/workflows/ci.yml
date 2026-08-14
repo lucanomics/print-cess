@@ -106,8 +106,15 @@ jobs:
       # The verdict is the exit code of the steps above; this upload only makes
       # the run inspectable afterwards. It stays visible when it fails, but a
       # full Actions storage quota must not turn a passing test run red.
+      #
+      # A green pull-request run is simultaneously the most common run and the
+      # one nobody ever opens. Keep evidence where it is actually read — any
+      # failure, and the main-line record — instead of paying storage for
+      # reports with no reader. The retention window below is untouched: an
+      # acceptance criterion names it, and storage pressure never justifies
+      # shortening it.
       - name: Upload web test evidence
-        if: always()
+        if: failure() || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
@@ -188,14 +195,21 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      # A self-contained single-file build is the largest thing this repository
-      # uploads, so shortening its retention is the obvious way to relieve
-      # storage pressure — and the wrong one. `PRODUCTION_BLOCKERS.md` still
-      # carries an unchecked blocker requiring publish-smoke evidence to expire
-      # after seven days, and `TEST_PLAN.md` makes uploaded Windows evidence a
-      # release exit criterion. Seven days it stays; free the quota instead.
+      # A self-contained single-file build is by far the largest thing this
+      # repository uploads: roughly 180 MB per run against an account-wide free
+      # tier of 500 MB, so two or three runs exhaust the quota by themselves.
+      #
+      # Shortening its retention is the obvious relief and still the wrong one.
+      # `PRODUCTION_BLOCKERS.md` carries an unchecked blocker requiring
+      # publish-smoke evidence to expire after seven days, and `TEST_PLAN.md`
+      # makes uploaded Windows evidence a release exit criterion. Seven days it
+      # stays. What changes is how many copies are kept: that criterion is about
+      # the release lineage, so `main` is where the binary is worth storing. A
+      # pull request still restores, builds, tests, publishes, and asserts the
+      # single-file executable exists — every check above runs everywhere, and
+      # only the copy nobody would download is skipped.
       - name: Upload kiosk publish smoke artifact
-        if: success()
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true
         uses: actions/upload-artifact@v7
         with:

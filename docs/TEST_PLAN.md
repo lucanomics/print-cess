@@ -163,7 +163,9 @@ dotnet publish apps/kiosk/Paradiso.PrintCess.Kiosk/Paradiso.PrintCess.Kiosk.cspr
   -p:PublishSingleFile=true -o artifacts/kiosk-win-x64
 ```
 
-Upload TRX even when tests fail; upload publish output only after successful build/test/publish.
+Upload TRX even when tests fail; upload publish output only after successful build/test/publish, and
+only on `main`, where the release lineage lives. A pull request still builds, tests, publishes, and
+asserts the single-file executable exists; it just does not store a 180 MB copy of it.
 Check that Production configuration cannot activate `MockPrintEngine`. A hosted runner has no
 physical-printer acceptance value.
 

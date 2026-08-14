@@ -150,6 +150,9 @@ English disclosure can become misleading when translated.
 Automated Playwright runs disable screenshots and traces because QR pixels and network bodies can
 contain short-lived bearer credentials. CI uploads only coverage and an HTML/assertion report for
 three days. Windows CI uses synthetic inputs and retains TRX plus a publish-smoke binary for seven
-days; it does not upload mock-print artifacts or document buffers. Treat any unexpected URL,
+days; it does not upload mock-print artifacts or document buffers. Web evidence and the publish-smoke
+binary are stored for `main` pushes and, for the Web job, any failure, so a green pull request leaves
+no evidence copy behind at all — fewer stored copies is the privacy-preferring direction as well as
+the cheaper one. Treat any unexpected URL,
 fragment, token, filename, document data, or provider response in evidence as an incident: stop
 sharing, delete the artifact, rotate affected credentials, and follow the approved response path.
