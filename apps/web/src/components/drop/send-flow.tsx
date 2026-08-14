@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   CheckCircle2,
   Copy,
@@ -10,6 +10,7 @@ import {
   Image as ImageIcon,
   LockKeyhole,
   Send,
+  Share2,
   Timer,
   Trash2,
   TriangleAlert,
@@ -21,6 +22,14 @@ import { PrimaryButton, ProgressSteps, SecondaryButton, StatusIcon } from "@prin
 
 import { getDropStatus, revokeDrop } from "@/lib/drop-client";
 import { buildDropLink } from "@/lib/drop-link";
+import {
+  estimateMinutesRemaining,
+  holdScreenAwake,
+  recordSample,
+  shareTransferLink,
+  supportsSharing,
+  type ThroughputSample,
+} from "@/lib/drop-progress";
 import {
   prepareSelection,
   sendDrop,
@@ -55,6 +64,9 @@ export function SendFlow() {
   const [deleted, setDeleted] = useState(false);
   const [errorKey, setErrorKey] = useState("dropNetworkError");
   const [selectionErrorKey, setSelectionErrorKey] = useState<string>();
+  const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
+  const samples = useRef<ThroughputSample[]>([]);
+  const canShare = useSyncExternalStore(subscribeNever, supportsSharing, () => false);
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController>(null);
@@ -96,16 +108,25 @@ export function SendFlow() {
     const controller = new AbortController();
     abort.current = controller;
     setStage("sending");
+    samples.current = [];
+    setMinutesRemaining(null);
     setProgress({
       transferredBytes: 0,
       totalBytes: selection.totalBytes,
       completedParts: 0,
       totalParts: selection.partCount,
     });
+    // A phone that sleeps mid-upload throttles timers and can stall the
+    // transfer, which reads as the service quietly failing.
+    const releaseWakeLock = await holdScreenAwake();
     try {
       const sent = await sendDrop(selection, {
         signal: controller.signal,
-        onProgress: setProgress,
+        onProgress: (next) => {
+          setProgress(next);
+          samples.current = recordSample(samples.current, next, Date.now());
+          setMinutesRemaining(estimateMinutesRemaining(samples.current, next));
+        },
       });
       const link = buildDropLink(window.location.origin, sent.code);
       const image = await QRCode.toDataURL(link, {
@@ -121,6 +142,7 @@ export function SendFlow() {
       setErrorKey(dropErrorKey(error));
       setStage("error");
     } finally {
+      releaseWakeLock();
       abort.current = null;
     }
   }, [selection]);
@@ -163,6 +185,12 @@ export function SendFlow() {
       // Clipboard access can be refused; the code on screen still works.
     }
   }, [result]);
+
+  const share = useCallback(async () => {
+    if (!result) return;
+    const link = buildDropLink(window.location.origin, result.code);
+    if (!(await shareTransferLink(link, text("dropTitle")))) await copyLink();
+  }, [copyLink, result, text]);
 
   const erase = useCallback(async () => {
     if (!result) return;
@@ -239,7 +267,7 @@ export function SendFlow() {
       {stage === "sending" && progress ? (
         <section className="mobile-step mobile-step--single" aria-live="polite">
           <h1>{text("dropSending")}</h1>
-          <TransferBar progress={progress} text={text} />
+          <TransferBar progress={progress} text={text} minutesRemaining={minutesRemaining} />
           <p>{text("dropSendingHint")}</p>
           <SecondaryButton onClick={stop}>{text("dropCancel")}</SecondaryButton>
         </section>
@@ -284,6 +312,11 @@ export function SendFlow() {
                 </>
               )}
             </div>
+            {canShare ? (
+              <SecondaryButton onClick={() => void share()}>
+                <Share2 aria-hidden="true" /> {text("dropShareLink")}
+              </SecondaryButton>
+            ) : null}
             <SecondaryButton onClick={() => void copyLink()}>
               {copied ? <CheckCircle2 aria-hidden="true" /> : <Copy aria-hidden="true" />}{" "}
               {copied ? text("dropCopied") : text("dropCopyLink")}
@@ -339,4 +372,9 @@ function SelectedFiles({
       <SecondaryButton onClick={onClear}>{text("dropClearSelection")}</SecondaryButton>
     </div>
   );
+}
+
+function subscribeNever(): () => void {
+  // Sharing support does not change while a transfer screen is open.
+  return () => {};
 }

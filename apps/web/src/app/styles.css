@@ -309,18 +309,6 @@ p {
   font-size: 16px !important;
 }
 
-.mobile-listen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 56px;
-}
-.mobile-listen svg {
-  width: 24px;
-  height: 24px;
-}
-
 .mobile-help {
   width: min(100%, 560px);
   max-width: 100%;

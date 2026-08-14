@@ -33,10 +33,15 @@ public sealed class KioskSessionClient
         using var request = CreateJsonRequest(
             HttpMethod.Post,
             "api/sessions",
+            // One Hancom automation object renders both formats, so a kiosk that
+            // can print HWPX can print legacy HWP too. Declare both explicitly:
+            // leaving SupportsHwp at its default told the service this kiosk
+            // could not open a .hwp file it is in fact able to print.
             new CreateSessionRequest(
                 ProtocolConstants.Version,
                 kioskPublicKey,
                 kioskPublicKeyFingerprint,
+                HancomHwpxRenderer.IsAvailable,
                 HancomHwpxRenderer.IsAvailable));
         if (_registrationSecret is not null)
         {

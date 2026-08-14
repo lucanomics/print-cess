@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { CheckCircle2, Download, Send, Timer, TriangleAlert } from "lucide-react";
+import { Camera, CheckCircle2, Download, Send, Timer, TriangleAlert, X } from "lucide-react";
 
 import {
   DROP_CODE_LENGTH,
@@ -12,6 +12,18 @@ import {
 import { PrimaryButton, SecondaryButton, StatusIcon } from "@print-cess/ui";
 
 import { parseDropFragment } from "@/lib/drop-link";
+import {
+  estimateMinutesRemaining,
+  holdScreenAwake,
+  recordSample,
+  type ThroughputSample,
+} from "@/lib/drop-progress";
+import {
+  DropScannerError,
+  startDropScanner,
+  supportsCodeScanning,
+  type DropScanner,
+} from "@/lib/drop-scanner";
 import {
   inspectDrop,
   receiveDropFile,
@@ -30,7 +42,7 @@ import {
 } from "./drop-shell";
 import { dropErrorKey } from "./drop-errors";
 
-type Stage = "code" | "checking" | "files" | "saving" | "saved" | "error";
+type Stage = "code" | "scanning" | "checking" | "files" | "saving" | "saved" | "error";
 
 /** Below this, buffering a file in memory is not worth a warning. */
 const MEMORY_WARNING_BYTES = 256 * 1024 * 1024;
@@ -46,7 +58,13 @@ export function ReceiveFlow() {
   const [progress, setProgress] = useState<DropProgress>();
   const [savingIndex, setSavingIndex] = useState(0);
   const [errorKey, setErrorKey] = useState("dropNetworkError");
+  const [scanNoticeKey, setScanNoticeKey] = useState<string>();
+  const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
+  const samples = useRef<ThroughputSample[]>([]);
   const abort = useRef<AbortController>(null);
+  const video = useRef<HTMLVideoElement>(null);
+  const scanner = useRef<DropScanner>(null);
+  const canScan = useSyncExternalStore(subscribeNever, supportsCodeScanning, () => false);
 
   const open = useCallback(async (candidate: string) => {
     setStage("checking");
@@ -107,6 +125,7 @@ export function ReceiveFlow() {
         : undefined,
     );
     setStage("saving");
+    const releaseWakeLock = await holdScreenAwake();
     try {
       for (let index = 0; index < drop.manifest.files.length; index += 1) {
         const file = drop.manifest.files[index];
@@ -118,9 +137,15 @@ export function ReceiveFlow() {
           completedParts: 0,
           totalParts: file.chunkCount,
         });
+        samples.current = [];
+        setMinutesRemaining(null);
         await receiveDropFile(drop, index, {
           signal: controller.signal,
-          onProgress: setProgress,
+          onProgress: (next) => {
+            setProgress(next);
+            samples.current = recordSample(samples.current, next, Date.now());
+            setMinutesRemaining(estimateMinutesRemaining(samples.current, next));
+          },
         });
       }
       setStage("saved");
@@ -128,9 +153,43 @@ export function ReceiveFlow() {
       setErrorKey(dropErrorKey(error));
       setStage("error");
     } finally {
+      releaseWakeLock();
       abort.current = null;
     }
   }, [drop]);
+
+  const scan = useCallback(async () => {
+    setScanNoticeKey(undefined);
+    setStage("scanning");
+    // The element only exists once the scanning stage has painted.
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    const element = video.current;
+    if (!element) return;
+    try {
+      const active = await startDropScanner(element);
+      scanner.current = active;
+      const code = await active.codes;
+      scanner.current = null;
+      if (code) await open(code);
+      else setStage("code");
+    } catch (error) {
+      scanner.current = null;
+      setScanNoticeKey(
+        error instanceof DropScannerError && error.code === "cameraRefused"
+          ? "dropCameraRefused"
+          : "dropScannerUnavailable",
+      );
+      setStage("code");
+    }
+  }, [open]);
+
+  const stopScanning = useCallback(() => {
+    scanner.current?.stop();
+    scanner.current = null;
+    setStage("code");
+  }, []);
+
+  useEffect(() => () => scanner.current?.stop(), []);
 
   const restart = useCallback(() => {
     setDrop(undefined);
@@ -142,16 +201,38 @@ export function ReceiveFlow() {
   const normalized = normalizeDropCode(code);
   const codeComplete = DROP_CODE_PATTERN.test(normalized);
   const checking = stage === "checking" || (stage === "code" && scannedOnArrival);
+  const scanning = stage === "scanning";
   const totalBytes = drop?.totalBytes ?? 0;
   const showMemoryNotice =
     stage === "files" && totalBytes > MEMORY_WARNING_BYTES && !supportsStreamingSave();
 
   return (
     <DropShell locale={locale} onLocaleChange={setLocale} text={text}>
+      {scanning ? (
+        <section className="mobile-step drop-scan">
+          <h1>{text("dropScanTitle")}</h1>
+          <p>{text("dropScanHint")}</p>
+          <video ref={video} className="drop-scan__preview" playsInline muted />
+          <SecondaryButton onClick={stopScanning}>
+            <X aria-hidden="true" /> {text("dropTypeInstead")}
+          </SecondaryButton>
+        </section>
+      ) : null}
+
       {stage === "code" && !checking ? (
         <section className="mobile-step">
           <h1>{text("dropEnterCode")}</h1>
           <p>{text("dropEnterCodeHint")}</p>
+          {canScan ? (
+            <PrimaryButton onClick={() => void scan()}>
+              <Camera aria-hidden="true" /> {text("dropScanCta")}
+            </PrimaryButton>
+          ) : null}
+          {scanNoticeKey ? (
+            <p className="drop-notice" role="status">
+              {text(scanNoticeKey)}
+            </p>
+          ) : null}
           <label className="drop-code-field">
             <span className="drop-visually-hidden">{text("dropCodeLabel")}</span>
             <input
@@ -169,9 +250,15 @@ export function ReceiveFlow() {
               }
             />
           </label>
-          <PrimaryButton disabled={!codeComplete} onClick={() => void open(normalized)}>
-            <Download aria-hidden="true" /> {text("dropOpenTransfer")}
-          </PrimaryButton>
+          {canScan ? (
+            <SecondaryButton disabled={!codeComplete} onClick={() => void open(normalized)}>
+              <Download aria-hidden="true" /> {text("dropOpenTransfer")}
+            </SecondaryButton>
+          ) : (
+            <PrimaryButton disabled={!codeComplete} onClick={() => void open(normalized)}>
+              <Download aria-hidden="true" /> {text("dropOpenTransfer")}
+            </PrimaryButton>
+          )}
           <a className="drop-link" href="/send">
             <Send aria-hidden="true" /> {text("dropSendCta")}
           </a>
@@ -217,7 +304,7 @@ export function ReceiveFlow() {
         <section className="mobile-step mobile-step--single" aria-live="polite">
           <h1>{text("dropSaving")}</h1>
           <p>{drop.manifest.files[savingIndex]?.name}</p>
-          <TransferBar progress={progress} text={text} />
+          <TransferBar progress={progress} text={text} minutesRemaining={minutesRemaining} />
           <SecondaryButton onClick={() => abort.current?.abort()}>
             {text("dropCancel")}
           </SecondaryButton>

@@ -31,7 +31,10 @@ export async function POST(request: Request) {
     after(async () => {
       await sweepDueOrphans(server, Date.now(), 3).catch(() => undefined);
     });
-    const capability = input.supportsHwpx || input.supportsHwp ? "&hwpx=1" : "";
+    // The two formats are separate capabilities and are advertised separately.
+    // Collapsing them into one flag made the phone offer a format the kiosk had
+    // not claimed, so the visitor only discovered it at the printer.
+    const capability = `${input.supportsHwpx ? "&hwpx=1" : ""}${input.supportsHwp ? "&hwp=1" : ""}`;
     const qrUrl = `${server.config.publicBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}${capability}`;
     return json(
       {

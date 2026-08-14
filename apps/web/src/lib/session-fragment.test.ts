@@ -11,7 +11,15 @@ describe("QR fragment", () => {
       supportsHwpx: false,
       supportsHwp: false,
     });
+    // HWPX support must not imply legacy HWP support. A kiosk that advertises
+    // only the newer format is offered only the newer format.
     expect(parseSessionFragment(`#t=${token}&fp=${token}&hwpx=1`)).toEqual({
+      uploadToken: token,
+      fingerprint: token,
+      supportsHwpx: true,
+      supportsHwp: false,
+    });
+    expect(parseSessionFragment(`#t=${token}&fp=${token}&hwpx=1&hwp=1`)).toEqual({
       uploadToken: token,
       fingerprint: token,
       supportsHwpx: true,

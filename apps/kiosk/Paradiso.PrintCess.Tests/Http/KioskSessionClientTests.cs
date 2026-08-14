@@ -41,6 +41,41 @@ public sealed class KioskSessionClientTests
     }
 
     [Fact]
+    public async Task DeclaresBothHancomFormatsTogetherSoLegacyHwpIsNeverUnderReported()
+    {
+        var publicKey = new byte[65];
+        publicKey[0] = 0x04;
+        var encodedKey = CanonicalEncoding.EncodeBase64Url(publicKey);
+        var fingerprint = TestDocuments.Fingerprint(publicKey);
+        var uploadToken = Token(4);
+        var kioskToken = Token(5);
+        var qrUrl = $"http://localhost:3000/s/{TestDocuments.SessionId}#t={uploadToken}&fp={fingerprint}";
+        string? capturedBody = null;
+        var handler = new StubHandler(async request =>
+        {
+            capturedBody = await request.Content!.ReadAsStringAsync();
+            return Json(HttpStatusCode.Created, $$"""
+                {"protocolVersion":1,"sessionId":"{{TestDocuments.SessionId}}","status":"waiting","expiresAt":4102444800000,"kioskToken":"{{kioskToken}}","qrUrl":"{{qrUrl}}"}
+                """);
+        });
+        using var http = new HttpClient(handler);
+        var client = new KioskSessionClient(http, new Uri("http://localhost:3000"), null);
+
+        await client.CreateAsync(encodedKey, fingerprint, CancellationToken.None);
+
+        // One Hancom automation object renders both formats. Sending only
+        // `supportsHwpx` told the service this kiosk could not open a .hwp file
+        // it can in fact print, and the web layer hid that by inferring legacy
+        // support from the newer flag. Both must be stated outright.
+        Assert.NotNull(capturedBody);
+        Assert.Contains("\"supportsHwpx\"", capturedBody, StringComparison.Ordinal);
+        Assert.Contains("\"supportsHwp\"", capturedBody, StringComparison.Ordinal);
+        var hwpx = capturedBody!.Contains("\"supportsHwpx\":true", StringComparison.Ordinal);
+        var hwp = capturedBody.Contains("\"supportsHwp\":true", StringComparison.Ordinal);
+        Assert.Equal(hwpx, hwp);
+    }
+
+    [Fact]
     public async Task ConsumesUploadedSessionWithScopedKioskHeader()
     {
         var kioskToken = Token(3);

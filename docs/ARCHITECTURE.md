@@ -18,6 +18,10 @@ flowchart LR
   K --> PR["Designated Windows printer"]
 ```
 
+The kiosk advertises its document capabilities — legacy HWP and HWPX — as two independent flags in
+the QR fragment. They are never inferred from one another: a printer without a legacy renderer must
+not be offered a `.hwp` the visitor only discovers it cannot print once they reach the paper.
+
 The phone and kiosk can be on unrelated networks. The web service coordinates a bearer-authorized
 session but does not receive the plaintext, ECDH private key, or shared AES key. Route Handlers
 must reject request bodies large enough to be documents and must never proxy Blob PUT or GET.
