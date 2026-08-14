@@ -54,7 +54,16 @@ On pull requests and pushes to `main`:
 The Web workflow uploads only coverage and the HTML Playwright report for three days; raw
 `test-results`, screenshots, and traces are excluded. Windows TRX and publish-smoke artifacts are
 retained for seven days, which `PRODUCTION_BLOCKERS.md` requires and which storage pressure is not a
-reason to shorten. Artifact names contain only run identifiers. If a failure output includes a URL,
+reason to shorten.
+
+Retention windows say how long evidence lives; they do not say how many copies are worth keeping.
+Web evidence and the publish-smoke binary are uploaded on `main` pushes and, for the Web job, on any
+failure — a green pull-request run is the most common run and the one nobody opens, and the
+self-contained kiosk binary alone is roughly 180 MB against an account-wide 500 MB free tier. Every
+check still runs on every pull request, including the assertion that the single-file executable
+exists; only the stored copy is skipped. The TRX is small and is uploaded always, pass or fail.
+
+Artifact names contain only run identifiers. If a failure output includes a URL,
 token, fragment, filename, document data, or provider body, cancel sharing, delete the artifact,
 rotate any affected credential, and treat the run as a security/privacy incident.
 
