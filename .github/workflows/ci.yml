@@ -71,14 +71,39 @@ jobs:
       - name: Production build
         run: pnpm build
 
+      # A stalled Ubuntu mirror once spent 23 of this job's 35 minutes inside
+      # `playwright install --with-deps` and the end-to-end tests never ran.
+      # Drop a stalled connection instead of waiting on it, cache the browser
+      # binaries, and bound the two installs separately so a slow mirror fails
+      # one short step rather than silently consuming the whole job budget.
+      - name: Make apt tolerate a slow mirror
+        run: |
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-print-cess-retries > /dev/null
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright system dependencies
+        timeout-minutes: 12
+        run: pnpm --filter @print-cess/web exec playwright install-deps chromium webkit
+
       - name: Install Playwright browsers
-        run: pnpm --filter @print-cess/web exec playwright install --with-deps chromium webkit
+        timeout-minutes: 12
+        run: pnpm --filter @print-cess/web exec playwright install chromium webkit
 
       - name: End-to-end tests
         run: pnpm test:e2e
 
+      # The verdict is the exit code of the steps above; this upload only makes
+      # the run inspectable afterwards. It stays visible when it fails, but a
+      # full Actions storage quota must not turn a passing test run red.
       - name: Upload web test evidence
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: web-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
@@ -135,8 +160,22 @@ jobs:
           -p:PublishSingleFile=true
           -o artifacts/kiosk-win-x64
 
+      # The publish step only proves the project compiles into a single file if
+      # something checks the file is there. Assert it here rather than through
+      # `if-no-files-found`, so the assertion holds even when the upload cannot
+      # run. Released binaries come from `release-kiosk.yml`, not from this job.
+      - name: Verify the publish produced a single-file executable
+        shell: pwsh
+        run: |
+          $exe = "artifacts/kiosk-win-x64/Print-cess Kiosk.exe"
+          if (-not (Test-Path -LiteralPath $exe)) {
+            throw "The publish did not produce '$exe'."
+          }
+          Get-Item -LiteralPath $exe | Select-Object Name, Length | Format-List
+
       - name: Upload Windows test evidence
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: windows-test-evidence-${{ github.run_id }}-${{ github.run_attempt }}
@@ -144,11 +183,18 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      # A self-contained single-file build is the largest thing this repository
+      # uploads, so shortening its retention is the obvious way to relieve
+      # storage pressure — and the wrong one. `PRODUCTION_BLOCKERS.md` still
+      # carries an unchecked blocker requiring publish-smoke evidence to expire
+      # after seven days, and `TEST_PLAN.md` makes uploaded Windows evidence a
+      # release exit criterion. Seven days it stays; free the quota instead.
       - name: Upload kiosk publish smoke artifact
         if: success()
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: kiosk-win-x64-smoke-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/kiosk-win-x64/**
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
