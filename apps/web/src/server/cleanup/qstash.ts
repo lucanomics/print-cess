@@ -23,6 +23,18 @@ export class QStashCleanupScheduler implements CleanupScheduler {
       deduplicationId: `pc-cleanup-v1-${sessionId}-${dueAt}`,
     });
   }
+
+  public async scheduleSweep(dueAt: number, limit = 25): Promise<void> {
+    const seconds = Math.max(1, Math.ceil((dueAt - Date.now()) / 1000));
+    const boundedLimit = Math.max(1, Math.min(100, Math.trunc(limit)));
+    await this.#client.publishJSON({
+      url: this.callbackUrl,
+      body: { sweep: true, limit: boundedLimit },
+      delay: seconds,
+      retries: 3,
+      deduplicationId: `pc-sweep-v1-${dueAt}-${boundedLimit}`,
+    });
+  }
 }
 
 export async function verifyQStashRequest(request: Request, body: string): Promise<boolean> {
