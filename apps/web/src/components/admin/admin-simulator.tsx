@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, LockKeyhole, Printer, RefreshCw, ServerCog, Volume2 } from "lucide-react";
+import { Activity, LockKeyhole, Printer, RefreshCw, ServerCog } from "lucide-react";
 
 import { PrimaryButton, SecondaryButton, Wordmark } from "@print-cess/ui";
 
@@ -89,9 +89,6 @@ export function AdminSimulator() {
         >
           <Printer aria-hidden="true" /> Test print
         </SecondaryButton>
-        <SecondaryButton onClick={() => speak("Print-cess audio test complete")}>
-          <Volume2 aria-hidden="true" /> Audio test
-        </SecondaryButton>
         <SecondaryButton onClick={() => window.location.reload()}>
           <RefreshCw aria-hidden="true" /> Restart simulator
         </SecondaryButton>
@@ -108,12 +105,4 @@ export function AdminSimulator() {
 
 function humanize(value: string): string {
   return value.replace(/([A-Z])/gu, " $1").replace(/^./u, (character) => character.toUpperCase());
-}
-function speak(text: string) {
-  try {
-    speechSynthesis.cancel();
-    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-  } catch {
-    /* Text status remains available. */
-  }
 }

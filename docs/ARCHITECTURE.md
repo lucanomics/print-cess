@@ -2,7 +2,9 @@
 
 ## System boundary
 
-Print-cess by Paradiso is a one-document, one-copy transfer and printing system.
+Print-cess by Paradiso is a one-document, one-copy transfer and printing system. It also carries a
+separate phone-to-phone file hand-off that reuses the blob and cleanup machinery but none of the
+print session state machine; that subsystem is documented in `FILE_TRANSFER.md`.
 
 ```mermaid
 flowchart LR
@@ -29,6 +31,7 @@ must reject request bodies large enough to be documents and must never proxy Blo
 | `SessionStore`         | TTL record, token hashes, revision, atomic state changes, consume-once                                                          | Raw tokens, filenames, document contents, private keys                                          |
 | `BlobTransport`        | Exact-path signed PUT/GET/DELETE and local ciphertext equivalent                                                                | Original filename or plaintext                                                                  |
 | `CleanupScheduler`     | Schedule cleanup only after upload authorization/blob risk begins                                                               | Document content, token, full signed URL                                                        |
+| `DropStore`            | TTL record and part table for a phone-to-phone hand-off, owner token hash, revision, seal-once                                  | Raw tokens, file names, document contents, transfer codes                                       |
 | WPF kiosk              | Create ECDH key, show QR, consume once, download, decrypt, validate, submit once, reset                                         | Plaintext on ordinary disk, reusable session key, prior-user UI                                 |
 | Printer/spooler        | Render and physically print fixed settings                                                                                      | Retention is OS/driver dependent and must be governed operationally                             |
 

@@ -16,6 +16,8 @@ const originConfig = {
   qrTtlMs: 120_000,
   sessionTtlMs: 180_000,
   signedUrlTtlMs: 120_000,
+  dropTtlMs: 1_800_000,
+  dropMaxTotalBytes: 2 * 1024 * 1024 * 1024,
   demoEnabled: false,
 } satisfies ServerConfig;
 

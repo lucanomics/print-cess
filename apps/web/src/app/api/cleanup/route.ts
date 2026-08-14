@@ -3,7 +3,7 @@ import { z } from "zod";
 import { SESSION_ID_PATTERN } from "@print-cess/protocol";
 
 import { verifyQStashRequest } from "@/server/cleanup/qstash";
-import { cleanupSession, getRuntime, sweepDueOrphans } from "@/server/runtime";
+import { cleanupSession, getRuntime, sweepDueOrphans, sweepExpiredDrops } from "@/server/runtime";
 import { errorResponse, json, readBoundedText } from "@/server/http";
 import { ServiceError } from "@/server/errors";
 import { secretMatches } from "@/server/auth";
@@ -74,8 +74,12 @@ export async function POST(request: Request) {
       if (!sweepAuthorized) {
         throw new ServiceError("unauthorized", "Cleanup authorization failed.", 401);
       }
-      const result = await sweepDueOrphans(server, Date.now(), parsed.data.limit);
-      return json({ ok: true, ...result });
+      const now = Date.now();
+      const result = await sweepDueOrphans(server, now, parsed.data.limit);
+      // Expired hand-offs are erased on the same schedule as orphaned print
+      // ciphertext, so one scheduled sweep clears everything the service holds.
+      const drops = await sweepExpiredDrops(server, now, parsed.data.limit);
+      return json({ ok: true, ...result, drops });
     }
 
     // Targeted cleanup of a single session is never granted by the worker

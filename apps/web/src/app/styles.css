@@ -529,3 +529,31 @@ p {
     font-size: 15px;
   }
 }
+
+/* Entry points to the file hand-off. The status page is the only screen that
+   is not reached by scanning something, so both halves of the service are
+   named here in full rather than behind an icon. */
+.status-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 26px 0;
+}
+.status-page__actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 22px;
+  border: 2px solid var(--pc-teal);
+  border-radius: 999px;
+  background: var(--pc-teal-soft);
+  color: var(--pc-teal-dark);
+  font-size: 18px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.status-page__actions a svg {
+  width: 22px;
+  height: 22px;
+}

@@ -7,9 +7,14 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { ENCRYPTED_BLOB_PATH_PATTERN } from "@print-cess/protocol";
+import { DROP_BLOB_PATH_PATTERN, ENCRYPTED_BLOB_PATH_PATTERN } from "@print-cess/protocol";
 
-import type { BlobMetadata, BlobTransport, SignedBlobOperation } from "../contracts";
+import type {
+  BlobMetadata,
+  BlobTransport,
+  SignedBlobOperation,
+  UploadAuthorizationOptions,
+} from "../contracts";
 import { ServiceError } from "../errors";
 
 const OCTET_STREAM = "application/octet-stream";
@@ -51,16 +56,19 @@ export class S3BlobTransport implements BlobTransport {
     pathname: string,
     expiresAt: number,
     maximumSize: number,
+    options?: UploadAuthorizationOptions,
   ): Promise<SignedBlobOperation> {
     assertPath(pathname);
-    // ContentType and a fresh-object precondition are signed into the URL, so
-    // the phone must send exactly these headers and cannot overwrite an object.
+    // ContentType is signed into the URL, so the phone must send exactly these
+    // headers. A print upload also carries a fresh-object precondition and can
+    // never overwrite; a retried drop part deliberately may.
+    const allowOverwrite = options?.allowOverwrite === true;
     const command = new PutObjectCommand({
       Bucket: this.#bucket,
       Key: pathname,
       ContentType: OCTET_STREAM,
       ContentLength: maximumSize,
-      IfNoneMatch: "*",
+      ...(allowOverwrite ? {} : { IfNoneMatch: "*" }),
     });
     const url = await this.sign(command, expiresAt);
     return {
@@ -68,7 +76,10 @@ export class S3BlobTransport implements BlobTransport {
       pathname,
       expiresAt,
       url,
-      headers: { "Content-Type": OCTET_STREAM, "If-None-Match": "*" },
+      headers: {
+        "Content-Type": OCTET_STREAM,
+        ...(allowOverwrite ? {} : { "If-None-Match": "*" }),
+      },
     };
   }
 
@@ -169,7 +180,7 @@ function readSettings(environment: NodeJS.ProcessEnv): S3Settings {
 }
 
 function assertPath(pathname: string): void {
-  if (!ENCRYPTED_BLOB_PATH_PATTERN.test(pathname)) {
+  if (!ENCRYPTED_BLOB_PATH_PATTERN.test(pathname) && !DROP_BLOB_PATH_PATTERN.test(pathname)) {
     throw new ServiceError("bad_request", "The blob path is invalid.", 400);
   }
 }

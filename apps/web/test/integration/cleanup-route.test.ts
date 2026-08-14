@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const runtimeMock = vi.hoisted(() => ({
   getRuntime: vi.fn(),
   sweepDueOrphans: vi.fn(),
+  sweepExpiredDrops: vi.fn(),
   cleanupSession: vi.fn(),
 }));
 const qstashMock = vi.hoisted(() => ({ verifyQStashRequest: vi.fn() }));
@@ -40,6 +41,7 @@ beforeEach(() => {
     deferred: 0,
     failed: 0,
   });
+  runtimeMock.sweepExpiredDrops.mockResolvedValue({ attempted: 0, deleted: 0, failed: 0 });
   runtimeMock.cleanupSession.mockResolvedValue("absent");
   qstashMock.verifyQStashRequest.mockResolvedValue(false);
 });

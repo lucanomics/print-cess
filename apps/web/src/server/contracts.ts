@@ -1,4 +1,4 @@
-import type { PrintSession, PrintSessionStatus } from "@print-cess/protocol";
+import type { DropRecord, PrintSession, PrintSessionStatus } from "@print-cess/protocol";
 
 export type SessionReceipt = {
   protocolVersion: 1;
@@ -88,6 +88,28 @@ export interface SessionStore {
   listDueOrphans(now: number, limit: number): Promise<BlobOrphanRecord[]>;
 }
 
+export type DropPartCommit = { index: number; size: number; etag?: string };
+
+/**
+ * Storage for file hand-offs. Deliberately separate from `SessionStore`: a drop
+ * has no kiosk, no printer, and many parts, so folding it into the print
+ * session state machine would only weaken both.
+ */
+export interface DropStore {
+  create(drop: DropRecord, retentionMs: number): Promise<void>;
+  get(dropId: string): Promise<DropRecord | null>;
+  commitParts(
+    dropId: string,
+    ownerTokenHash: string,
+    parts: readonly DropPartCommit[],
+    now: number,
+  ): Promise<DropRecord>;
+  seal(dropId: string, ownerTokenHash: string, now: number): Promise<DropRecord>;
+  recordDownload(dropId: string, now: number): Promise<DropRecord>;
+  remove(dropId: string): Promise<void>;
+  listExpired(now: number, limit: number): Promise<DropRecord[]>;
+}
+
 export type SignedBlobOperation = {
   method: "PUT" | "GET";
   url: string;
@@ -98,11 +120,21 @@ export type SignedBlobOperation = {
 
 export type BlobMetadata = { etag: string; size: number };
 
+export type UploadAuthorizationOptions = {
+  /**
+   * A print upload is single-use and must never be replaced. A drop part is
+   * retried whenever a phone loses signal mid-chunk, so its authorization has
+   * to allow the same path to be written again.
+   */
+  allowOverwrite?: boolean;
+};
+
 export interface BlobTransport {
   authorizeUpload(
     pathname: string,
     expiresAt: number,
     maximumSize: number,
+    options?: UploadAuthorizationOptions,
   ): Promise<SignedBlobOperation>;
   authorizeDownload(pathname: string, expiresAt: number): Promise<SignedBlobOperation>;
   head(pathname: string): Promise<BlobMetadata>;

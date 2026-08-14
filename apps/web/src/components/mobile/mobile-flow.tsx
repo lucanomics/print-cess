@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Ban,
   CheckCircle2,
@@ -8,15 +8,14 @@ import {
   FileCheck2,
   FileImage,
   Files,
-  Headphones,
   Image as ImageIcon,
   LockKeyhole,
   Mail,
   MessageCircle,
   Printer,
   ScanLine,
+  Send,
   TriangleAlert,
-  Volume2,
   X,
 } from "lucide-react";
 
@@ -54,7 +53,6 @@ import {
   uploadCiphertext,
   ApiClientError,
 } from "@/lib/api-client";
-import { BrowserSpeechSynthesisGuide } from "@/lib/audio-guide";
 import {
   FileValidationError,
   validateMobileDocument,
@@ -132,27 +130,8 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const text = useCallback<Text>((key, values) => translate(locale, key, values), [locale]);
-  const guide = useMemo(
-    () =>
-      new BrowserSpeechSynthesisGuide((key, requestedLocale) =>
-        translate(
-          (SUPPORTED_LOCALES.includes(requestedLocale as SupportedLocale)
-            ? requestedLocale
-            : "en") as SupportedLocale,
-          key,
-        ),
-      ),
-    [],
-  );
-  const speak = useCallback(
-    async (keys: readonly string[]) => {
-      for (const key of keys) await guide.play(key, locale);
-    },
-    [guide, locale],
-  );
 
   const shutdownPage = useCallback(() => {
-    guide.stop();
     // Started before the close attempt so the wipe is already under way if the
     // browser does close the tab, and `keepalive` carries the last request out.
     void clearBrowserSiteData();
@@ -167,15 +146,13 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       history.replaceState(null, "", window.location.pathname);
       setStage("closed");
     }, CLOSE_CONFIRM_MS);
-  }, [guide]);
+  }, []);
 
   useEffect(() => {
     if (stage !== "complete") return;
     const timer = window.setTimeout(shutdownPage, AUTOMATIC_SHUTDOWN_MS);
     return () => window.clearTimeout(timer);
   }, [shutdownPage, stage]);
-
-  useEffect(() => () => guide.stop(), [guide]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setReminderStage(stage), 30_000);
@@ -403,9 +380,6 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         <GuideStep
           text={text}
           supportsHancom={supportsHancom}
-          onListen={() =>
-            void speak(guideStepsFor(supportsHancom).flatMap(({ title, body }) => [title, body]))
-          }
           onContinue={() => setStage("file")}
         />
       ) : null}
@@ -498,8 +472,6 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           body={text("collectOutput")}
           action={text("closePage")}
           onAction={shutdownPage}
-          secondaryAction={text("listenAgain")}
-          onSecondaryAction={() => void speak(["collectOutput"])}
         />
       ) : null}
       {stage === "closed" ? (
@@ -509,27 +481,16 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           </StatusIcon>
           <h1>{text("closedTitle")}</h1>
           <p>{text("closedBody")}</p>
+          {/* The visit is over and the page carries nothing from it. A quiet
+              link to the other half of the service is useful here, where it
+              interrupts nothing the visitor came to do. */}
+          <a className="mobile-drop-link" href="/send">
+            <Send aria-hidden="true" /> {text("dropTitle")}
+          </a>
         </section>
       ) : null}
-      {stage === "error" ? (
-        <SingleAction
-          icon="error"
-          title={text(errorKey)}
-          body=""
-          action={text("listenAgain")}
-          onAction={() => void speak([errorKey])}
-        />
-      ) : null}
-      <HelpSheet
-        open={helpOpen}
-        stage={stage}
-        text={text}
-        onListen={() => void speak([HELP_KEYS[stage], "helpAskStaff"])}
-        onClose={() => {
-          guide.stop();
-          setHelpOpen(false);
-        }}
-      />
+      {stage === "error" ? <SingleAction icon="error" title={text(errorKey)} body="" /> : null}
+      <HelpSheet open={helpOpen} stage={stage} text={text} onClose={() => setHelpOpen(false)} />
     </ScreenShell>
   );
 }
@@ -583,12 +544,10 @@ function GuideStep({
   text,
   supportsHancom,
   onContinue,
-  onListen,
 }: {
   text: Text;
   supportsHancom: boolean;
   onContinue: () => void;
-  onListen: () => void;
 }) {
   return (
     <section className="mobile-step mobile-step--guide">
@@ -611,9 +570,6 @@ function GuideStep({
         ))}
       </ol>
       <PrimaryButton onClick={onContinue}>{text("guideStart")}</PrimaryButton>
-      <SecondaryButton className="mobile-listen" onClick={onListen}>
-        <Volume2 aria-hidden="true" /> {text("guideListen")}
-      </SecondaryButton>
     </section>
   );
 }
@@ -623,13 +579,11 @@ function HelpSheet({
   stage,
   text,
   onClose,
-  onListen,
 }: {
   open: boolean;
   stage: Stage;
   text: Text;
   onClose: () => void;
-  onListen: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -689,9 +643,6 @@ function HelpSheet({
           <p className="mobile-help__staff">{text("helpAskStaff")}</p>
           <div className="mobile-help__actions">
             <PrimaryButton onClick={onClose}>{text("helpClose")}</PrimaryButton>
-            <SecondaryButton onClick={onListen}>
-              <Volume2 aria-hidden="true" /> {text("guideListen")}
-            </SecondaryButton>
           </div>
         </>
       ) : null}
@@ -705,18 +656,14 @@ function SingleAction({
   body,
   action,
   onAction,
-  secondaryAction,
-  onSecondaryAction,
 }: {
   icon?: "info" | "success" | "error";
   title: string;
   body: string;
-  action: string;
-  onAction: () => void;
-  secondaryAction?: string;
-  onSecondaryAction?: () => void;
+  action?: string;
+  onAction?: () => void;
 }) {
-  const Icon = icon === "success" ? CheckCircle2 : icon === "error" ? TriangleAlert : Headphones;
+  const Icon = icon === "error" ? TriangleAlert : CheckCircle2;
   return (
     <section className="mobile-step mobile-step--single">
       <StatusIcon tone={icon}>
@@ -724,13 +671,10 @@ function SingleAction({
       </StatusIcon>
       <h1>{title}</h1>
       {body ? <p>{body}</p> : null}
-      <PrimaryButton onClick={onAction}>
-        {secondaryAction ? <X aria-hidden="true" /> : <Volume2 aria-hidden="true" />} {action}
-      </PrimaryButton>
-      {secondaryAction && onSecondaryAction ? (
-        <SecondaryButton className="mobile-listen" onClick={onSecondaryAction}>
-          <Volume2 aria-hidden="true" /> {secondaryAction}
-        </SecondaryButton>
+      {action && onAction ? (
+        <PrimaryButton onClick={onAction}>
+          <X aria-hidden="true" /> {action}
+        </PrimaryButton>
       ) : null}
     </section>
   );

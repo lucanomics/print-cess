@@ -77,6 +77,14 @@ unlocked on the counter. It is a hygiene measure, not an erasure guarantee.
 It is not a promise of immediate physical erasure from provider backups, mobile browser caches,
 RAM, page files, crash dumps, printer storage, or every infrastructure access log.
 
+## File hand-off retention
+
+A phone-to-phone transfer is held as ciphertext parts plus an encrypted file list for
+`DROP_TTL_SECONDS` (default 30 minutes), and is then erased by the same scheduled sweep that clears
+orphaned print ciphertext. The service never holds the transfer code, so it cannot read the file
+list, a file name, or any content it stores. The sender can erase a transfer at any time from the
+ready screen. Full detail is in `FILE_TRANSFER.md`.
+
 ## Deletion triggers and backstops
 
 Explicit cleanup runs after successful print, print failure, cancellation, QR/work expiry,

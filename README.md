@@ -4,14 +4,15 @@
 
 # Print-cess by Club Paradiso
 
-**Secure self-service document printing**
+**Secure self-service document printing and file hand-off**
 
-휴대전화에서 보내고 바로 출력하는 안전한 셀프 인쇄.
+휴대전화에서 보내고 바로 출력하는 안전한 셀프 인쇄. 파일과 사진은 휴대전화끼리 바로 주고받아요.
 
 This private repository contains the mobile transfer service, public browser kiosk, shared
-protocol, and Windows kiosk for a no-login, one-document, one-copy print flow. Development uses
-encrypted local adapters; production integrations require separately approved Vercel and Upstash
-resources.
+protocol, and Windows kiosk for a no-login, one-document, one-copy print flow. It also carries a
+phone-to-phone file hand-off at `/send` and `/receive`: end-to-end encrypted, chunked for large
+files, and needing no kiosk — see `docs/FILE_TRANSFER.md`. Development uses encrypted local
+adapters; production integrations require separately approved Vercel and Upstash resources.
 
 The complete setup, security boundaries, test commands, macOS browser-kiosk procedure, Windows
 deployment procedure, and remaining production blockers are documented in `docs/`. Never use real
@@ -51,7 +52,7 @@ those defaults.
 ## Repository
 
 ```text
-apps/web       Next.js public browser kiosk, mobile flow, and Route Handlers
+apps/web       Next.js public browser kiosk, mobile flow, file hand-off, and Route Handlers
 apps/kiosk     .NET 8 WPF kiosk, core, infrastructure, and tests
 packages       protocol, cryptography, translations, UI, and fixtures
 docs           architecture, security, privacy, deployment, and operations

@@ -2,9 +2,14 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { ENCRYPTED_BLOB_PATH_PATTERN } from "@print-cess/protocol";
+import { DROP_BLOB_PATH_PATTERN, ENCRYPTED_BLOB_PATH_PATTERN } from "@print-cess/protocol";
 
-import type { BlobMetadata, BlobTransport, SignedBlobOperation } from "../contracts";
+import type {
+  BlobMetadata,
+  BlobTransport,
+  SignedBlobOperation,
+  UploadAuthorizationOptions,
+} from "../contracts";
 import { ServiceError } from "../errors";
 
 type LocalToken = {
@@ -12,6 +17,7 @@ type LocalToken = {
   pathname: string;
   expiresAt: number;
   maximumSize?: number;
+  allowOverwrite?: boolean;
 };
 
 export class LocalEncryptedBlobTransport implements BlobTransport {
@@ -34,9 +40,16 @@ export class LocalEncryptedBlobTransport implements BlobTransport {
     pathname: string,
     expiresAt: number,
     maximumSize: number,
+    options?: UploadAuthorizationOptions,
   ): Promise<SignedBlobOperation> {
     await this.#ready;
-    return this.signedOperation({ operation: "put", pathname, expiresAt, maximumSize });
+    return this.signedOperation({
+      operation: "put",
+      pathname,
+      expiresAt,
+      maximumSize,
+      allowOverwrite: options?.allowOverwrite === true,
+    });
   }
 
   public async authorizeDownload(
@@ -96,7 +109,7 @@ export class LocalEncryptedBlobTransport implements BlobTransport {
     const file = this.filePath(payload.pathname);
     await mkdir(this.#root, { recursive: true, mode: 0o700 });
     try {
-      await writeFile(file, bytes, { flag: "wx", mode: 0o600 });
+      await writeFile(file, bytes, { flag: payload.allowOverwrite ? "w" : "wx", mode: 0o600 });
     } catch {
       throw new ServiceError("conflict", "This upload URL has already been used.", 409);
     }
@@ -164,12 +177,13 @@ export class LocalEncryptedBlobTransport implements BlobTransport {
 
   private filePath(pathname: string): string {
     this.assertPath(pathname);
-    return join(this.#root, pathname.replace("/", "_"));
+    return join(this.#root, pathname.replaceAll("/", "_"));
   }
 
   private assertPath(pathname: string): void {
-    if (!ENCRYPTED_BLOB_PATH_PATTERN.test(pathname))
+    if (!ENCRYPTED_BLOB_PATH_PATTERN.test(pathname) && !DROP_BLOB_PATH_PATTERN.test(pathname)) {
       throw new ServiceError("bad_request", "The blob path is invalid.", 400);
+    }
   }
 }
 

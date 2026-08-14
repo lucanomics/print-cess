@@ -1,0 +1,59 @@
+import { authenticateToken, bearerToken } from "@/server/auth";
+import { ServiceError } from "@/server/errors";
+import { assertAllowedOrigin, errorResponse, json, readDropId } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
+import { deleteDrop, getRuntime } from "@/server/runtime";
+import { uploadedPartCount } from "@/server/drop-store/transitions";
+
+export const runtime = "nodejs";
+
+/** Lets the sending phone show live progress: is it ready, and has it landed? */
+export async function GET(request: Request, context: { params: Promise<{ dropId: string }> }) {
+  try {
+    const server = getRuntime();
+    assertAllowedOrigin(request, server.config);
+    const dropId = await readDropId(context);
+    enforceRateLimit(`drop-status:${dropId}`, 240, 60_000);
+
+    const drop = await server.drops.get(dropId);
+    if (!drop) throw new ServiceError("not_found", "This transfer was not found.", 404);
+    await authenticateToken(
+      bearerToken(request, "x-print-cess-drop-token"),
+      drop.ownerTokenHash,
+      "drop",
+    );
+    return json({
+      protocolVersion: drop.protocolVersion,
+      dropId,
+      status: drop.status,
+      uploadedPartCount: uploadedPartCount(drop),
+      partCount: drop.partCount,
+      downloadCount: drop.downloadCount,
+      expiresAt: drop.expiresAt,
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+/** The sender's stop button: erases the ciphertext now instead of at expiry. */
+export async function DELETE(request: Request, context: { params: Promise<{ dropId: string }> }) {
+  try {
+    const server = getRuntime();
+    assertAllowedOrigin(request, server.config);
+    const dropId = await readDropId(context);
+    enforceRateLimit(`drop-delete:${dropId}`, 20, 60_000);
+
+    const drop = await server.drops.get(dropId);
+    if (!drop) return json({ dropId, deleted: true });
+    await authenticateToken(
+      bearerToken(request, "x-print-cess-drop-token"),
+      drop.ownerTokenHash,
+      "drop",
+    );
+    await deleteDrop(server, drop);
+    return json({ dropId, deleted: true });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
