@@ -149,15 +149,20 @@ export async function sendDrop(
     const byIndex = new Map(operations.map((operation) => [operation.index, operation]));
 
     await runWithConcurrency(batch, CONCURRENCY, async (entry) => {
-      const operation = byIndex.get(entry.partIndex);
-      if (!operation) throw new DropTransferError("dropUploadFailed");
+      if (!byIndex.has(entry.partIndex)) throw new DropTransferError("dropUploadFailed");
       const ciphertext = await encryptPlannedChunk(selection, keys, entry);
       try {
         await withRetry(
-          () => putCiphertext(operation, ciphertext, options.signal),
+          () => {
+            const currentOperation = byIndex.get(entry.partIndex);
+            if (!currentOperation) throw new DropTransferError("dropUploadFailed");
+            return putCiphertext(currentOperation, ciphertext, options.signal);
+          },
           options.signal,
           async () => {
-            // A signed URL can expire mid-retry; ask for a fresh one.
+            // A signed URL can expire mid-retry; ask for a fresh one. The next
+            // attempt resolves from this map instead of closing over the stale
+            // operation that failed.
             const refreshed = await authorizeDropParts(created.dropId, ownerToken, [
               entry.partIndex,
             ]);
@@ -281,10 +286,13 @@ export async function receiveDropFile(
       // would have to buffer whole chunks to restore ordering anyway.
       for (const chunkIndex of chunkIndexes) {
         const partIndex = dropPartIndex(drop.manifest.files, fileIndex, chunkIndex);
-        const operation = byIndex.get(partIndex);
-        if (!operation) throw new DropTransferError("dropDownloadFailed");
+        if (!byIndex.has(partIndex)) throw new DropTransferError("dropDownloadFailed");
         const ciphertext = await withRetry(
-          () => getCiphertext(operation, options.signal),
+          () => {
+            const currentOperation = byIndex.get(partIndex);
+            if (!currentOperation) throw new DropTransferError("dropDownloadFailed");
+            return getCiphertext(currentOperation, options.signal);
+          },
           options.signal,
           async () => {
             const refreshed = await authorizeDropDownload(drop.dropId, [partIndex]);
@@ -447,7 +455,7 @@ async function withRetry<T>(
     } catch (error) {
       lastError = error;
       if (error instanceof DropTransferError) throw error;
-      if (error instanceof ApiClientError && isFatalStatus(error.status)) {
+      if (error instanceof ApiClientError && isFatalStatus(error.status, Boolean(refresh))) {
         throw toTransferError(error);
       }
       if (attempt === MAX_ATTEMPTS - 1) break;
@@ -458,7 +466,12 @@ async function withRetry<T>(
   throw toTransferError(lastError);
 }
 
-function isFatalStatus(status: number): boolean {
+function isFatalStatus(status: number, canRefreshBlobCredential = false): boolean {
+  // A 401 from our JSON API is an owner/auth failure and must stop immediately.
+  // A 401 from a signed blob operation can simply mean that its short-lived
+  // credential expired; callers that supply `refresh` are precisely those blob
+  // operations, so let them obtain a replacement before the next attempt.
+  if (status === 401 && canRefreshBlobCredential) return false;
   return status === 400 || status === 401 || status === 404 || status === 409 || status === 410;
 }
 
