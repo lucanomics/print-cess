@@ -94,7 +94,7 @@ const en = {
   listenAgain: "Listen again",
   closePage: "Close this page",
   closedTitle: "Printing is finished",
-  closedBody: "You can close this tab now.",
+  closedBody: "You can close this page now.",
   keepPageOpen: "Do not close this page.",
   preparingSession: "Getting ready…",
 
@@ -158,9 +158,9 @@ const ko = {
   continue: "계속",
 
   guideTitle: "인쇄 방법",
-  guideIntro: "네 단계만 하면 됩니다. 앱을 설치하거나 로그인하지 않아도 돼요.",
+  guideIntro: "네 단계만 하면 끝나요. 앱을 설치하거나 로그인하지 않아도 돼요.",
   guideScanTitle: "1. QR코드 스캔하기",
-  guideScanBody: "휴대전화 카메라로 스캔했어요. 이 단계는 끝났습니다.",
+  guideScanBody: "휴대전화 카메라로 스캔했어요. 이 단계는 끝났어요.",
   guideChooseTitle: "2. 문서 한 개 고르기",
   guideChooseBody: "갤러리의 사진 한 장, 또는 휴대전화에 저장한 PDF 한 개를 고르세요.",
   guideCheckTitle: "3. 확인하고 인쇄하기",
@@ -177,7 +177,7 @@ const ko = {
   guideChooseBodyHwpx: "사진, PDF, HWPX 파일 중 한 개를 고르세요.",
   fileRulesHwpx: "사진, PDF, HWPX · 사진 20MB 이하 · 문서 10MB 이하 · PDF 10페이지 이하",
   documentNeedsPdf:
-    "이 문서는 휴대전화에서 PDF로 저장한 뒤 다시 고르세요. 문서를 변환하려고 다른 회사에 보내지 않습니다.",
+    "이 문서는 휴대전화에서 PDF로 저장한 뒤 다시 고르세요. 문서를 변환하려고 다른 회사에 보내지 않아요.",
   imageConversionUnsupported:
     "이 휴대전화에서는 이 사진을 열 수 없어요. 사진 앱에서 JPG로 저장하거나 화면을 캡처한 뒤 다시 고르세요.",
   hwpxUnavailable: "이 프린터는 HWPX 파일을 열 수 없어요. 문서를 PDF로 저장한 뒤 다시 고르세요.",
@@ -187,21 +187,21 @@ const ko = {
   cancelled: "아직 고른 문서가 없어요. 아래 두 버튼 중 하나를 누르세요.",
 
   checkDocument: "이 문서가 맞나요?",
-  previewHelp: "아래에 보이는 그대로 인쇄됩니다. 잘 확인하세요.",
+  previewHelp: "아래에 보이는 그대로 인쇄돼요. 잘 확인하세요.",
   printSummary: "한 부 · A4 용지 · 흑백 · 단면",
-  privacySummary: "문서는 보내는 동안 잠겨 있고, 인쇄가 끝나면 바로 지워집니다.",
+  privacySummary: "문서는 보내는 동안 잠겨 있고, 인쇄가 끝나면 바로 지워져요.",
   printOneCopy: "A4 한 부 인쇄",
   chooseAnother: "다른 문서 고르기",
 
   encrypting: "문서를 준비하고 있어요",
   uploading: "문서를 보내고 있어요",
   waitingForPrint: "곧 인쇄가 시작돼요",
-  completed: "인쇄가 끝났어요",
+  completed: "모두 끝났어요",
   collectOutput: "프린터에서 종이를 가져가세요.",
   listenAgain: "다시 듣기",
   closePage: "이 화면 닫기",
-  closedTitle: "인쇄가 끝났습니다",
-  closedBody: "이제 이 탭을 닫아도 됩니다.",
+  closedTitle: "인쇄가 끝났어요",
+  closedBody: "이제 이 화면을 닫아도 돼요.",
   keepPageOpen: "이 화면을 닫지 마세요.",
   preparingSession: "안전하게 연결하고 있어요…",
 
@@ -242,7 +242,7 @@ const ko = {
   helpPreview:
     "그림을 보세요. 맞으면 ‘A4 한 부 인쇄’를 누르세요. 아니면 ‘다른 문서 고르기’를 누르세요.",
   helpProgress:
-    "지금은 아무것도 누르지 않아도 돼요. 이 화면을 열어 둔 채 기다리세요. 곧 종이가 나옵니다.",
+    "지금은 아무것도 누르지 않아도 돼요. 이 화면을 열어 둔 채 기다리세요. 곧 종이가 나와요.",
   helpDone: "큰 화면 옆 프린터에 종이가 나와 있어요. 종이를 가져가세요.",
   helpError: "큰 화면으로 가서 QR코드를 다시 스캔한 뒤 처음부터 하세요.",
   helpAskStaff: "그래도 어려우면 프린터 옆 직원에게 도움을 요청하세요.",
@@ -301,7 +301,7 @@ const zhCN = {
   listenAgain: "再听一遍",
   closePage: "关闭这个页面",
   closedTitle: "打印完成了",
-  closedBody: "现在可以关掉这个标签页了。",
+  closedBody: "现在可以关闭这个页面了。",
   keepPageOpen: "不要关掉这个页面。",
   preparingSession: "正在准备…",
 
@@ -399,7 +399,7 @@ const id = {
   listenAgain: "Dengarkan lagi",
   closePage: "Tutup halaman ini",
   closedTitle: "Pencetakan selesai",
-  closedBody: "Anda boleh menutup tab ini sekarang.",
+  closedBody: "Anda boleh menutup halaman ini sekarang.",
   keepPageOpen: "Jangan tutup halaman ini.",
   preparingSession: "Sedang bersiap…",
 
@@ -414,7 +414,7 @@ const id = {
   unsupportedType:
     "Pilih foto atau PDF. Simpan berkas HWP, Word, Excel, atau PowerPoint sebagai PDF dulu, lalu pilih lagi.",
   tooLarge:
-    "Berkas ini terlalu besar. Foto harus di bawah 20 MB dan PDF di bawah 10 MB, atau simpan hanya halaman yang perlu.",
+    "Berkas ini terlalu besar. Foto harus di bawah 20 MB dan PDF di bawah 10 MB, atau simpan hanya halaman yang diperlukan.",
   tooManyPages: "PDF ini lebih dari 10 halaman. Simpan hanya halaman yang Anda perlukan.",
   lockedPdf:
     "PDF ini punya kata sandi. Buka di ponsel Anda, lalu simpan halaman yang perlu sebagai tangkapan layar.",
@@ -507,7 +507,7 @@ const fil = {
   listenAgain: "Pakinggan muli",
   closePage: "Isara ang pahinang ito",
   closedTitle: "Tapos na ang pag-print",
-  closedBody: "Puwede mo nang isara ang tab na ito.",
+  closedBody: "Puwede mo nang isara ang pahinang ito.",
   keepPageOpen: "Huwag isara ang pahinang ito.",
   preparingSession: "Naghahanda…",
 
@@ -522,7 +522,7 @@ const fil = {
   unsupportedType:
     "Pumili ng larawan o PDF. I-save muna bilang PDF ang HWP, Word, Excel, o PowerPoint file, pagkatapos piliin itong muli.",
   tooLarge:
-    "Masyadong malaki ang file. Dapat wala pang 20 MB ang larawan at wala pang 10 MB ang PDF, o i-save lang ang mga pahinang kailangan.",
+    "Masyadong malaki ang file. Dapat mas maliit sa 20 MB ang larawan at mas maliit sa 10 MB ang PDF, o i-save lang ang mga pahinang kailangan.",
   tooManyPages: "Mahigit 10 pahina ang PDF na ito. I-save lang ang mga pahinang kailangan mo.",
   lockedPdf:
     "May password ang PDF na ito. Buksan ito sa telepono mo at i-screenshot ang mga pahinang kailangan.",
@@ -616,7 +616,7 @@ const vi = {
   listenAgain: "Nghe lại",
   closePage: "Đóng trang này",
   closedTitle: "Đã in xong",
-  closedBody: "Bây giờ bạn có thể đóng thẻ này.",
+  closedBody: "Bây giờ bạn có thể đóng trang này.",
   keepPageOpen: "Đừng đóng trang này.",
   preparingSession: "Đang chuẩn bị…",
 
@@ -717,7 +717,7 @@ const th = {
   listenAgain: "ฟังอีกครั้ง",
   closePage: "ปิดหน้านี้",
   closedTitle: "พิมพ์เสร็จแล้ว",
-  closedBody: "ตอนนี้ปิดแท็บนี้ได้เลย",
+  closedBody: "ตอนนี้ปิดหน้านี้ได้เลย",
   keepPageOpen: "อย่าปิดหน้านี้",
   preparingSession: "กำลังเตรียม…",
 
@@ -817,7 +817,7 @@ const ne = {
   listenAgain: "फेरि सुन्नुहोस्",
   closePage: "यो पृष्ठ बन्द गर्नुहोस्",
   closedTitle: "प्रिन्ट सकियो",
-  closedBody: "अब यो ट्याब बन्द गर्न सक्नुहुन्छ।",
+  closedBody: "अब यो पृष्ठ बन्द गर्न सक्नुहुन्छ।",
   keepPageOpen: "यो पृष्ठ बन्द नगर्नुहोस्।",
   preparingSession: "तयारी हुँदै छ…",
 
@@ -876,7 +876,7 @@ const km = {
   continue: "បន្ត",
 
   guideTitle: "របៀបបោះពុម្ព",
-  guideIntro: "មានតែ ៤ ជំហាន។ មិនត្រូវការកម្មវិធី ឬគណនីទេ។",
+  guideIntro: "មានតែ 4 ជំហាន។ មិនត្រូវការកម្មវិធី ឬគណនីទេ។",
   guideScanTitle: "1. ស្កេនកូដ QR",
   guideScanBody: "អ្នកបានស្កេនដោយកាមេរ៉ាទូរស័ព្ទរួចហើយ។ ជំហាននេះចប់។",
   guideChooseTitle: "2. ជ្រើសឯកសារមួយ",
@@ -888,7 +888,7 @@ const km = {
   guideListen: "ស្តាប់ជំហានទាំងនេះ",
   guideStart: "ជ្រើសឯកសាររបស់ខ្ញុំ",
   languageReminder: "ចុចភាសារបស់អ្នក រួចចុច បន្ត។",
-  guideReminder: "អានជំហានទាំង ៤ រួចចុចប៊ូតុងខាងក្រោម។",
+  guideReminder: "អានជំហានទាំង 4 រួចចុចប៊ូតុងខាងក្រោម។",
 
   chooseFile: "ជ្រើសឯកសារមួយដើម្បីបោះពុម្ព",
   fileRules: "រូបថត ឬ PDF · រូបថតរហូតដល់ 20 MB · PDF រហូតដល់ 10 MB និង 10 ទំព័រ",
@@ -899,7 +899,8 @@ const km = {
     "រក្សាទុកឯកសារនេះជា PDF ក្នុងទូរស័ព្ទ រួចជ្រើសម្តងទៀត។ ឯកសាររបស់អ្នកមិនត្រូវបានផ្ញើទៅក្រុមហ៊ុនផ្សេងដើម្បីបំប្លែងទេ។",
   imageConversionUnsupported:
     "ទូរស័ព្ទនេះមិនអាចបើករូបថតនោះបានទេ។ រក្សាទុកជា JPG ក្នុងកម្មវិធីរូបថត ឬថតអេក្រង់ រួចជ្រើសម្តងទៀត។",
-  hwpxUnavailable: "ម៉ាស៊ីនបោះពុម្ពនេះមិនអាចបើកឯកសារ HWPX បានទេ។ រក្សាទុកជា PDF រួចជ្រើសម្តងទៀត។",
+  hwpxUnavailable:
+    "ម៉ាស៊ីនបោះពុម្ពនេះមិនអាចបើកឯកសារ HWPX បានទេ។ រក្សាទុកឯកសារជា PDF រួចជ្រើសម្តងទៀត។",
   hwpxPreview: "ឯកសារ HWPX · បោះពុម្ពដោយគីអូស Windows",
   locationPhotos: "បើករូបថតរបស់ខ្ញុំ",
   locationFiles: "បើកឯកសាររបស់ខ្ញុំ",
@@ -907,9 +908,9 @@ const km = {
 
   checkDocument: "ទំព័រនេះត្រូវទេ?",
   previewHelp: "ម៉ាស៊ីននឹងបោះពុម្ពដូចអ្វីដែលអ្នកឃើញខាងក្រោមនេះ។ សូមមើលឱ្យបានច្បាស់។",
-  printSummary: "១ ច្បាប់ · ក្រដាស A4 · សខ្មៅ · ម្ខាង",
+  printSummary: "1 ច្បាប់ · ក្រដាស A4 · សខ្មៅ · ម្ខាង",
   privacySummary: "ឯកសាររបស់អ្នកត្រូវបានចាក់សោពេលផ្ញើ ហើយលុបចោលភ្លាមបន្ទាប់ពីបោះពុម្ព។",
-  printOneCopy: "បោះពុម្ព ១ ច្បាប់",
+  printOneCopy: "បោះពុម្ព 1 ច្បាប់",
   chooseAnother: "ជ្រើសឯកសារផ្សេង",
 
   encrypting: "កំពុងរៀបចំឯកសាររបស់អ្នក",
@@ -920,7 +921,7 @@ const km = {
   listenAgain: "ស្តាប់ម្តងទៀត",
   closePage: "បិទទំព័រនេះ",
   closedTitle: "ការបោះពុម្ពបានចប់",
-  closedBody: "ឥឡូវនេះអ្នកអាចបិទផ្ទាំងនេះបាន។",
+  closedBody: "ឥឡូវនេះអ្នកអាចបិទទំព័រនេះបាន។",
   keepPageOpen: "សូមមិនបិទទំព័រនេះ។",
   preparingSession: "កំពុងរៀបចំ…",
 
@@ -956,10 +957,10 @@ const km = {
   helpTitle: "ឥឡូវនេះខ្ញុំគួរធ្វើអ្វី?",
   helpClose: "យល់ហើយ",
   helpLanguage: "ចុចប្រអប់ដែលមានភាសារបស់អ្នក។ បន្ទាប់មកចុចប៊ូតុងខាងក្រោម។",
-  helpGuide: "អានជំហានខ្លីទាំង ៤។ បន្ទាប់មកចុចប៊ូតុងខាងក្រោមដើម្បីជ្រើសឯកសារ។",
+  helpGuide: "អានជំហានខ្លីទាំង 4។ បន្ទាប់មកចុចប៊ូតុងខាងក្រោមដើម្បីជ្រើសឯកសារ។",
   helpFile:
     "អ្វីដែលអ្នកចង់បោះពុម្ពជារូបថតឬ? ចុច “បើករូបថតរបស់ខ្ញុំ”។ ជា PDF ដែលរក្សាទុករួចឬ? ចុច “បើកឯកសាររបស់ខ្ញុំ”។ ជ្រើសបានតែមួយ។",
-  helpPreview: "មើលរូប។ ប្រសិនបើត្រូវ ចុច “បោះពុម្ព ១ ច្បាប់”។ ប្រសិនបើខុស ចុច “ជ្រើសឯកសារផ្សេង”។",
+  helpPreview: "មើលរូប។ ប្រសិនបើត្រូវ ចុច “បោះពុម្ព 1 ច្បាប់”។ ប្រសិនបើខុស ចុច “ជ្រើសឯកសារផ្សេង”។",
   helpProgress: "ឥឡូវនេះមិនត្រូវចុចអ្វីទេ។ ទុកទំព័រនេះឱ្យបើក ហើយរង់ចាំ។ ក្រដាសនឹងចេញមកឆាប់ៗ។",
   helpDone: "ក្រដាសរបស់អ្នកនៅម៉ាស៊ីនបោះពុម្ពជាប់អេក្រង់ធំ។ សូមយកទៅ។",
   helpError: "ទៅអេក្រង់ធំ ស្កេនកូដ QR ម្តងទៀត ហើយចាប់ផ្តើមឡើងវិញ។",
@@ -1021,7 +1022,7 @@ const ar = {
   listenAgain: "اسمع مرة أخرى",
   closePage: "أغلق هذه الصفحة",
   closedTitle: "انتهت الطباعة",
-  closedBody: "يمكنك إغلاق هذه التبويبة الآن.",
+  closedBody: "يمكنك إغلاق هذه الصفحة الآن.",
   keepPageOpen: "لا تغلق هذه الصفحة.",
   preparingSession: "جارٍ التحضير…",
 
@@ -1081,13 +1082,13 @@ const ru = {
   guideTitle: "Как напечатать",
   guideIntro: "Всего четыре шага. Приложение и аккаунт не нужны.",
   guideScanTitle: "1. Отсканируйте QR-код",
-  guideScanBody: "Вы отсканировали его камерой телефона. Этот шаг сделан.",
+  guideScanBody: "Вы отсканировали его камерой телефона. Этот шаг уже выполнен.",
   guideChooseTitle: "2. Выберите один файл",
   guideChooseBody: "Одно фото из галереи или один PDF, сохранённый в телефоне.",
   guideCheckTitle: "3. Проверьте и печатайте",
   guideCheckBody: "Посмотрите на картинку в телефоне и нажмите кнопку печати.",
   guideCollectTitle: "4. Заберите свой лист",
-  guideCollectBody: "Принтер стоит рядом с большим экраном. Забирайте лист там.",
+  guideCollectBody: "Принтер стоит рядом с большим экраном. Заберите лист там.",
   guideListen: "Прослушать шаги",
   guideStart: "Выбрать файл",
   languageReminder: "Нажмите свой язык, затем нажмите «Продолжить».",
@@ -1123,7 +1124,7 @@ const ru = {
   listenAgain: "Прослушать ещё раз",
   closePage: "Закрыть эту страницу",
   closedTitle: "Печать завершена",
-  closedBody: "Теперь эту вкладку можно закрыть.",
+  closedBody: "Теперь эту страницу можно закрыть.",
   keepPageOpen: "Не закрывайте эту страницу.",
   preparingSession: "Готовимся…",
 
@@ -1229,7 +1230,7 @@ const mn = {
   listenAgain: "Дахин сонсох",
   closePage: "Энэ хуудсыг хаах",
   closedTitle: "Хэвлэлт дууслаа",
-  closedBody: "Одоо энэ табыг хааж болно.",
+  closedBody: "Одоо энэ хуудсыг хааж болно.",
   keepPageOpen: "Энэ хуудсыг хааж болохгүй.",
   preparingSession: "Бэлтгэж байна…",
 
@@ -1244,7 +1245,7 @@ const mn = {
   unsupportedType:
     "Зураг эсвэл PDF сонгоно уу. HWP, Word, Excel, PowerPoint файлыг эхлээд PDF болгож хадгалаад сонгоно уу.",
   tooLarge:
-    "Энэ файл хэтэрхий том. Зураг 20 MB, PDF 10 MB-аас бага байх ёстой, эсвэл шаардлагатай хуудсаа хадгална уу.",
+    "Энэ файл хэтэрхий том. Зураг 20 MB-аас, PDF 10 MB-аас бага байх ёстой. Эсвэл шаардлагатай хуудсаа хадгална уу.",
   tooManyPages: "Энэ PDF 10 хуудсаас их. Зөвхөн шаардлагатай хуудсаа хадгална уу.",
   lockedPdf:
     "Энэ PDF нууц үгтэй. Утсан дээрээ нээгээд шаардлагатай хуудсуудын дэлгэцийн зургийг авна уу.",
@@ -1294,7 +1295,7 @@ const uk = {
   guideTitle: "Як надрукувати",
   guideIntro: "Лише чотири кроки. Не потрібні ні застосунок, ні акаунт.",
   guideScanTitle: "1. Відскануйте QR-код",
-  guideScanBody: "Ви відсканували його камерою телефону. Цей крок готовий.",
+  guideScanBody: "Ви відсканували його камерою телефону. Цей крок уже виконано.",
   guideChooseTitle: "2. Виберіть один файл",
   guideChooseBody: "Одне фото з галереї або один PDF, збережений у телефоні.",
   guideCheckTitle: "3. Перевірте і друкуйте",
@@ -1336,7 +1337,7 @@ const uk = {
   listenAgain: "Прослухати ще раз",
   closePage: "Закрити цю сторінку",
   closedTitle: "Друк завершено",
-  closedBody: "Тепер цю вкладку можна закрити.",
+  closedBody: "Тепер цю сторінку можна закрити.",
   keepPageOpen: "Не закривайте цю сторінку.",
   preparingSession: "Готуємось…",
 
