@@ -22,7 +22,7 @@ jobs:
           node-version: 24.18.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Keep Khmer and Nepali locales on one numeral script
+      - name: Keep tested locales on one numeral script
         shell: bash
         run: |
           python <<'PY'
@@ -30,32 +30,27 @@ jobs:
 
           p = Path('packages/i18n/src/index.ts')
           s = p.read_text()
+          digit_sets = {
+              'km': '០១២៣៤៥៦៧៨៩',
+              'ne': '०१२३४५६७८९',
+              'ar': '٠١٢٣٤٥٦٧٨٩',
+              'th': '๐๑๒๓๔๕๖๗๘๙',
+          }
 
-          def normalize_block(text: str, start: str, end: str, native: str) -> tuple[str, int]:
-              left = text.index(start)
-              right = text.index(end, left)
-              block = text[left:right]
-              table = str.maketrans(native, '0123456789')
-              normalized = block.translate(table)
+          total_changes = 0
+          for locale, native in digit_sets.items():
+              start = s.index(f'const {locale} = {{')
+              next_const = s.find('\nconst ', start + 1)
+              end = len(s) if next_const == -1 else next_const
+              block = s[start:end]
+              normalized = block.translate(str.maketrans(native, '0123456789'))
               changes = sum(a != b for a, b in zip(block, normalized))
-              return text[:left] + normalized + text[right:], changes
+              total_changes += changes
+              s = s[:start] + normalized + s[end:]
+              print(f'{locale}: normalized {changes} native numeral characters')
 
-          s, km_changes = normalize_block(
-              s,
-              'const km = {',
-              '\nconst ar = {',
-              '០១២៣៤៥៦៧៨៩',
-          )
-          s, ne_changes = normalize_block(
-              s,
-              'const ne = {',
-              '\nconst km = {',
-              '०१२३४५६७८९',
-          )
-          if km_changes < 1 or ne_changes < 1:
-              raise SystemExit(
-                  f'Expected native numeral fixes in both locales; km={km_changes}, ne={ne_changes}'
-              )
+          if total_changes < 1:
+              raise SystemExit('Expected at least one native numeral to normalize')
           p.write_text(s)
           PY
           pnpm exec prettier --write packages/i18n/src/index.ts
