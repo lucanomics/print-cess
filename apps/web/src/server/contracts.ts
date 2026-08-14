@@ -143,4 +143,10 @@ export interface BlobTransport {
 
 export interface CleanupScheduler {
   schedule(sessionId: string, dueAt: number): Promise<void>;
+  /**
+   * Hosted schedulers can enqueue a generic sweep for data that is not tied to
+   * one print session, such as phone-to-phone drops. Providers with their own
+   * recurring worker intentionally omit this optional hook.
+   */
+  scheduleSweep?(dueAt: number, limit?: number): Promise<void>;
 }
