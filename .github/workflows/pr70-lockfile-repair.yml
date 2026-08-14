@@ -1,0 +1,52 @@
+name: PR70 lockfile repair
+
+on:
+  push:
+    branches:
+      - dependabot/npm_and_yarn/production-dependencies-39a1641a47
+    paths:
+      - apps/web/package.json
+
+permissions:
+  contents: write
+
+jobs:
+  repair-lockfile:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v7
+        with:
+          ref: dependabot/npm_and_yarn/production-dependencies-39a1641a47
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.15.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Regenerate lockfile
+        run: pnpm install --lockfile-only
+
+      - name: Verify frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Commit regenerated lockfile
+        shell: bash
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Lockfile already matches package manifests."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore(deps): keep Next.js 16.2.12 pending E2E regression"
+          git push origin HEAD:dependabot/npm_and_yarn/production-dependencies-39a1641a47
