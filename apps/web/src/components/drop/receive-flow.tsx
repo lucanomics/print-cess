@@ -94,10 +94,30 @@ export function ReceiveFlow() {
     if (!drop) return;
     const controller = new AbortController();
     abort.current = controller;
+    const firstFile = drop.manifest.files[0];
+    setSavingIndex(0);
+    setProgress(
+      firstFile
+        ? {
+            transferredBytes: 0,
+            totalBytes: firstFile.size,
+            completedParts: 0,
+            totalParts: firstFile.chunkCount,
+          }
+        : undefined,
+    );
     setStage("saving");
     try {
       for (let index = 0; index < drop.manifest.files.length; index += 1) {
+        const file = drop.manifest.files[index];
+        if (!file) continue;
         setSavingIndex(index);
+        setProgress({
+          transferredBytes: 0,
+          totalBytes: file.size,
+          completedParts: 0,
+          totalParts: file.chunkCount,
+        });
         await receiveDropFile(drop, index, {
           signal: controller.signal,
           onProgress: setProgress,
