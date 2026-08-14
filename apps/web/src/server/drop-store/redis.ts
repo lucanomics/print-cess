@@ -21,7 +21,11 @@ local current = redis.call('GET', KEYS[1])
 if not current then return 0 end
 local decoded = cjson.decode(current)
 if tonumber(decoded.revision) ~= tonumber(ARGV[1]) then return -1 end
-redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3])
+local currentTtl = redis.call('PTTL', KEYS[1])
+local requestedTtl = tonumber(ARGV[3])
+local nextTtl = requestedTtl
+if currentTtl > nextTtl then nextTtl = currentTtl end
+redis.call('SET', KEYS[1], ARGV[2], 'PX', nextTtl)
 return 1
 `;
 
