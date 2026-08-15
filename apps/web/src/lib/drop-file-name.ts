@@ -74,7 +74,11 @@ export function safeFileName(rawName: string, budget = MAX_DROP_FILE_NAME_BYTES)
  * media type is therefore dropped rather than corrected.
  */
 export function safeMediaType(rawType: string): string {
-  const candidate = rawType.trim().slice(0, MAX_DROP_MIME_LENGTH);
+  const candidate = rawType.trim();
+  // Dropped rather than truncated. A shortened media type is a different media
+  // type, and quietly declaring the wrong one is worse than declaring none —
+  // which is already the ordinary case for Hancom documents on most phones.
+  if (candidate.length > MAX_DROP_MIME_LENGTH) return "";
   return /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/iu.test(candidate)
     ? candidate
     : "";
