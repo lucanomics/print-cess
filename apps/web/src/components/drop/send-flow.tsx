@@ -77,6 +77,7 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController>(null);
+  const created = useRef<SendResult>(undefined);
 
   // The published limits, so a selection that this deployment will never accept
   // is refused on the phone rather than after several minutes of uploading.
@@ -175,15 +176,27 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
         // The code appears as soon as the service holds the record, not when
         // the last byte lands. The other phone can scan and wait through a
         // gigabyte instead of watching this one's progress bar first.
-        onDropCreated: (created) => void showCode(created),
+        onDropCreated: (record) => {
+          created.current = record;
+          void showCode(record);
+        },
         onProgress: (next) => {
           setProgress(next);
           samples.current = recordSample(samples.current, next, Date.now());
           setMinutesRemaining(estimateMinutesRemaining(samples.current, next));
         },
       });
+      created.current = undefined;
       setSealed(true);
     } catch (error) {
+      // The code went on screen the moment the record existed, so somebody may
+      // already be holding it and waiting. A send that stops here will never be
+      // sealed, and leaving the record behind would leave them waiting on a
+      // transfer that is not coming until it expires — so it is erased now.
+      if (created.current) {
+        await revokeDrop(created.current.dropId, created.current.ownerToken).catch(() => undefined);
+        created.current = undefined;
+      }
       setErrorKey(dropErrorKey(error));
       setStage("error");
     } finally {
@@ -241,6 +254,7 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
   const erase = useCallback(async () => {
     if (!result) return;
     abort.current?.abort();
+    created.current = undefined;
     await revokeDrop(result.dropId, result.ownerToken).catch(() => undefined);
     setDeleted(true);
   }, [result]);

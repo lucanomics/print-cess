@@ -44,6 +44,7 @@ import {
   type DropScanner,
 } from "@/lib/drop-scanner";
 import {
+  DropTransferError,
   inspectDrop,
   receiveDropFile,
   type DropProgress,
@@ -146,7 +147,9 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
         for (let attempt = 0; opened.state === "collecting"; attempt += 1) {
           setExpiresAt(opened.expiresAt);
           setStage("pending");
-          if (opened.expiresAt <= Date.now()) throw new Error("expired");
+          // A sender who closed their page mid-upload never seals the transfer.
+          // Waiting past its expiry is waiting for something that is not coming.
+          if (opened.expiresAt <= Date.now()) throw new DropTransferError("dropExpired");
           await wait(pendingDelayMs(attempt), controller.signal);
           // The keys are handed back so the wait costs one small request rather
           // than stretching the transfer code again every few seconds.

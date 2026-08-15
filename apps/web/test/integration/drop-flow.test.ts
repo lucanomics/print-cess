@@ -261,6 +261,34 @@ describe("drop hand-off, end to end", () => {
     expect(pending).not.toHaveProperty("fileCount");
   }, 30_000);
 
+  it("lets a waiting receiver keep asking without being locked out of its own transfer", async () => {
+    const ownerToken = generateToken(32);
+    await createDropRoute(
+      jsonRequest("/api/drops", {
+        protocolVersion: 1,
+        dropId: keys.dropId,
+        ownerTokenHash: await hashToken(ownerToken, "drop"),
+        manifest: await encryptDropManifest(keys, manifest),
+        fileCount: 1,
+        partCount: 1,
+        totalBytes: plaintext.byteLength,
+      }),
+    );
+
+    // A receiver waiting out a slow gigabyte polls with a backing-off delay,
+    // which reaches roughly forty-five requests in five minutes. Under a single
+    // tight limit that locked them out of a transfer that was genuinely theirs,
+    // about three minutes into a legitimate wait.
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const response = await openDropRoute(
+        jsonRequest(`/api/drops/${keys.dropId}/open`, {}),
+        params(keys.dropId),
+      );
+      expect(response.status, `poll ${attempt}`).toBe(200);
+      expect(((await response.json()) as { state: string }).state).toBe("collecting");
+    }
+  }, 60_000);
+
   it("still answers a code that names nothing exactly as it always did", async () => {
     const stranger = await deriveDropKeys(generateDropCode());
     const opened = await openDropRoute(
