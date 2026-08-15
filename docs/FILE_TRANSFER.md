@@ -27,8 +27,10 @@ it stores.
 
 Scanning is the primary path on the receiving side: `/receive` opens the camera and reads the
 sending phone's QR through `BarcodeDetector`, so nobody types twelve characters unless their browser
-cannot scan or refuses the camera. The keypad stays as the fallback and accepts either shape a code
-can arrive in — the full link, or a bare code somebody re-encoded.
+cannot scan or refuses the camera. The keypad is the fallback, and it reads a code through the same
+parser the scanner uses — `parseDropCode` in `apps/web/src/lib/drop-link.ts` — so a whole receive
+link pasted into the field opens the transfer immediately, exactly as scanning it would. Anything
+that is not a code is refused rather than assembled out of the characters of a hostname.
 
 ---
 
@@ -76,15 +78,28 @@ AES-256-GCM.
   count, and flat part index. A chunk that is reordered, moved between files, replayed into another
   transfer, or cut from the end of a file fails authentication rather than decrypting into a
   plausible but wrong result.
+- An empty file is carried rather than refused. AES-GCM over empty plaintext produces the
+  authentication tag alone, which is a complete, authenticated, correctly sized part bound to its
+  position by exactly the same additional data; nothing about the security argument changes.
 
 The file list travels as a separately encrypted manifest stored beside the record rather than as a
-blob, so opening a transfer costs one request and reveals nothing until the code decrypts it.
+blob, so opening a transfer costs one request and reveals nothing until the code decrypts it. File
+names are budgeted in UTF-8 bytes rather than characters, which is what keeps twenty Korean or
+emoji names inside the manifest's 16 KiB ceiling by construction; the sending phone measures the
+sealed manifest before creating anything and refuses with a sentence about the names.
 
-Ceilings: 20 files, 4096 parts, and `DROP_MAX_TOTAL_MB` (default 2048) per transfer.
+Ceilings: 20 files, 4096 parts, and `DROP_MAX_TOTAL_MB` (default 2048) per transfer. The size
+ceiling is measured in bytes: `GET /api/drops/capabilities` publishes it so the phone can refuse a
+selection before key stretching, the create request declares its plaintext size, the schema pins the
+part count between the bounds that size can legitimately need, and every commit is checked against
+the declared size plus one tag per part using sizes read back from the storage provider.
 
 The hand-off is deliberately format-blind, which is what makes it safe for Hancom documents: a
 `.hwp` or `.hwpx` moves as bytes with its name intact, including Korean names and the empty MIME
-type most phones report for them. `test/e2e/hancom-handoff.spec.ts` pins that round trip by digest.
+type most phones report for them. `test/integration/drop-compatibility.test.ts` carries roughly
+seventy-five synthetic samples across every format group through the real routes and compares
+SHA-256 digests; `test/e2e/hancom-handoff.spec.ts` repeats the Hancom pair through two real
+browsers. See `FILE_COMPATIBILITY.md`.
 
 ---
 
@@ -94,10 +109,13 @@ Neither phone ever holds more than one chunk in memory.
 
 - **Sending** reads each chunk with `File.slice()`, encrypts it, and uploads it to a scoped signed
   URL. Parts are authorized in batches of eight and transferred three at a time.
-- **Receiving** streams each decrypted chunk into the private origin file system where it is
-  available, and only then hands the assembled file to the browser's download machinery. Browsers
-  without it fall back to collecting chunks in memory, and the receiving screen says so before a
-  large transfer starts.
+- **Receiving** streams each decrypted chunk into a destination chosen during the tap that asked for
+  it: a file or a folder the visitor picked where the browser offers one, otherwise the private
+  origin file system and then the browser's download machinery, otherwise memory. The screen reports
+  what that destination could actually confirm — a written file is `Saved`, a started download says
+  so — and each file in a transfer carries its own state, so a failure on one is not a failure of
+  the rest. Without staging, a file over 512 MiB is refused before it starts rather than crashing
+  the tab. See `adr/0001-save-destinations.md`.
 - **Interruptions** are expected. A part upload that fails is retried with backoff, and a signed URL
   that expired mid-retry is reissued. Part authorization deliberately allows overwrite, which is why
   `BlobTransport.authorizeUpload` takes an explicit `allowOverwrite` option — a print upload is
@@ -112,7 +130,11 @@ Neither phone ever holds more than one chunk in memory.
   minutes, and withheld entirely when the transfer has stalled or the answer would exceed an hour.
   A number nobody would act on is worse than no number.
 
-A transfer opens for reading only after every part is committed and the sender seals it.
+A transfer opens for reading only after every part is committed and the sender seals it. A receiver
+who arrives before then — the ordinary case for a large hand-off, because the code is shown as soon
+as the service holds the record rather than when the last byte lands — is told the transfer is still
+being prepared and waits, with a backing-off poll. That answer carries no file list, no progress,
+and nothing about who is sending; somebody guessing a code still gets the same `404` as before.
 
 ---
 
@@ -124,8 +146,15 @@ derived from the identifier rather than stored, so a record written before a cra
 of its ciphertext.
 
 The sender can erase a transfer immediately from the ready screen; `DELETE /api/drops/:dropId`
-deletes every part and the record. The sending screen also reports whether the transfer has been
-collected, which is the only thing the service knows about the receiving side.
+deletes every part and the record.
+
+The sending screen reports how far the receiving side has got, in the only four steps the service
+can honestly distinguish: waiting, opened, downloading, delivered. `opened` is an open request,
+`downloading` is a receiver asking for the first chunk, and `delivered` is a one-bit receipt the
+receiving flow posts to `POST /api/drops/:dropId/receipt` once it has finished handling every file.
+The receipt carries no identity, no file name, no destination app, and no device; it is
+unauthenticated for the same reason opening and downloading are, which is that reaching it at all
+required deriving the identifier from the transfer code.
 
 ---
 
@@ -154,4 +183,14 @@ cannot drift into three definitions of "sealed" or "already committed".
   sealed. That rules out an interactive key exchange, which is why the code carries the key.
 - **No transfer history, receipts, or naming.** The service stores no record of who sent what.
 - **No resumable receive across page loads.** A reload restarts the download; the parts are still
-  there, so nothing is lost but time.
+  there, so nothing is lost but time. Resuming would mean persisting the transfer code, or keys
+  derived from it, somewhere a later page load could read — which is a durable copy of the only
+  secret in the design, in exchange for saving a repeat of a download that already works.
+- **No folder transfer.** A browser can offer the files inside a folder, but preserving the
+  structure means putting relative paths in the manifest and reconstructing directories on the far
+  side, which is where zip-slip lives. The current policy — every path separator is replaced, so no
+  name the receiver ever handles contains one — is what makes traversal impossible by construction,
+  and it is worth more than the convenience. A folder can be sent today by archiving it first.
+- **No automatic archive of a whole transfer.** It would add a compression dependency, assemble the
+  whole transfer somewhere before anything could be downloaded, and remove the ability to take one
+  file out of five. The folder picker solves the same problem better where it exists.
