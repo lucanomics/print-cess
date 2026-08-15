@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Camera, CheckCircle2, Download, Send, Timer, TriangleAlert, X } from "lucide-react";
 
+import type { SupportedLocale } from "@print-cess/i18n";
 import {
   DROP_CODE_LENGTH,
   DROP_CODE_PATTERN,
@@ -47,8 +48,8 @@ type Stage = "code" | "scanning" | "checking" | "files" | "saving" | "saved" | "
 /** Below this, buffering a file in memory is not worth a warning. */
 const MEMORY_WARNING_BYTES = 256 * 1024 * 1024;
 
-export function ReceiveFlow() {
-  const [locale, setLocale, text] = useDropLocale();
+export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale }) {
+  const [locale, setLocale, text] = useDropLocale(initialLocale);
   // Read during render, not in an effect, so a phone arriving from a scanned QR
   // code never flashes the keypad before the transfer opens.
   const scannedOnArrival = useSyncExternalStore(subscribeNever, readHasFragment, () => false);

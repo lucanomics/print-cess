@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 
+import type { SupportedLocale } from "@print-cess/i18n";
 import { formatDropCode } from "@print-cess/protocol";
 import { PrimaryButton, ProgressSteps, SecondaryButton, StatusIcon } from "@print-cess/ui";
 
@@ -52,8 +53,8 @@ type Stage = "pick" | "sending" | "ready" | "error";
 
 const PICKUP_POLL_MS = 5000;
 
-export function SendFlow() {
-  const [locale, setLocale, text] = useDropLocale();
+export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale }) {
+  const [locale, setLocale, text] = useDropLocale(initialLocale);
   const [stage, setStage] = useState<Stage>("pick");
   const [selection, setSelection] = useState<PreparedSelection>();
   const [progress, setProgress] = useState<DropProgress>();

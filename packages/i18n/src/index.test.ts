@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   isRightToLeft,
+  matchAcceptLanguage,
+  matchLocale,
   SUPPORTED_LOCALES,
   TRANSLATIONS,
   translate,
@@ -220,5 +222,36 @@ describe("translations", () => {
     for (const locale of SUPPORTED_LOCALES.filter((candidate) => candidate !== "ar")) {
       expect(isRightToLeft(locale)).toBe(false);
     }
+  });
+});
+
+describe("choosing a locale for a visitor", () => {
+  it("prefers an exact tag, then the base language", () => {
+    expect(matchLocale(["zh-CN"])).toBe("zh-CN");
+    expect(matchLocale(["ko-KR"])).toBe("ko");
+    expect(matchLocale(["KO"])).toBe("ko");
+    expect(matchLocale(["zh-TW", "ru-RU"])).toBe("zh-CN");
+  });
+
+  it("falls back to English rather than guessing", () => {
+    expect(matchLocale([])).toBe("en");
+    expect(matchLocale(["ja", "sv"])).toBe("en");
+  });
+
+  it("reads a browser's Accept-Language in quality order", () => {
+    expect(matchAcceptLanguage("ko-KR,ko;q=0.9,en;q=0.8")).toBe("ko");
+    // A lower-quality first entry must not win just by being written first.
+    expect(matchAcceptLanguage("ja;q=0.2,uk;q=0.9")).toBe("uk");
+    expect(matchAcceptLanguage("en-US,en;q=0.5")).toBe("en");
+  });
+
+  it("survives a header that is missing, empty, or malformed", () => {
+    expect(matchAcceptLanguage(null)).toBe("en");
+    expect(matchAcceptLanguage("")).toBe("en");
+    expect(matchAcceptLanguage("*")).toBe("en");
+    // A broken entry is skipped on its own; the readable preference after it
+    // still decides, rather than the whole header being thrown away.
+    expect(matchAcceptLanguage(";;;,vi")).toBe("vi");
+    expect(matchAcceptLanguage("ko;q=0")).toBe("en");
   });
 });
