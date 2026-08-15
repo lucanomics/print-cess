@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { SendFlow } from "@/components/drop/send-flow";
+import { requestLocale } from "@/lib/request-locale";
 
 export const metadata: Metadata = {
   title: "Send files · Print-cess by Club Paradiso",
@@ -8,6 +9,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function SendPage() {
-  return <SendFlow />;
+export default async function SendPage() {
+  return <SendFlow initialLocale={await requestLocale()} />;
 }

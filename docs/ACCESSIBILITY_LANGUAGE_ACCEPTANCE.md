@@ -22,6 +22,14 @@ scan instruction and confirm no line clips or reflows the layout.
 Record OS/browser version, viewport/scaling, assistive technology, commit/deployment, tester, UTC time,
 result, and sanitized issue link.
 
+The print flow asks for a language on its own screen, because a visitor at a shared kiosk arrives
+with no context. Everything reached from a personal phone — the entry page and both halves of the
+hand-off — instead resolves the language from the request's `Accept-Language` header and renders in
+it directly, with the picker still available. Verify with the phone set to each supported language
+that the first painted screen is already in that language and never visibly changes afterwards, and
+that `<html lang>` and `dir` match it before hydration. A page that loads in English and then
+switches is a defect even though the final state is correct.
+
 ## Accessibility protocol
 
 Run keyboard-only navigation and visible focus on every action. With VoiceOver, TalkBack, and the

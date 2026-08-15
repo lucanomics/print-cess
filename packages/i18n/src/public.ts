@@ -4,6 +4,8 @@
 export {
   isRightToLeft,
   LOCALE_NAMES,
+  matchAcceptLanguage,
+  matchLocale,
   RTL_LOCALES,
   SUPPORTED_LOCALES,
   translate,

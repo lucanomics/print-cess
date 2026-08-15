@@ -6,6 +6,7 @@ import { Languages } from "lucide-react";
 import {
   isRightToLeft,
   LOCALE_NAMES,
+  matchLocale,
   SUPPORTED_LOCALES,
   translate,
   type SupportedLocale,
@@ -20,10 +21,17 @@ export type Text = (key: string, values?: Record<string, string | number>) => st
  * from their own phone, so the browser already knows the answer; the picker
  * stays available but never blocks the first screen.
  */
-export function useDropLocale(): [SupportedLocale, (locale: SupportedLocale) => void, Text] {
+export function useDropLocale(
+  initialLocale: SupportedLocale = "en",
+): [SupportedLocale, (locale: SupportedLocale) => void, Text] {
   // The browser's preference is read as an external snapshot rather than in an
   // effect, so server rendering and hydration each have one defined answer.
-  const detected = useSyncExternalStore(subscribeNever, readBrowserLocale, () => "en" as const);
+  //
+  // The server already resolved a language from `Accept-Language` and rendered
+  // in it, so that is the snapshot to hand back during hydration. Defaulting to
+  // English here instead would make a Korean visitor watch the page load in
+  // English and then change under them.
+  const detected = useSyncExternalStore(subscribeNever, readBrowserLocale, () => initialLocale);
   const [chosen, setChosen] = useState<SupportedLocale>();
   const locale = chosen ?? detected;
   const setLocale = useCallback((next: SupportedLocale) => setChosen(next), []);
@@ -43,22 +51,7 @@ function subscribeNever(): () => void {
 }
 
 function readBrowserLocale(): SupportedLocale {
-  return detectLocale(navigator.languages);
-}
-
-export function detectLocale(preferences: readonly string[]): SupportedLocale {
-  for (const preference of preferences) {
-    const exact = SUPPORTED_LOCALES.find(
-      (candidate) => candidate.toLowerCase() === preference.toLowerCase(),
-    );
-    if (exact) return exact;
-    const base = preference.split("-")[0]?.toLowerCase();
-    const partial = SUPPORTED_LOCALES.find(
-      (candidate) => candidate.split("-")[0]?.toLowerCase() === base,
-    );
-    if (partial) return partial;
-  }
-  return "en";
+  return matchLocale(navigator.languages);
 }
 
 export function DropShell({

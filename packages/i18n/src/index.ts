@@ -38,10 +38,59 @@ export function isRightToLeft(locale: SupportedLocale): boolean {
   return RTL_LOCALES.includes(locale);
 }
 
+/**
+ * Picks the best supported locale from an ordered list of preferences. An exact
+ * tag wins; otherwise the base language does, so `ko-KR` reaches Korean rather
+ * than falling through to English.
+ *
+ * This lives here rather than beside either caller because the server renders
+ * the first paint and the browser takes over afterwards. Two definitions of
+ * "which language is this visitor's" would eventually disagree, and the visible
+ * symptom would be the page changing language under them after it loaded.
+ */
+export function matchLocale(preferences: readonly string[]): SupportedLocale {
+  for (const preference of preferences) {
+    const exact = SUPPORTED_LOCALES.find(
+      (candidate) => candidate.toLowerCase() === preference.toLowerCase(),
+    );
+    if (exact) return exact;
+    const base = preference.split("-")[0]?.toLowerCase();
+    const partial = SUPPORTED_LOCALES.find(
+      (candidate) => candidate.split("-")[0]?.toLowerCase() === base,
+    );
+    if (partial) return partial;
+  }
+  return "en";
+}
+
+/** Reads the same answer off an `Accept-Language` header, quality values included. */
+export function matchAcceptLanguage(header: string | null | undefined): SupportedLocale {
+  if (!header) return "en";
+  const ranked = header
+    .split(",")
+    .map((entry) => {
+      const [tag, ...parameters] = entry.split(";");
+      const quality = parameters
+        .map((parameter) => /^\s*q\s*=\s*([0-9.]+)\s*$/u.exec(parameter))
+        .find((match) => match !== null);
+      return { tag: (tag ?? "").trim(), quality: quality ? Number(quality[1]) : 1 };
+    })
+    // A malformed entry is skipped on its own rather than treated as a reason to
+    // give up on the header, which would drop a perfectly good later preference.
+    .filter((entry) => entry.tag !== "" && entry.tag !== "*" && Number.isFinite(entry.quality))
+    .filter((entry) => entry.quality > 0)
+    .sort((first, second) => second.quality - first.quality);
+  return matchLocale(ranked.map((entry) => entry.tag));
+}
+
 // English is the source of truth: every other locale must provide exactly these
 // keys, which `satisfies Translation` enforces at build time.
 const en = {
   brand: "Print-cess by Club Paradiso",
+
+  homeTitle: "Secure print and transfer service",
+  homeScanHint: "Start by scanning the QR code shown on a Print-cess Kiosk.",
+  homeNoAccount: "No account or public-computer login is required.",
 
   selectLanguage: "Choose your language",
   selectLanguageHint: "Tap your language. Then tap the button at the bottom.",
@@ -216,6 +265,10 @@ type Translation = Record<TranslationKey, string>;
 const ko = {
   brand: "Print-cess by Club Paradiso",
 
+  homeTitle: "안전하게 인쇄하고 주고받아요",
+  homeScanHint: "키오스크 화면에 있는 QR 코드를 찍으면 시작해요.",
+  homeNoAccount: "계정도 공용 컴퓨터 로그인도 필요 없어요.",
+
   selectLanguage: "언어를 선택하세요",
   selectLanguageHint: "사용할 언어를 누르세요. 그다음 아래 버튼을 누르세요.",
   step: "{{total}}단계 중 {{current}}단계",
@@ -381,6 +434,10 @@ const ko = {
 const zhCN = {
   brand: "Print-cess by Club Paradiso",
 
+  homeTitle: "安全打印与传输服务",
+  homeScanHint: "扫描 Print-cess 自助机上显示的二维码即可开始。",
+  homeNoAccount: "无需账号，也无需在公用电脑上登录。",
+
   selectLanguage: "选择语言",
   selectLanguageHint: "点一下你的语言，然后点下面的按钮。",
   step: "第 {{current}} 步 / 共 {{total}} 步",
@@ -538,6 +595,10 @@ const zhCN = {
 
 const id = {
   brand: "Print-cess by Club Paradiso",
+
+  homeTitle: "Layanan cetak dan kirim yang aman",
+  homeScanHint: "Mulai dengan memindai kode QR di layar Kios Print-cess.",
+  homeNoAccount: "Tidak perlu akun atau login di komputer umum.",
 
   selectLanguage: "Pilih bahasa Anda",
   selectLanguageHint: "Ketuk bahasa Anda. Lalu ketuk tombol di bawah.",
@@ -711,6 +772,10 @@ const id = {
 
 const fil = {
   brand: "Print-cess by Club Paradiso",
+
+  homeTitle: "Ligtas na serbisyo sa pag-print at pagpapadala",
+  homeScanHint: "Magsimula sa pag-scan ng QR code sa Print-cess Kiosk.",
+  homeNoAccount: "Hindi kailangan ng account o pag-log in sa pampublikong computer.",
 
   selectLanguage: "Piliin ang wika mo",
   selectLanguageHint: "I-tap ang wika mo. Pagkatapos, i-tap ang butones sa ibaba.",
@@ -891,6 +956,10 @@ const fil = {
 const vi = {
   brand: "Print-cess by Club Paradiso",
 
+  homeTitle: "Dịch vụ in và gửi tệp an toàn",
+  homeScanHint: "Bắt đầu bằng cách quét mã QR trên màn hình Print-cess Kiosk.",
+  homeNoAccount: "Không cần tài khoản hay đăng nhập trên máy tính công cộng.",
+
   selectLanguage: "Chọn ngôn ngữ của bạn",
   selectLanguageHint: "Nhấn vào ngôn ngữ của bạn. Rồi nhấn nút ở dưới.",
   step: "Bước {{current}} / {{total}}",
@@ -1057,6 +1126,10 @@ const vi = {
 const th = {
   brand: "Print-cess by Club Paradiso",
 
+  homeTitle: "บริการพิมพ์และส่งไฟล์อย่างปลอดภัย",
+  homeScanHint: "เริ่มต้นด้วยการสแกนคิวอาร์โค้ดบนหน้าจอ Print-cess Kiosk",
+  homeNoAccount: "ไม่ต้องมีบัญชีหรือเข้าสู่ระบบบนคอมพิวเตอร์สาธารณะ",
+
   selectLanguage: "เลือกภาษาของคุณ",
   selectLanguageHint: "แตะภาษาของคุณ แล้วแตะปุ่มด้านล่าง",
   step: "ขั้นที่ {{current}} จาก {{total}}",
@@ -1219,6 +1292,10 @@ const th = {
 
 const ne = {
   brand: "Print-cess by Club Paradiso",
+
+  homeTitle: "सुरक्षित प्रिन्ट र फाइल आदानप्रदान सेवा",
+  homeScanHint: "Print-cess Kiosk को स्क्रिनमा देखिने QR कोड स्क्यान गरेर सुरु गर्नुहोस्।",
+  homeNoAccount: "खाता वा सार्वजनिक कम्प्युटरमा लगइन गर्नु पर्दैन।",
 
   selectLanguage: "आफ्नो भाषा छान्नुहोस्",
   selectLanguageHint: "आफ्नो भाषामा थिच्नुहोस्। त्यसपछि तलको बटन थिच्नुहोस्।",
@@ -1386,6 +1463,10 @@ const ne = {
 const km = {
   brand: "Print-cess by Club Paradiso",
 
+  homeTitle: "សេវាបោះពុម្ព និងផ្ញើឯកសារដោយសុវត្ថិភាព",
+  homeScanHint: "ចាប់ផ្តើមដោយស្កេនកូដ QR នៅលើអេក្រង់ Print-cess Kiosk។",
+  homeNoAccount: "មិនចាំបាច់មានគណនី ឬចូលគណនីលើកុំព្យូទ័រសាធារណៈទេ។",
+
   selectLanguage: "ជ្រើសរើសភាសារបស់អ្នក",
   selectLanguageHint: "ចុចលើភាសារបស់អ្នក។ បន្ទាប់មកចុចប៊ូតុងខាងក្រោម។",
   step: "ជំហានទី {{current}} នៃ {{total}}",
@@ -1552,6 +1633,10 @@ const km = {
 const ar = {
   brand: "Print-cess by Club Paradiso",
 
+  homeTitle: "خدمة طباعة ونقل آمنة",
+  homeScanHint: "ابدأ بمسح رمز QR الظاهر على شاشة كشك Print-cess.",
+  homeNoAccount: "لا حاجة إلى حساب أو تسجيل دخول على حاسوب عام.",
+
   selectLanguage: "اختر لغتك",
   selectLanguageHint: "اضغط على لغتك، ثم اضغط الزر في الأسفل.",
   step: "الخطوة {{current}} من {{total}}",
@@ -1717,6 +1802,10 @@ const ar = {
 
 const ru = {
   brand: "Print-cess by Club Paradiso",
+
+  homeTitle: "Безопасная печать и передача файлов",
+  homeScanHint: "Начните со сканирования QR-кода на экране киоска Print-cess.",
+  homeNoAccount: "Не нужны ни аккаунт, ни вход на общем компьютере.",
 
   selectLanguage: "Выберите язык",
   selectLanguageHint: "Нажмите на свой язык. Затем нажмите кнопку внизу.",
@@ -1887,6 +1976,10 @@ const ru = {
 
 const mn = {
   brand: "Print-cess by Club Paradiso",
+
+  homeTitle: "Аюулгүй хэвлэх, файл дамжуулах үйлчилгээ",
+  homeScanHint: "Print-cess Kiosk дэлгэц дэх QR кодыг уншуулж эхлүүлнэ үү.",
+  homeNoAccount: "Бүртгэл ч, нийтийн компьютерт нэвтрэх ч шаардлагагүй.",
 
   selectLanguage: "Хэлээ сонгоно уу",
   selectLanguageHint: "Хэлээ дарна уу. Дараа нь доод товчийг дарна уу.",
@@ -2060,6 +2153,10 @@ const mn = {
 
 const uk = {
   brand: "Print-cess by Club Paradiso",
+
+  homeTitle: "Безпечний друк і передавання файлів",
+  homeScanHint: "Почніть зі сканування QR-коду на екрані кіоска Print-cess.",
+  homeNoAccount: "Не потрібні ні акаунт, ні вхід на спільному комп'ютері.",
 
   selectLanguage: "Виберіть свою мову",
   selectLanguageHint: "Натисніть свою мову. Потім натисніть кнопку внизу.",
