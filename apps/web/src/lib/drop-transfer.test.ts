@@ -33,8 +33,11 @@ describe("prepareSelection", () => {
     expect(() => prepareSelection(files)).toThrow(/dropTooManyFiles/u);
   });
 
-  it("refuses a zero-byte file rather than sending an empty chunk", () => {
-    expect(() => prepareSelection([fakeFile("empty.txt", 0)])).toThrow(/dropEmptyFile/u);
+  it("carries a zero-byte file, which still costs one part", () => {
+    const selection = prepareSelection([fakeFile("empty.txt", 0)]);
+    expect(selection.totalBytes).toBe(0);
+    expect(selection.partCount).toBe(1);
+    expect(selection.manifestFiles[0]?.chunkCount).toBe(1);
   });
 });
 

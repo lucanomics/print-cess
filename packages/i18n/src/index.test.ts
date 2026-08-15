@@ -61,7 +61,7 @@ describe("translations", () => {
       "guideCheckBody",
       "guideCollectTitle",
       "guideCollectBody",
-      "guideStart",
+      "guideOpen",
     ];
     for (const locale of SUPPORTED_LOCALES) {
       for (const key of guideKeys) expectTranslated(locale, key);
@@ -73,8 +73,6 @@ describe("translations", () => {
       "helpOpen",
       "helpTitle",
       "helpClose",
-      "helpLanguage",
-      "helpGuide",
       "helpFile",
       "helpPreview",
       "helpProgress",

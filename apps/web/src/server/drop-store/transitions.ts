@@ -1,7 +1,7 @@
 import { timingSafeEqualBase64Url } from "@print-cess/crypto";
-import type { DropRecord } from "@print-cess/protocol";
+import { DROP_PART_TAG_BYTES, type DropRecord } from "@print-cess/protocol";
 
-import type { DropPartCommit } from "../contracts";
+import type { DropPartCommit, DropReceiverEvent } from "../contracts";
 import { ServiceError } from "../errors";
 
 export type DropMutation = (drop: DropRecord) => DropRecord;
@@ -43,12 +43,40 @@ export function applyPartCommits(drop: DropRecord, commits: readonly DropPartCom
     addedBytes += commit.size;
   }
   if (addedBytes === 0) return drop;
+  const totalCiphertextBytes = drop.totalCiphertextBytes + addedBytes;
+  // The declared size is what the transfer ceiling was checked against at
+  // creation, and these sizes were read back from the storage provider rather
+  // than taken from the request. Holding the running total to the declared
+  // plaintext plus one authentication tag per part is therefore the point at
+  // which a sender who under-declared its size stops being able to profit
+  // from it, and it is checked inside the same atomic mutation as the commit.
+  if (totalCiphertextBytes > ciphertextCeiling(drop)) {
+    throw new ServiceError("payload_too_large", "This transfer is larger than the limit.", 413);
+  }
   return {
     ...drop,
     parts,
-    totalCiphertextBytes: drop.totalCiphertextBytes + addedBytes,
+    totalCiphertextBytes,
     revision: drop.revision + 1,
   };
+}
+
+function ciphertextCeiling(drop: DropRecord): number {
+  return drop.totalBytes + drop.partCount * DROP_PART_TAG_BYTES;
+}
+
+/**
+ * Records one receiver event. The counters only ever move forward, so a
+ * receiver that retries a download cannot walk the sending phone's screen
+ * backwards from "delivered" to "download started".
+ */
+export function applyReceiverEvent(drop: DropRecord, event: DropReceiverEvent): DropRecord {
+  if (drop.status !== "ready") {
+    throw new ServiceError("not_found", "This transfer is not ready yet.", 404);
+  }
+  const field =
+    event === "opened" ? "openCount" : event === "downloading" ? "downloadCount" : "deliveredCount";
+  return { ...drop, [field]: drop[field] + 1, revision: drop.revision + 1 };
 }
 
 export function assertSealable(drop: DropRecord): void {

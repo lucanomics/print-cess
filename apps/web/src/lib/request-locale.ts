@@ -5,13 +5,12 @@ import { matchAcceptLanguage, type SupportedLocale } from "@print-cess/i18n";
 /**
  * The visitor's language for this request, read from `Accept-Language`.
  *
- * The printing flow asks for a language on its own screen because the visitor
- * arrives at a shared kiosk with no context. Everything reachable from a phone
- * — the entry page and both halves of the hand-off — already has the answer in
- * the request, so asking again would be a question the service could have
- * answered itself. Resolving it on the server also means the first paint is
- * already correct: a client-only guess renders English and then swaps, which a
- * visitor sees as the page changing language under them.
+ * Every screen in this service is opened on the visitor's own phone. The QR
+ * code sits on a shared kiosk, but the browser that scans it is theirs and
+ * already carries their language, so asking for it again is a question the
+ * service could have answered itself. Resolving it on the server also means the
+ * first paint is already correct: a client-only guess renders English and then
+ * swaps, which a visitor sees as the page changing language under them.
  */
 export async function requestLocale(): Promise<SupportedLocale> {
   const requestHeaders = await headers();

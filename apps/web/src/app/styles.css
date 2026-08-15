@@ -545,3 +545,26 @@ p {
   width: 22px;
   height: 22px;
 }
+
+/* The language picker and Help sit together in the header, so neither costs the
+   visitor a screen before they can choose a document. */
+.mobile-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The guide is one tap away from the screen that needs it, rather than standing
+   in front of it. */
+.mobile-guide-link {
+  justify-self: center;
+  padding: 10px 6px;
+  border: 0;
+  background: none;
+  color: var(--pc-teal-dark);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

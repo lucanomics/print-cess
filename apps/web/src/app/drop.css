@@ -256,3 +256,206 @@
   border-radius: var(--pc-radius);
   background: #000;
 }
+
+/* --- Choosing files ------------------------------------------------------ */
+
+/* A pointer environment can drop files straight onto the page. The buttons stay
+   inside the target, so the drag affordance is an addition rather than the only
+   way in — a phone has no drag at all. */
+.drop-target {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 2px dashed var(--pc-line);
+  border-radius: var(--pc-radius);
+  background: var(--pc-surface);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+.drop-target.is-dragging {
+  border-color: var(--pc-teal);
+  background: var(--pc-teal-soft);
+}
+.drop-target__hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--pc-muted);
+  font-size: 15px;
+}
+.drop-target__hint svg {
+  width: 20px;
+  height: 20px;
+  color: var(--pc-teal-dark);
+}
+/* Only shown where a drag is possible at all. */
+@media (hover: hover) and (pointer: fine) {
+  .drop-target__hint {
+    display: flex;
+  }
+}
+
+.drop-selection__actions {
+  display: grid;
+  gap: 8px;
+}
+
+/* --- One file in a list -------------------------------------------------- */
+
+.drop-file-list--removable li,
+.drop-file-list--actions li {
+  display: grid;
+  gap: 10px;
+  align-items: stretch;
+  padding: 12px 0;
+}
+.drop-file-list--removable li {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.drop-file__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.drop-file__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--pc-teal-soft);
+  color: var(--pc-teal-dark);
+}
+.drop-file__icon svg {
+  width: 22px;
+  height: 22px;
+}
+.drop-file__detail {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.drop-file__remove {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--pc-line);
+  border-radius: 999px;
+  background: var(--pc-surface);
+  color: var(--pc-muted);
+  cursor: pointer;
+}
+.drop-file__remove svg {
+  width: 20px;
+  height: 20px;
+}
+
+.drop-file__state {
+  margin: 0;
+  color: var(--pc-muted) !important;
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+}
+/* State is carried by the sentence first. The colour and the marker are a
+   second and third channel, never the only one, so the screen still reads on a
+   monochrome display and to somebody who cannot distinguish these hues. */
+.drop-file--saved .drop-file__state,
+.drop-file--shared .drop-file__state {
+  color: var(--pc-success) !important;
+  font-weight: 700;
+}
+.drop-file--failed .drop-file__state {
+  color: var(--pc-error) !important;
+  font-weight: 700;
+}
+.drop-file--saved .drop-file__icon,
+.drop-file--shared .drop-file__icon {
+  background: #e4f5ee;
+  color: var(--pc-success);
+}
+.drop-file--failed .drop-file__icon {
+  background: #fcebed;
+  color: var(--pc-error);
+}
+.drop-file--saving .drop-file__icon {
+  /* Warm amber while bytes are moving: the same "in flight" hue the sending
+     side uses, so both ends of a transfer speak one visual language. */
+  background: var(--pc-paper-warm);
+  color: #8a5a00;
+}
+
+.drop-file__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.drop-file__actions > * {
+  flex: 1 1 8rem;
+}
+
+.drop-complete {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--pc-radius);
+  background: var(--pc-teal-soft);
+  text-align: center;
+}
+.drop-complete p {
+  margin: 0;
+  color: var(--pc-ink) !important;
+  font-weight: 700;
+}
+
+/* --- Waiting for the other phone ----------------------------------------- */
+
+.drop-still-sending {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--pc-paper-warm);
+}
+.drop-still-sending p {
+  margin: 0;
+  color: var(--pc-text) !important;
+  font-size: 15px !important;
+}
+
+/* A receiver who arrived early is connected and waiting. The pulse says the
+   line is alive without inventing a percentage nobody can measure; the sentence
+   beside it says the same thing, so nothing depends on the motion. */
+.drop-pulse {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+}
+.drop-pulse span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--pc-teal);
+  box-shadow: 0 0 0 0 rgb(0 138 138 / 45%);
+  animation: drop-pulse 1800ms ease-out infinite;
+}
+@keyframes drop-pulse {
+  70% {
+    box-shadow: 0 0 0 26px rgb(0 138 138 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(0 138 138 / 0%);
+  }
+}

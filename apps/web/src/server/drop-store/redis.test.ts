@@ -17,9 +17,12 @@ const stored: DropRecord = {
   manifest: "sealedManifest",
   fileCount: 1,
   partCount: 2,
+  totalBytes: 80,
   parts: [null, null],
   totalCiphertextBytes: 0,
+  openCount: 0,
   downloadCount: 0,
+  deliveredCount: 0,
   createdAt: NOW,
   expiresAt: NOW + 1_800_000,
   revision: 0,
@@ -103,14 +106,14 @@ describe("RedisDropStore", () => {
 
   it("reports a transfer that vanished mid-update as missing", async () => {
     const redis = client();
-    redis.get.mockResolvedValue(JSON.stringify({ ...stored, parts: [{ size: 1 }, { size: 2 }] }));
+    redis.get.mockResolvedValue(JSON.stringify({ ...stored, parts: [{ size: 17 }, { size: 18 }] }));
     redis.eval.mockResolvedValue(0);
     await expect(makeStore(redis).seal(DROP_ID, OWNER, NOW)).rejects.toMatchObject({ status: 404 });
   });
 
   it("skips no-op mutations instead of spending a write", async () => {
     const redis = client();
-    const ready: DropRecord = { ...stored, status: "ready", parts: [{ size: 1 }, { size: 2 }] };
+    const ready: DropRecord = { ...stored, status: "ready", parts: [{ size: 17 }, { size: 18 }] };
     redis.get.mockResolvedValue(JSON.stringify(ready));
     await expect(makeStore(redis).seal(DROP_ID, OWNER, NOW)).resolves.toEqual(ready);
     expect(redis.eval).not.toHaveBeenCalled();

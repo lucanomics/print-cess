@@ -91,6 +91,14 @@ export interface SessionStore {
 export type DropPartCommit = { index: number; size: number; etag?: string };
 
 /**
+ * The three things the service is allowed to learn about the receiving side,
+ * each recorded at the moment it is actually observed rather than inferred
+ * from one another. They are what keeps the sending screen from claiming a
+ * delivery when all that happened was a signed URL being handed out.
+ */
+export type DropReceiverEvent = "opened" | "downloading" | "delivered";
+
+/**
  * Storage for file hand-offs. Deliberately separate from `SessionStore`: a drop
  * has no kiosk, no printer, and many parts, so folding it into the print
  * session state machine would only weaken both.
@@ -105,7 +113,7 @@ export interface DropStore {
     now: number,
   ): Promise<DropRecord>;
   seal(dropId: string, ownerTokenHash: string, now: number): Promise<DropRecord>;
-  recordDownload(dropId: string, now: number): Promise<DropRecord>;
+  recordReceiverEvent(dropId: string, event: DropReceiverEvent, now: number): Promise<DropRecord>;
   remove(dropId: string): Promise<void>;
   listExpired(now: number, limit: number): Promise<DropRecord[]>;
 }

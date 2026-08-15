@@ -154,6 +154,7 @@ export async function createDrop(input: {
   manifest: string;
   fileCount: number;
   partCount: number;
+  totalBytes: number;
 }): Promise<DropRecord> {
   const runtime = getRuntime();
   const now = Date.now();
@@ -165,9 +166,12 @@ export async function createDrop(input: {
     manifest: input.manifest,
     fileCount: input.fileCount,
     partCount: input.partCount,
+    totalBytes: input.totalBytes,
     parts: Array.from({ length: input.partCount }, () => null),
     totalCiphertextBytes: 0,
+    openCount: 0,
     downloadCount: 0,
+    deliveredCount: 0,
     createdAt: now,
     expiresAt: now + runtime.config.dropTtlMs,
     revision: 0,

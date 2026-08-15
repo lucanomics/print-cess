@@ -22,9 +22,14 @@ export async function POST(request: Request) {
     enforceRateLimit(`drop-create:${clientAddress(request)}`, 10, 60_000);
 
     const body = await readJson(request, createDropRequestSchema, MAX_DROP_MANIFEST_BYTES + 2048);
-    const maximumParts = Math.ceil(server.config.dropMaxTotalBytes / DROP_CHUNK_BYTES);
-    if (body.partCount > maximumParts) {
-      throw new ServiceError("bad_request", "This transfer is larger than the limit.", 413);
+    // The ceiling is a size, so it is checked against a size. Deriving a part
+    // ceiling from it instead used to refuse twenty one-kilobyte files on a
+    // deployment configured for sixty-four megabytes, because twenty parts
+    // exceeded the eight the division produced. The schema has already pinned
+    // the part count to what this many bytes can legitimately need, so the two
+    // numbers cannot disagree.
+    if (body.totalBytes > server.config.dropMaxTotalBytes) {
+      throw new ServiceError("payload_too_large", "This transfer is larger than the limit.", 413);
     }
     const drop = await createDrop(body);
 

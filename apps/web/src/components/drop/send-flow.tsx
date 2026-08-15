@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   CheckCircle2,
   Copy,
-  Download,
-  FilePlus2,
   Files,
+  FilePlus2,
   Image as ImageIcon,
   LockKeyhole,
   Send,
@@ -14,14 +13,16 @@ import {
   Timer,
   Trash2,
   TriangleAlert,
+  Upload,
+  X,
 } from "lucide-react";
 import QRCode from "qrcode";
 
 import type { SupportedLocale } from "@print-cess/i18n";
-import { formatDropCode } from "@print-cess/protocol";
+import { formatDropCode, type DropReceiverState } from "@print-cess/protocol";
 import { PrimaryButton, ProgressSteps, SecondaryButton, StatusIcon } from "@print-cess/ui";
 
-import { getDropStatus, revokeDrop } from "@/lib/drop-client";
+import { getDropCapabilities, getDropStatus, revokeDrop } from "@/lib/drop-client";
 import { buildDropLink } from "@/lib/drop-link";
 import {
   estimateMinutesRemaining,
@@ -33,7 +34,9 @@ import {
 } from "@/lib/drop-progress";
 import {
   prepareSelection,
+  PROTOCOL_DROP_LIMITS,
   sendDrop,
+  type DropLimits,
   type DropProgress,
   type PreparedSelection,
   type SendResult,
@@ -41,6 +44,7 @@ import {
 
 import {
   DropShell,
+  FileRow,
   TransferBar,
   formatBytes,
   minutesUntil,
@@ -56,30 +60,63 @@ const PICKUP_POLL_MS = 5000;
 export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale }) {
   const [locale, setLocale, text] = useDropLocale(initialLocale);
   const [stage, setStage] = useState<Stage>("pick");
-  const [selection, setSelection] = useState<PreparedSelection>();
+  const [chosen, setChosen] = useState<File[]>([]);
+  const [limits, setLimits] = useState<DropLimits>(PROTOCOL_DROP_LIMITS);
   const [progress, setProgress] = useState<DropProgress>();
   const [result, setResult] = useState<SendResult>();
   const [qrImage, setQrImage] = useState("");
-  const [pickedUp, setPickedUp] = useState(false);
+  const [receiver, setReceiver] = useState<DropReceiverState>("waiting");
+  const [sealed, setSealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [errorKey, setErrorKey] = useState("dropNetworkError");
-  const [selectionErrorKey, setSelectionErrorKey] = useState<string>();
   const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
+  const [dragging, setDragging] = useState(false);
   const samples = useRef<ThroughputSample[]>([]);
   const canShare = useSyncExternalStore(subscribeNever, supportsSharing, () => false);
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController>(null);
 
-  const addFiles = useCallback((incoming: FileList | null) => {
-    if (!incoming || incoming.length === 0) return;
-    setSelectionErrorKey(undefined);
-    setSelection((current) => {
-      const merged = [...(current?.files ?? []), ...Array.from(incoming)];
+  // The published limits, so a selection that this deployment will never accept
+  // is refused on the phone rather than after several minutes of uploading.
+  useEffect(() => {
+    const controller = new AbortController();
+    void getDropCapabilities(controller.signal)
+      .then((capabilities) =>
+        setLimits({
+          maximumTotalBytes: capabilities.maximumTotalBytes,
+          maximumFileCount: capabilities.maximumFileCount,
+          maximumParts: capabilities.maximumParts,
+        }),
+      )
+      .catch(() => {
+        // The protocol ceilings remain in force; the server checks again anyway.
+      });
+    return () => controller.abort();
+  }, []);
+
+  // The selection is a pure function of the chosen files and the published
+  // limits, so it is derived rather than stored. Removing one file therefore
+  // costs one removal, instead of clearing everything and starting again.
+  const { selection, selectionErrorKey } = useMemo(() => {
+    if (chosen.length === 0) return { selection: undefined, selectionErrorKey: undefined };
+    try {
+      return { selection: prepareSelection(chosen, limits), selectionErrorKey: undefined };
+    } catch (error) {
+      return { selection: undefined, selectionErrorKey: dropErrorKey(error) };
+    }
+  }, [chosen, limits]);
+
+  const addFiles = useCallback((incoming: FileList | readonly File[] | null) => {
+    if (!incoming) return;
+    const arriving = Array.from(incoming);
+    if (arriving.length === 0) return;
+    setChosen((current) => {
+      const merged = [...current, ...arriving];
       // The same file picked twice would be sent twice; identity here is the
       // name, size, and modification time the browser reports.
-      const unique = merged.filter(
+      return merged.filter(
         (file, index) =>
           merged.findIndex(
             (candidate) =>
@@ -88,20 +125,30 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
               candidate.lastModified === file.lastModified,
           ) === index,
       );
-      try {
-        return prepareSelection(unique);
-      } catch (error) {
-        setSelectionErrorKey(dropErrorKey(error));
-        return current;
-      }
     });
   }, []);
 
+  const removeFile = useCallback((index: number) => {
+    setChosen((current) => current.filter((_, at) => at !== index));
+  }, []);
+
   const clearSelection = useCallback(() => {
-    setSelection(undefined);
-    setSelectionErrorKey(undefined);
+    setChosen([]);
     if (photoInput.current) photoInput.current.value = "";
     if (fileInput.current) fileInput.current.value = "";
+  }, []);
+
+  const showCode = useCallback(async (sent: SendResult) => {
+    setResult(sent);
+    const link = buildDropLink(window.location.origin, sent.code);
+    const image = await QRCode.toDataURL(link, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      scale: 9,
+      color: { dark: "#071737", light: "#ffffff" },
+    });
+    setQrImage(image);
+    setStage("ready");
   }, []);
 
   const start = useCallback(async () => {
@@ -109,6 +156,8 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
     const controller = new AbortController();
     abort.current = controller;
     setStage("sending");
+    setSealed(false);
+    setReceiver("waiting");
     samples.current = [];
     setMinutesRemaining(null);
     setProgress({
@@ -121,24 +170,19 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
     // transfer, which reads as the service quietly failing.
     const releaseWakeLock = await holdScreenAwake();
     try {
-      const sent = await sendDrop(selection, {
+      await sendDrop(selection, {
         signal: controller.signal,
+        // The code appears as soon as the service holds the record, not when
+        // the last byte lands. The other phone can scan and wait through a
+        // gigabyte instead of watching this one's progress bar first.
+        onDropCreated: (created) => void showCode(created),
         onProgress: (next) => {
           setProgress(next);
           samples.current = recordSample(samples.current, next, Date.now());
           setMinutesRemaining(estimateMinutesRemaining(samples.current, next));
         },
       });
-      const link = buildDropLink(window.location.origin, sent.code);
-      const image = await QRCode.toDataURL(link, {
-        errorCorrectionLevel: "M",
-        margin: 2,
-        scale: 9,
-        color: { dark: "#071737", light: "#ffffff" },
-      });
-      setResult(sent);
-      setQrImage(image);
-      setStage("ready");
+      setSealed(true);
     } catch (error) {
       setErrorKey(dropErrorKey(error));
       setStage("error");
@@ -146,21 +190,22 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
       releaseWakeLock();
       abort.current = null;
     }
-  }, [selection]);
+  }, [selection, showCode]);
 
   const stop = useCallback(() => {
     abort.current?.abort();
   }, []);
 
-  // Once the transfer is waiting, the only thing left to tell the sender is
-  // whether it has been collected yet.
+  // Once the code is on screen, the only thing left to tell the sender is how
+  // far the other phone has got — in the four steps the service can honestly
+  // distinguish, and no further.
   useEffect(() => {
-    if (stage !== "ready" || !result || pickedUp || deleted) return;
+    if (stage !== "ready" || !result || deleted || receiver === "delivered") return;
     let active = true;
     const timer = window.setInterval(() => {
       void getDropStatus(result.dropId, result.ownerToken)
         .then((status) => {
-          if (active && status.downloadCount > 0) setPickedUp(true);
+          if (active) setReceiver(status.receiver);
         })
         .catch(() => undefined);
     }, PICKUP_POLL_MS);
@@ -168,7 +213,7 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
       active = false;
       window.clearInterval(timer);
     };
-  }, [deleted, pickedUp, result, stage]);
+  }, [deleted, receiver, result, stage]);
 
   useEffect(() => {
     if (!copied) return;
@@ -195,19 +240,21 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
 
   const erase = useCallback(async () => {
     if (!result) return;
+    abort.current?.abort();
     await revokeDrop(result.dropId, result.ownerToken).catch(() => undefined);
     setDeleted(true);
   }, [result]);
 
   const restart = useCallback(() => {
-    setSelection(undefined);
+    clearSelection();
     setResult(undefined);
     setQrImage("");
     setProgress(undefined);
-    setPickedUp(false);
+    setReceiver("waiting");
+    setSealed(false);
     setDeleted(false);
     setStage("pick");
-  }, []);
+  }, [clearSelection]);
 
   const step = stage === "pick" ? 1 : stage === "sending" ? 2 : 3;
 
@@ -243,16 +290,43 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
               {text(selectionErrorKey)}
             </p>
           ) : null}
-          <div className="mobile-source-actions">
-            <SecondaryButton onClick={() => photoInput.current?.click()}>
-              <ImageIcon aria-hidden="true" /> {text("locationPhotos")}
-            </SecondaryButton>
-            <SecondaryButton onClick={() => fileInput.current?.click()}>
-              <Files aria-hidden="true" /> {text("locationFiles")}
-            </SecondaryButton>
+          {/* A pointer environment can drop files straight onto the page. The
+              buttons stay exactly where they were, because a phone has no
+              drag and this must never become the only way in. */}
+          <div
+            className={dragging ? "drop-target is-dragging" : "drop-target"}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              addFiles(event.dataTransfer?.files ?? null);
+            }}
+          >
+            <p className="drop-target__hint">
+              <Upload aria-hidden="true" /> {text("dropDragHere")}
+            </p>
+            <div className="mobile-source-actions">
+              <SecondaryButton onClick={() => photoInput.current?.click()}>
+                <ImageIcon aria-hidden="true" /> {text("locationPhotos")}
+              </SecondaryButton>
+              <SecondaryButton onClick={() => fileInput.current?.click()}>
+                <Files aria-hidden="true" /> {text("locationFiles")}
+              </SecondaryButton>
+            </div>
           </div>
-          {selection ? (
-            <SelectedFiles selection={selection} text={text} onClear={clearSelection} />
+          {chosen.length > 0 ? (
+            <SelectedFiles
+              files={chosen}
+              selection={selection}
+              text={text}
+              onRemove={removeFile}
+              onClear={clearSelection}
+              onAddMore={() => fileInput.current?.click()}
+            />
           ) : null}
           <p className="drop-privacy">
             <LockKeyhole aria-hidden="true" /> {text("dropPrivacyNote")}
@@ -287,7 +361,7 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
           </section>
         ) : (
           <section className="mobile-step drop-ready">
-            <h1>{text("dropReady")}</h1>
+            <h1>{text(sealed ? "dropReady" : "dropReadyEarly")}</h1>
             <p>{text("dropReadyHint")}</p>
             {qrImage ? (
               <figure className="drop-qr">
@@ -300,18 +374,19 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
               <span className="drop-code__label">{text("dropCodeLabel")}</span>
               <strong>{formatDropCode(result.code)}</strong>
             </div>
+            {!sealed && progress ? (
+              <div className="drop-still-sending">
+                <TransferBar progress={progress} text={text} minutesRemaining={minutesRemaining} />
+                <p>{text("dropStillSending")}</p>
+              </div>
+            ) : null}
             <div className="drop-status" role="status">
-              {pickedUp ? (
-                <>
-                  <Download aria-hidden="true" /> {text("dropPickedUp")}
-                </>
-              ) : (
-                <>
-                  <Timer aria-hidden="true" />{" "}
-                  {text("dropExpiresIn", { minutes: minutesUntil(result.expiresAt) })} ·{" "}
-                  {text("dropWaitingPickup")}
-                </>
-              )}
+              <ReceiverStatus
+                receiver={receiver}
+                sealed={sealed}
+                expiresAt={result.expiresAt}
+                text={text}
+              />
             </div>
             {canShare ? (
               <SecondaryButton onClick={() => void share()}>
@@ -345,32 +420,107 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
   );
 }
 
+/**
+ * What the service actually knows about the other phone, and nothing more.
+ * "Opened" is an open request; "on their way" is a first chunk being asked for;
+ * "taken" is the receiving flow reporting that it finished. Saying any of these
+ * one step early is the difference between a receipt and a guess.
+ */
+function ReceiverStatus({
+  receiver,
+  sealed,
+  expiresAt,
+  text,
+}: {
+  receiver: DropReceiverState;
+  sealed: boolean;
+  expiresAt: number;
+  text: Text;
+}) {
+  if (receiver === "delivered") {
+    return (
+      <>
+        <CheckCircle2 aria-hidden="true" /> {text("dropReceiverDelivered")}
+      </>
+    );
+  }
+  if (receiver === "downloading") {
+    return (
+      <>
+        <Send aria-hidden="true" /> {text("dropReceiverDownloading")}
+      </>
+    );
+  }
+  if (receiver === "opened") {
+    return (
+      <>
+        <CheckCircle2 aria-hidden="true" />{" "}
+        {text(sealed ? "dropReceiverOpened" : "dropReceiverWaitingOnUpload")}
+      </>
+    );
+  }
+  return (
+    <>
+      <Timer aria-hidden="true" /> {text("dropExpiresIn", { minutes: minutesUntil(expiresAt) })} ·{" "}
+      {text("dropWaitingPickup")}
+    </>
+  );
+}
+
 function SelectedFiles({
+  files,
   selection,
   text,
+  onRemove,
   onClear,
+  onAddMore,
 }: {
-  selection: PreparedSelection;
+  files: readonly File[];
+  selection: PreparedSelection | undefined;
   text: Text;
+  onRemove: (index: number) => void;
   onClear: () => void;
+  onAddMore: () => void;
 }) {
+  const totalBytes = files.reduce((total, file) => total + file.size, 0);
   return (
     <div className="drop-selection">
       <p className="drop-selection__summary">
         {text("dropSelectedSummary", {
-          count: selection.files.length,
-          size: formatBytes(selection.totalBytes),
+          count: files.length,
+          size: formatBytes(totalBytes),
         })}
       </p>
-      <ul className="drop-file-list">
-        {selection.manifestFiles.map((file, index) => (
-          <li key={`${file.name}-${index}`}>
-            <span className="drop-file-list__name">{file.name}</span>
-            <span className="drop-file-list__size">{formatBytes(file.size)}</span>
+      <ul className="drop-file-list drop-file-list--removable">
+        {files.map((file, index) => (
+          <li key={`${file.name}-${file.size}-${file.lastModified}`} className="drop-file">
+            <FileRow
+              file={{
+                // The name shown is the one that will travel, so a name the
+                // policy had to change is visible before anything is sent.
+                name: selection?.manifestFiles[index]?.name ?? file.name,
+                size: file.size,
+                type: file.type,
+              }}
+              text={text}
+            />
+            <button
+              type="button"
+              className="drop-file__remove"
+              onClick={() => onRemove(index)}
+              aria-label={text("dropRemoveFile", { name: file.name })}
+            >
+              <X aria-hidden="true" />
+            </button>
           </li>
         ))}
       </ul>
-      <SecondaryButton onClick={onClear}>{text("dropClearSelection")}</SecondaryButton>
+      <div className="drop-selection__actions">
+        <SecondaryButton onClick={onAddMore}>
+          <FilePlus2 aria-hidden="true" /> {text("dropAddMore")}
+        </SecondaryButton>
+        <SecondaryButton onClick={onClear}>{text("dropClearSelection")}</SecondaryButton>
+      </div>
     </div>
   );
 }

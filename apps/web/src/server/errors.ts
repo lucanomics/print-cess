@@ -4,6 +4,7 @@ export type ServiceErrorCode =
   | "not_found"
   | "expired"
   | "conflict"
+  | "payload_too_large"
   | "rate_limited"
   | "unavailable";
 

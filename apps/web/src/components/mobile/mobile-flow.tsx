@@ -9,6 +9,7 @@ import {
   FileImage,
   Files,
   Image as ImageIcon,
+  Languages,
   LockKeyhole,
   Mail,
   MessageCircle,
@@ -27,13 +28,7 @@ import {
   hashToken,
   timingSafeEqual,
 } from "@print-cess/crypto";
-import {
-  isRightToLeft,
-  LOCALE_NAMES,
-  SUPPORTED_LOCALES,
-  translate,
-  type SupportedLocale,
-} from "@print-cess/i18n";
+import { LOCALE_NAMES, SUPPORTED_LOCALES, type SupportedLocale } from "@print-cess/i18n";
 import {
   PrimaryButton,
   ProgressSteps,
@@ -58,30 +53,31 @@ import {
   validateMobileDocument,
   type ValidatedMobileFile,
 } from "@/lib/mobile-document-validation";
+import { watchPrintStatus, type PrintWatchState } from "@/lib/print-status";
 import { parseSessionFragment } from "@/lib/session-fragment";
 import { clearBrowserSiteData } from "@/lib/session-teardown";
+import { useVisitorLocale, type Text } from "@/lib/use-visitor-locale";
 import { DocumentPreview } from "./document-preview";
 
+/**
+ * The printing flow, in the order a visitor experiences it.
+ *
+ * There is no language screen and no guide screen. Both used to stand between
+ * scanning a code and choosing a document — two screens and two taps spent
+ * before the visitor saw the thing they came to do, one of them asking a
+ * question their own browser had already answered. The language picker lives in
+ * the header now, and the guide lives in Help, where a first-time visitor can
+ * reach it and everyone else can walk past it.
+ */
 type Stage =
-  | "boot"
-  | "language"
-  | "guide"
-  | "file"
-  | "preview"
-  | "transfer"
-  | "progress"
-  | "complete"
-  | "closed"
-  | "error";
+  "boot" | "file" | "preview" | "transfer" | "progress" | "complete" | "closed" | "error";
+
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
-type Text = (key: string, values?: Record<string, string | number>) => string;
 
 // One short instruction per screen, written for a visitor who has never used a
-// kiosk before. The help sheet and the spoken guide both read from this map.
+// kiosk before. The help sheet reads from this map.
 const HELP_KEYS: Record<Stage, string> = {
   boot: "helpProgress",
-  language: "helpLanguage",
-  guide: "helpGuide",
   file: "helpFile",
   preview: "helpPreview",
   transfer: "helpProgress",
@@ -112,9 +108,15 @@ function guideStepsFor(supportsHancom: boolean) {
   ] as const;
 }
 
-export function MobileFlow({ sessionId }: { sessionId: string }) {
+export function MobileFlow({
+  sessionId,
+  initialLocale,
+}: {
+  sessionId: string;
+  initialLocale?: SupportedLocale;
+}) {
+  const [locale, setLocale, text] = useVisitorLocale(initialLocale);
   const [stage, setStage] = useState<Stage>("boot");
-  const [locale, setLocale] = useState<SupportedLocale>("en");
   const [claimed, setClaimed] = useState<ClaimedSession>();
   const [mobileToken, setMobileToken] = useState("");
   const [file, setFile] = useState<File>();
@@ -123,13 +125,14 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   const [fileErrorKey, setFileErrorKey] = useState<string>();
   const [fileNoticeKey, setFileNoticeKey] = useState<string>();
   const [progressKey, setProgressKey] = useState("encrypting");
+  const [watching, setWatching] = useState<PrintWatchState>({ kind: "waiting" });
   const [supportsHwpx, setSupportsHwpx] = useState(false);
   const [supportsHwp, setSupportsHwp] = useState(false);
   const [reminderStage, setReminderStage] = useState<Stage>();
   const [helpOpen, setHelpOpen] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const text = useCallback<Text>((key, values) => translate(locale, key, values), [locale]);
+  const watchAbort = useRef<AbortController>(null);
 
   const shutdownPage = useCallback(() => {
     // Started before the close attempt so the wipe is already under way if the
@@ -159,6 +162,8 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
     return () => window.clearTimeout(timer);
   }, [stage]);
 
+  useEffect(() => () => watchAbort.current?.abort(), []);
+
   // Backing out of the system file picker leaves the screen unchanged, which
   // reads as "nothing happened". Say so instead of leaving the visitor stuck.
   useEffect(() => {
@@ -172,11 +177,6 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       for (const input of inputs) input.removeEventListener("cancel", announce);
     };
   }, [stage]);
-
-  useEffect(() => {
-    document.documentElement.lang = locale;
-    document.documentElement.dir = isRightToLeft(locale) ? "rtl" : "ltr";
-  }, [locale]);
 
   const clearDocument = useCallback(() => {
     setValidated((current) => {
@@ -199,6 +199,9 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
     setMobileToken("");
   }, [clearDocument, mobileToken, sessionId]);
 
+  // Claiming lands straight on the file chooser. Everything the visitor needed
+  // to be told before is either already true (their language) or available on
+  // demand (the guide), so neither costs them a screen.
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -234,7 +237,7 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
         setClaimed(response);
         setMobileToken(nextMobileToken);
         history.replaceState(null, "", window.location.pathname + "#claimed");
-        setStage("language");
+        setStage("file");
       } catch (error) {
         if (!active) return;
         setErrorKey(
@@ -278,6 +281,10 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
   const print = useCallback(async () => {
     if (!claimed || !validated || !mobileToken) return;
     let envelope: Uint8Array | undefined;
+    // Everything up to this point is the phone's to undo. Past it, the document
+    // is in the kiosk's hands and cancelling would take back a job that may
+    // already be on its way to paper.
+    let committed = false;
     try {
       setStage("transfer");
       setProgressKey("encrypting");
@@ -301,51 +308,58 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       setProgressKey("uploading");
       const metadata = await uploadCiphertext(authorization, envelope);
       await completeUpload(sessionId, mobileToken, metadata);
-      setProgressKey("waitingForPrint");
-      setStage("progress");
-      for (let attempt = 0; attempt < 120; attempt += 1) {
-        const status = await getMobileStatus(sessionId, mobileToken);
-        if (status.status === "completed") {
-          clearDocument();
-          setClaimed(undefined);
-          setMobileToken("");
-          setStage("complete");
-          return;
-        }
-        if (["failed", "expired", "cancelled"].includes(status.status))
-          throw new Error("networkError");
-        await new Promise((resolve) => window.setTimeout(resolve, 1000));
-      }
-      throw new Error("networkError");
+      committed = true;
     } catch (error) {
       await cancelClaim();
       setErrorKey(
         error instanceof ApiClientError && error.status === 410 ? "expiredQr" : "networkError",
       );
       setStage("error");
+      return;
     } finally {
       envelope?.fill(0);
     }
+
+    if (!committed) return;
+    // From here the phone is a status display, nothing more. A poll that fails
+    // means this phone lost the service, which says nothing at all about the
+    // printer — so it never cancels, and it never invents a verdict.
+    setProgressKey("waitingForPrint");
+    setStage("progress");
+    const controller = new AbortController();
+    watchAbort.current = controller;
+    const outcome = await watchPrintStatus({
+      poll: () => getMobileStatus(sessionId, mobileToken),
+      onState: setWatching,
+      signal: controller.signal,
+    });
+    watchAbort.current = null;
+    if (outcome.kind === "completed") {
+      clearDocument();
+      setClaimed(undefined);
+      setMobileToken("");
+      setStage("complete");
+      return;
+    }
+    if (outcome.kind === "failed") {
+      clearDocument();
+      setClaimed(undefined);
+      setMobileToken("");
+      setErrorKey(outcome.reason === "sessionExpired" ? "expiredQr" : "printFailed");
+      setStage("error");
+      return;
+    }
+    // Neither success nor failure is known. Say exactly that, and point at the
+    // only place the answer actually exists.
+    clearDocument();
+    setClaimed(undefined);
+    setMobileToken("");
+    setErrorKey("printOutcomeUnknown");
+    setStage("error");
   }, [cancelClaim, claimed, clearDocument, mobileToken, sessionId, validated]);
 
-  const step =
-    stage === "language"
-      ? 1
-      : stage === "guide"
-        ? 2
-        : stage === "file"
-          ? 3
-          : stage === "preview"
-            ? 4
-            : 5;
-  // A visitor who has stalled for 30 seconds needs a different sentence, not the
-  // one already on screen, so later steps fall back to their help instruction.
-  const reminderKey =
-    stage === "language"
-      ? "languageReminder"
-      : stage === "guide"
-        ? "guideReminder"
-        : HELP_KEYS[stage];
+  const step = stage === "file" ? 1 : stage === "preview" ? 2 : 3;
+  const reminderKey = HELP_KEYS[stage];
   const supportsHancom = supportsHwp || supportsHwpx;
   const hancomLabel = hancomFormatLabel(supportsHwp, supportsHwpx);
   const naming = (value: string) => applyHancomLabel(value, hancomLabel);
@@ -355,37 +369,44 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
       <div className="mobile-topbar">
         <Wordmark compact />
         {stage === "boot" || stage === "closed" ? null : (
-          <button
-            type="button"
-            className="mobile-help-open"
-            onClick={() => setHelpOpen(true)}
-            aria-haspopup="dialog"
-          >
-            <CircleQuestionMark aria-hidden="true" />
-            {text("helpOpen")}
-          </button>
+          <div className="mobile-topbar__actions">
+            {/* The language was answered from the browser. This is here for the
+                times that answer is wrong, not as a question to be asked. */}
+            <label className="drop-language">
+              <Languages aria-hidden="true" />
+              <span className="drop-visually-hidden">{text("selectLanguage")}</span>
+              <select
+                value={locale}
+                onChange={(event) => setLocale(event.target.value as SupportedLocale)}
+              >
+                {SUPPORTED_LOCALES.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {LOCALE_NAMES[candidate]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="mobile-help-open"
+              onClick={() => setHelpOpen(true)}
+              aria-haspopup="dialog"
+            >
+              <CircleQuestionMark aria-hidden="true" />
+              {text("helpOpen")}
+            </button>
+          </div>
         )}
       </div>
-      {stage !== "boot" && stage !== "error" && stage !== "complete" ? (
-        <ProgressSteps current={step} total={5} label={text("step", { current: step, total: 5 })} />
+      {stage !== "boot" && stage !== "error" && stage !== "complete" && stage !== "closed" ? (
+        <ProgressSteps current={step} total={3} label={text("step", { current: step, total: 3 })} />
       ) : null}
-      {reminderStage === stage && !["boot", "complete", "error"].includes(stage) ? (
+      {reminderStage === stage && !["boot", "complete", "error", "closed"].includes(stage) ? (
         <p className="mobile-reminder" role="status">
           {text(reminderKey)}
         </p>
       ) : null}
       {stage === "boot" ? <Loading text={text("preparingSession")} /> : null}
-      {stage === "language" ? (
-        <LanguageStep locale={locale} onSelect={setLocale} onContinue={() => setStage("guide")} />
-      ) : null}
-      {stage === "guide" ? (
-        <GuideStep
-          text={text}
-          supportsHancom={supportsHancom}
-          hancomLabel={hancomLabel}
-          onContinue={() => setStage("file")}
-        />
-      ) : null}
       {stage === "file" ? (
         <section className="mobile-step">
           <StatusIcon>
@@ -427,6 +448,11 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
               <Files aria-hidden="true" /> {text("locationFiles")}
             </SecondaryButton>
           </div>
+          {/* The guide that used to block this screen is one tap away, for the
+              visitor who wants it and nobody else. */}
+          <button type="button" className="mobile-guide-link" onClick={() => setHelpOpen(true)}>
+            {text("guideOpen")}
+          </button>
         </section>
       ) : null}
       {stage === "preview" && file && validated ? (
@@ -465,8 +491,14 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           </SecondaryButton>
         </section>
       ) : null}
-      {stage === "transfer" || stage === "progress" ? (
-        <ProgressState text={text(progressKey)} keepPageOpen={text("keepPageOpen")} />
+      {stage === "transfer" ? (
+        <ProgressState text={text(progressKey)} note={text("keepPageOpen")} />
+      ) : null}
+      {stage === "progress" ? (
+        <ProgressState
+          text={text(watching.kind === "reconnecting" ? "reconnecting" : progressKey)}
+          note={text(watching.kind === "reconnecting" ? "kioskMayStillBePrinting" : "keepPageOpen")}
+        />
       ) : null}
       {stage === "complete" ? (
         <SingleAction
@@ -492,8 +524,21 @@ export function MobileFlow({ sessionId }: { sessionId: string }) {
           </a>
         </section>
       ) : null}
-      {stage === "error" ? <SingleAction icon="error" title={text(errorKey)} body="" /> : null}
-      <HelpSheet open={helpOpen} stage={stage} text={text} onClose={() => setHelpOpen(false)} />
+      {stage === "error" ? (
+        <SingleAction
+          icon={errorKey === "printOutcomeUnknown" ? "info" : "error"}
+          title={text(errorKey)}
+          body={errorKey === "printOutcomeUnknown" ? text("printOutcomeUnknownBody") : ""}
+        />
+      ) : null}
+      <HelpSheet
+        open={helpOpen}
+        stage={stage}
+        text={text}
+        supportsHancom={supportsHancom}
+        hancomLabel={hancomLabel}
+        onClose={() => setHelpOpen(false)}
+      />
     </ScreenShell>
   );
 }
@@ -507,87 +552,24 @@ function Loading({ text }: { text: string }) {
   );
 }
 
-function LanguageStep({
-  locale,
-  onSelect,
-  onContinue,
-}: {
-  locale: SupportedLocale;
-  onSelect: (locale: SupportedLocale) => void;
-  onContinue: () => void;
-}) {
-  return (
-    <section className="mobile-step mobile-step--language">
-      <h1>{translate(locale, "selectLanguage")}</h1>
-      <p>{translate(locale, "selectLanguageHint")}</p>
-      <div className="language-grid">
-        {SUPPORTED_LOCALES.map((candidate) => (
-          <label
-            key={candidate}
-            className={candidate === locale ? "choice-row is-selected" : "choice-row"}
-          >
-            <input
-              type="radio"
-              name="locale"
-              checked={candidate === locale}
-              onChange={() => onSelect(candidate)}
-            />
-            <span>{LOCALE_NAMES[candidate]}</span>
-          </label>
-        ))}
-      </div>
-      <div className="mobile-language-action">
-        <PrimaryButton onClick={onContinue}>{translate(locale, "continue")}</PrimaryButton>
-      </div>
-    </section>
-  );
-}
-
-function GuideStep({
-  text,
-  supportsHancom,
-  hancomLabel,
-  onContinue,
-}: {
-  text: Text;
-  supportsHancom: boolean;
-  hancomLabel: string;
-  onContinue: () => void;
-}) {
-  return (
-    <section className="mobile-step mobile-step--guide">
-      <div className="mobile-guide__heading">
-        <h1>{text("guideTitle")}</h1>
-        <p>{text("guideIntro")}</p>
-      </div>
-      <ol className="mobile-guide" aria-label={text("guideTitle")}>
-        {guideStepsFor(supportsHancom).map(({ icon: Icon, title, body, completed }) => (
-          <li key={title} className={completed ? "is-complete" : undefined}>
-            <span className="mobile-guide__icon" aria-hidden="true">
-              <Icon />
-              {completed ? <CheckCircle2 className="mobile-guide__check" /> : null}
-            </span>
-            <span>
-              <strong>{text(title)}</strong>
-              <small>{applyHancomLabel(text(body), hancomLabel)}</small>
-            </span>
-          </li>
-        ))}
-      </ol>
-      <PrimaryButton onClick={onContinue}>{text("guideStart")}</PrimaryButton>
-    </section>
-  );
-}
-
+/**
+ * Everything a first-time visitor used to be shown before they could start,
+ * now available whenever they want it and never in the way. The four steps of
+ * the guide live here rather than on their own screen.
+ */
 function HelpSheet({
   open,
   stage,
   text,
+  supportsHancom,
+  hancomLabel,
   onClose,
 }: {
   open: boolean;
   stage: Stage;
   text: Text;
+  supportsHancom: boolean;
+  hancomLabel: string;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -600,7 +582,7 @@ function HelpSheet({
   }, [open]);
 
   // Showing where a document usually hides only helps before one is chosen.
-  const showFileLocations = stage === "guide" || stage === "file";
+  const showFileLocations = stage === "file";
 
   return (
     <dialog
@@ -615,6 +597,20 @@ function HelpSheet({
         <>
           <h2 id="mobile-help-title">{text("helpTitle")}</h2>
           <p className="mobile-help__now">{text(HELP_KEYS[stage])}</p>
+          <ol className="mobile-guide" aria-label={text("guideTitle")}>
+            {guideStepsFor(supportsHancom).map(({ icon: Icon, title, body, completed }) => (
+              <li key={title} className={completed ? "is-complete" : undefined}>
+                <span className="mobile-guide__icon" aria-hidden="true">
+                  <Icon />
+                  {completed ? <CheckCircle2 className="mobile-guide__check" /> : null}
+                </span>
+                <span>
+                  <strong>{text(title)}</strong>
+                  <small>{applyHancomLabel(text(body), hancomLabel)}</small>
+                </span>
+              </li>
+            ))}
+          </ol>
           {showFileLocations ? (
             <div className="mobile-help__where">
               <h3>{text("chooseLocation")}</h3>
@@ -685,12 +681,12 @@ function SingleAction({
   );
 }
 
-function ProgressState({ text, keepPageOpen }: { text: string; keepPageOpen: string }) {
+function ProgressState({ text, note }: { text: string; note: string }) {
   return (
     <section className="mobile-step mobile-step--single" aria-live="polite">
       <div className="mobile-spinner" />
       <h1>{text}</h1>
-      <p>{keepPageOpen}</p>
+      <p>{note}</p>
     </section>
   );
 }

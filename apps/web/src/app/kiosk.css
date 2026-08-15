@@ -397,3 +397,110 @@
   width: 28px !important;
   height: 28px !important;
 }
+
+/* --- After a phone has connected ----------------------------------------- */
+
+/* Once a phone owns the session, the shared screen stops asking the room to
+   scan a code that is no longer valid and starts saying where the work is. */
+.kiosk-shell--connected {
+  place-content: center;
+}
+.kiosk-connected {
+  display: grid;
+  justify-items: center;
+  gap: clamp(18px, 3vh, 34px);
+  max-width: 60ch;
+  margin: 0 auto;
+  text-align: center;
+}
+.kiosk-connected__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: var(--pc-teal-soft);
+  color: var(--pc-teal-dark);
+  font-size: clamp(20px, 2.2vh, 28px);
+  font-weight: 750;
+}
+.kiosk-connected__badge svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+.kiosk-connected__badge small,
+.kiosk-connected__headline small {
+  display: block;
+  color: var(--pc-muted);
+  font-size: 0.62em;
+  font-weight: 600;
+}
+.kiosk-connected__headline {
+  margin: 0;
+  color: var(--pc-ink);
+  font-size: clamp(34px, 6vh, 68px);
+  line-height: 1.15;
+}
+
+/* The document as a room full of strangers is allowed to see it: a shape and a
+   stage. Never a name, never a thumbnail, never a page. */
+.kiosk-token {
+  display: grid;
+  place-items: center;
+  width: clamp(96px, 14vh, 168px);
+  height: clamp(96px, 14vh, 168px);
+  border-radius: 28px;
+  background: var(--pc-subtle);
+  color: var(--pc-teal-dark);
+  box-shadow: var(--pc-shadow);
+  animation: kiosk-token-arrive 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.kiosk-token svg {
+  width: 46%;
+  height: 46%;
+}
+.kiosk-token--printing,
+.kiosk-token--completed {
+  background: var(--pc-teal-soft);
+}
+@keyframes kiosk-token-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+  }
+}
+
+.kiosk-journey {
+  display: flex;
+  gap: clamp(10px, 2vw, 24px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kiosk-journey li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 16px;
+  border: 2px solid var(--pc-line);
+  border-radius: 999px;
+  color: var(--pc-muted);
+  font-size: clamp(15px, 1.7vh, 22px);
+}
+.kiosk-journey strong {
+  font-weight: 700;
+}
+.kiosk-journey small {
+  font-size: 0.72em;
+}
+/* Reached, in progress, and still to come are three different words as well as
+   three different weights, so the sequence reads without colour. */
+.kiosk-journey .is-done {
+  border-color: var(--pc-success);
+  color: var(--pc-success);
+}
+.kiosk-journey .is-active {
+  border-color: var(--pc-teal);
+  background: var(--pc-teal-soft);
+  color: var(--pc-teal-dark);
+}
