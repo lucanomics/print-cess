@@ -98,11 +98,13 @@ test("hands Hancom documents over byte-identically, Korean names included", asyn
     for (const download of downloads) arrived.add(await digestOf(download));
     expect(arrived).toEqual(new Set(expected.values()));
 
-    // The name is checked wherever the browser reports one. Some Chromium
-    // builds collapse a non-ASCII download name to the generic "download" in
-    // the automation API even though the page set the attribute correctly, so
-    // the assertion runs where the browser can answer and says so where it
-    // cannot. `drop-file-name.test.ts` pins the name the page actually sets.
+    // The name is checked wherever the browser reports one. Outside a UTF-8
+    // locale a browser sanitizes a non-ASCII download name down to the generic
+    // "download" even though the page set the attribute correctly — which is
+    // why CI pins `LANG`/`LC_ALL` to `C.UTF-8`, and why the strict assertion
+    // below is the one that runs there. A run in a locale that cannot carry
+    // the name says so instead of failing for a reason that has nothing to do
+    // with the service. `drop-file-name.test.ts` pins the name the page sets.
     const reported = downloads
       .map((download) => download.suggestedFilename())
       .filter((name) => name !== "download");
@@ -110,8 +112,8 @@ test("hands Hancom documents over byte-identically, Korean names included", asyn
       expect(reported.sort()).toEqual(["임대차계약서.hwp", "전입신고서.hwpx"]);
     } else {
       test.info().annotations.push({
-        type: "browser-limitation",
-        description: "This browser build does not report non-ASCII download names.",
+        type: "locale-limitation",
+        description: "This run's locale cannot carry a non-ASCII download name.",
       });
     }
 

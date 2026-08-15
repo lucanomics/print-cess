@@ -250,7 +250,10 @@ desktop Safari, verify:
 2. five files: save one alone, then save the rest;
 3. a file over 100 MB where practical, with the screen kept awake throughout;
 4. a non-ASCII file name — Korean is the case that matters here — arriving with
-   its name intact on disk;
+   its name intact on disk. A browser running outside a UTF-8 locale sanitizes
+   such a name down to `download`, which is a property of the environment rather
+   than of the service; CI pins `LANG` and `LC_ALL` for exactly this reason, and
+   a device check should confirm the locale before blaming the transfer;
 5. an HWP and an HWPX with no media type at all;
 6. an unknown binary with no extension;
 7. aeroplane mode mid-transfer, then restored: the transfer resumes and the
