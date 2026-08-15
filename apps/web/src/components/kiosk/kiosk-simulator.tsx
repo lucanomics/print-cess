@@ -73,7 +73,13 @@ type RegisteredSession = {
   fingerprint: string;
 };
 
-export function KioskSimulator({ automaticPrinting = false }: { automaticPrinting?: boolean }) {
+export function KioskSimulator({
+  automaticPrinting = false,
+  sound = true,
+}: {
+  automaticPrinting?: boolean;
+  sound?: boolean;
+}) {
   const [session, setSession] = useState<RegisteredSession>();
   const [status, setStatus] = useState<KioskStatus>("preparing");
   const [remaining, setRemaining] = useState(120);
@@ -212,7 +218,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
             processing.current = true;
             setStatus("uploaded");
             await consumeAndPrint(session, setStatus, replaceArtifact);
-            if (active) {
+            if (active && sound) {
               playCompletionTone();
             }
           }
@@ -225,7 +231,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
       active = false;
       window.clearInterval(poll);
     };
-  }, [replaceArtifact, reset, session, status]);
+  }, [replaceArtifact, reset, session, sound, status]);
 
   useEffect(() => {
     if (status !== "completed") return;
@@ -561,6 +567,15 @@ function formatTime(seconds: number): string {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+/**
+ * The whole sound language: one short, quiet cue when a job finishes, so
+ * somebody who walked away from the printer knows to come back.
+ *
+ * It is deliberately the only one. A service that chirps at every state change
+ * is unusable in a shared room, and every state it could announce is already on
+ * screen — the tone adds nothing a silent kiosk lacks, which is exactly why
+ * turning it off with `?sound=off` costs the visitor nothing.
+ */
 function playCompletionTone() {
   try {
     const context = new AudioContext();

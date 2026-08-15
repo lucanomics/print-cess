@@ -204,8 +204,14 @@ by colour alone, on any screen.
 
 ## Sound
 
-The kiosk plays one short tone when a print completes. That is the whole sound
-language, and it is deliberate: an office does not want a service that chirps.
+The kiosk plays one short, quiet tone when a print completes, so somebody who
+walked away from the printer knows to come back. `?sound=off` on the kiosk URL
+silences it for a counter where the tone would carry further than it helps; the
+screen says the same thing either way, so nothing is lost.
+
+That is the whole sound language, and it is deliberate: an office does not want
+a service that chirps, and every other state it could announce is already
+legible on screen.
 Any future cue must be short, quiet, optional, have a visual equivalent already
 on screen, and encode nothing about the document. Continuous tones and speech
 are out.

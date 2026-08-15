@@ -664,7 +664,10 @@ function SingleAction({
   action?: string;
   onAction?: () => void;
 }) {
-  const Icon = icon === "error" ? TriangleAlert : CheckCircle2;
+  // A screen that says nobody knows whether the page printed must not wear a
+  // tick. Each tone gets the mark that matches what it is claiming.
+  const Icon =
+    icon === "success" ? CheckCircle2 : icon === "error" ? TriangleAlert : CircleQuestionMark;
   return (
     <section className="mobile-step mobile-step--single">
       <StatusIcon tone={icon}>
