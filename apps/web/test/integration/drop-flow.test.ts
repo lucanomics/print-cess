@@ -31,6 +31,7 @@ import { POST as commitPartsRoute } from "@/app/api/drops/[dropId]/parts/complet
 import { POST as sealDropRoute } from "@/app/api/drops/[dropId]/seal/route";
 import { POST as openDropRoute } from "@/app/api/drops/[dropId]/open/route";
 import { POST as downloadRoute } from "@/app/api/drops/[dropId]/download/route";
+import { POST as receiptRoute } from "@/app/api/drops/[dropId]/receipt/route";
 import { GET as blobGetRoute, PUT as blobPutRoute } from "@/app/api/dev/blob/route";
 
 const ORIGIN = "http://localhost:3000";
@@ -51,6 +52,16 @@ function jsonRequest(path: string, body: unknown, headers: Record<string, string
 
 function params(dropId: string) {
   return { params: Promise.resolve({ dropId }) };
+}
+
+async function senderView(dropId: string, ownerToken: string): Promise<unknown> {
+  const response = await dropStatusRoute(
+    new Request(`${ORIGIN}/api/drops/${dropId}`, {
+      headers: { Origin: ORIGIN, "x-print-cess-drop-token": ownerToken },
+    }),
+    params(dropId),
+  );
+  return response.json();
 }
 
 /** Drives the local signed-URL transport the same way a phone's fetch would. */
@@ -85,6 +96,7 @@ async function sendOneFile(
       manifest: await encryptDropManifest(keys, manifest),
       fileCount: manifest.files.length,
       partCount: 1,
+      totalBytes: plaintext.byteLength,
     }),
   );
   expect(created.status).toBe(201);
@@ -186,20 +198,104 @@ describe("drop hand-off, end to end", () => {
       }),
       params(dropId),
     );
-    expect(await before.json()).toMatchObject({ status: "ready", downloadCount: 0 });
+    expect(await before.json()).toMatchObject({ status: "ready", receiver: "waiting" });
+
+    // Opening a transfer is not downloading it, and downloading it is not the
+    // other phone reporting that it finished. Each step is observed where it
+    // actually happens, so the sending screen never claims the next one.
+    await openDropRoute(jsonRequest(`/api/drops/${dropId}/open`, {}), params(dropId));
+    expect(await senderView(dropId, ownerToken)).toMatchObject({
+      receiver: "opened",
+      openCount: 1,
+      downloadCount: 0,
+      deliveredCount: 0,
+    });
 
     await downloadRoute(
       jsonRequest(`/api/drops/${dropId}/download`, { indexes: [0] }),
       params(dropId),
     );
+    expect(await senderView(dropId, ownerToken)).toMatchObject({
+      receiver: "downloading",
+      downloadCount: 1,
+      deliveredCount: 0,
+    });
 
-    const after = await dropStatusRoute(
-      new Request(`${ORIGIN}/api/drops/${dropId}`, {
-        headers: { Origin: ORIGIN, "x-print-cess-drop-token": ownerToken },
-      }),
+    const receipt = await receiptRoute(
+      jsonRequest(`/api/drops/${dropId}/receipt`, {}),
       params(dropId),
     );
-    expect(await after.json()).toMatchObject({ downloadCount: 1 });
+    expect(receipt.status).toBe(200);
+    expect(await senderView(dropId, ownerToken)).toMatchObject({
+      receiver: "delivered",
+      deliveredCount: 1,
+    });
+  }, 30_000);
+
+  it("lets a receiver who arrived early wait instead of being told the code is wrong", async () => {
+    const ownerToken = generateToken(32);
+    await createDropRoute(
+      jsonRequest("/api/drops", {
+        protocolVersion: 1,
+        dropId: keys.dropId,
+        ownerTokenHash: await hashToken(ownerToken, "drop"),
+        manifest: await encryptDropManifest(keys, manifest),
+        fileCount: 1,
+        partCount: 1,
+        totalBytes: plaintext.byteLength,
+      }),
+    );
+
+    // The sender has created the transfer but not finished uploading it. A
+    // receiver holding the right code should be asked to wait.
+    const early = await openDropRoute(
+      jsonRequest(`/api/drops/${keys.dropId}/open`, {}),
+      params(keys.dropId),
+    );
+    expect(early.status).toBe(200);
+    const pending = (await early.json()) as Record<string, unknown>;
+    expect(pending.state).toBe("collecting");
+    // Nothing about the files leaks before the transfer is sealed.
+    expect(pending).not.toHaveProperty("manifest");
+    expect(pending).not.toHaveProperty("partSizes");
+    expect(pending).not.toHaveProperty("fileCount");
+  }, 30_000);
+
+  it("lets a waiting receiver keep asking without being locked out of its own transfer", async () => {
+    const ownerToken = generateToken(32);
+    await createDropRoute(
+      jsonRequest("/api/drops", {
+        protocolVersion: 1,
+        dropId: keys.dropId,
+        ownerTokenHash: await hashToken(ownerToken, "drop"),
+        manifest: await encryptDropManifest(keys, manifest),
+        fileCount: 1,
+        partCount: 1,
+        totalBytes: plaintext.byteLength,
+      }),
+    );
+
+    // A receiver waiting out a slow gigabyte polls with a backing-off delay,
+    // which reaches roughly forty-five requests in five minutes. Under a single
+    // tight limit that locked them out of a transfer that was genuinely theirs,
+    // about three minutes into a legitimate wait.
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const response = await openDropRoute(
+        jsonRequest(`/api/drops/${keys.dropId}/open`, {}),
+        params(keys.dropId),
+      );
+      expect(response.status, `poll ${attempt}`).toBe(200);
+      expect(((await response.json()) as { state: string }).state).toBe("collecting");
+    }
+  }, 60_000);
+
+  it("still answers a code that names nothing exactly as it always did", async () => {
+    const stranger = await deriveDropKeys(generateDropCode());
+    const opened = await openDropRoute(
+      jsonRequest(`/api/drops/${stranger.dropId}/open`, {}),
+      params(stranger.dropId),
+    );
+    expect(opened.status).toBe(404);
   }, 30_000);
 
   it("erases the ciphertext when the sender asks, leaving nothing to open", async () => {
@@ -231,6 +327,7 @@ describe("drop hand-off, end to end", () => {
         manifest: await encryptDropManifest(keys, manifest),
         fileCount: 1,
         partCount: 1,
+        totalBytes: plaintext.byteLength,
       }),
     );
     expect(created.status).toBe(201);
@@ -246,7 +343,7 @@ describe("drop hand-off, end to end", () => {
     expect(response.status).toBe(401);
   }, 30_000);
 
-  it("refuses to open a transfer that was never sealed", async () => {
+  it("refuses to hand out any part of a transfer that was never sealed", async () => {
     const ownerToken = generateToken(32);
     await createDropRoute(
       jsonRequest("/api/drops", {
@@ -256,13 +353,14 @@ describe("drop hand-off, end to end", () => {
         manifest: await encryptDropManifest(keys, manifest),
         fileCount: 1,
         partCount: 1,
+        totalBytes: plaintext.byteLength,
       }),
     );
-    const opened = await openDropRoute(
-      jsonRequest(`/api/drops/${keys.dropId}/open`, {}),
+    const authorized = await downloadRoute(
+      jsonRequest(`/api/drops/${keys.dropId}/download`, { indexes: [0] }),
       params(keys.dropId),
     );
-    expect(opened.status).toBe(404);
+    expect(authorized.status).toBe(404);
   }, 30_000);
 
   it("refuses a commit whose declared size does not match what was stored", async () => {
@@ -275,6 +373,7 @@ describe("drop hand-off, end to end", () => {
         manifest: await encryptDropManifest(keys, manifest),
         fileCount: 1,
         partCount: 1,
+        totalBytes: plaintext.byteLength,
       }),
     );
     const authorized = await authorizePartsRoute(

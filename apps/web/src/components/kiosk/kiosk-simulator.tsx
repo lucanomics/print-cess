@@ -73,7 +73,13 @@ type RegisteredSession = {
   fingerprint: string;
 };
 
-export function KioskSimulator({ automaticPrinting = false }: { automaticPrinting?: boolean }) {
+export function KioskSimulator({
+  automaticPrinting = false,
+  sound = true,
+}: {
+  automaticPrinting?: boolean;
+  sound?: boolean;
+}) {
   const [session, setSession] = useState<RegisteredSession>();
   const [status, setStatus] = useState<KioskStatus>("preparing");
   const [remaining, setRemaining] = useState(120);
@@ -212,7 +218,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
             processing.current = true;
             setStatus("uploaded");
             await consumeAndPrint(session, setStatus, replaceArtifact);
-            if (active) {
+            if (active && sound) {
               playCompletionTone();
             }
           }
@@ -225,7 +231,7 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
       active = false;
       window.clearInterval(poll);
     };
-  }, [replaceArtifact, reset, session, status]);
+  }, [replaceArtifact, reset, session, sound, status]);
 
   useEffect(() => {
     if (status !== "completed") return;
@@ -250,6 +256,12 @@ export function KioskSimulator({ automaticPrinting = false }: { automaticPrintin
       />
     );
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
+  // Once a phone has claimed the session, telling the room to scan a QR code
+  // that is no longer valid is both wrong and confusing: the visitor standing
+  // here is looking for what happens next, and it is happening on their phone.
+  if (status !== "preparing" && status !== "waiting") {
+    return <ConnectedScreen status={status} remaining={remaining} />;
+  }
 
   const spotlight = SPOTLIGHT_LOCALES[spotlightIndex] ?? "zh-CN";
   const countdownLabel =
@@ -447,6 +459,96 @@ async function kioskTransition(
   if (!response.ok) throw new Error(`transition ${status} failed`);
 }
 
+/**
+ * The stations a document passes through, as the kiosk sees them.
+ *
+ * Each one maps to a state the protocol actually has. Nothing here is invented
+ * for the animation: a step lights up because the session reached that state,
+ * so what the screen shows and what the service knows cannot drift apart.
+ */
+const JOURNEY: { status: KioskStatus; korean: string; english: string }[] = [
+  { status: "uploading", korean: "도착하는 중", english: "Arriving" },
+  { status: "validating", korean: "확인하는 중", english: "Checking" },
+  { status: "printing", korean: "인쇄하는 중", english: "Printing" },
+];
+
+const JOURNEY_ORDER: KioskStatus[] = [
+  "claimed",
+  "uploading",
+  "uploaded",
+  "validating",
+  "printing",
+  "completed",
+];
+
+/**
+ * What the shared screen shows while the work is happening on somebody's phone.
+ *
+ * It names a category and a stage, never a file. A public display in a room
+ * full of strangers must not be able to say what the visitor is printing, so
+ * the document appears here as an anonymous token and nothing else.
+ */
+function ConnectedScreen({ status, remaining }: { status: KioskStatus; remaining: number }) {
+  const reached = JOURNEY_ORDER.indexOf(status);
+  return (
+    <main className="kiosk-shell kiosk-shell--connected" lang="ko" data-kiosk-state="connected">
+      <Wordmark />
+      <div className="kiosk-connected">
+        <p className="kiosk-connected__badge">
+          <Smartphone aria-hidden="true" /> 휴대전화가 연결됐어요
+          <small lang="en">Phone connected</small>
+        </p>
+        <h1 className="kiosk-connected__headline">
+          {status === "printing" || status === "completed"
+            ? "잠시만 기다려 주세요"
+            : "휴대전화에서 계속하세요"}
+          <small lang="en">
+            {status === "printing" || status === "completed"
+              ? "One moment"
+              : "Continue on your phone"}
+          </small>
+        </h1>
+
+        {/* The document as the room is allowed to see it: a shape, a stage, and
+            nothing that could identify it or the person who sent it. */}
+        <div
+          className={`kiosk-token kiosk-token--${status}`}
+          aria-hidden="true"
+          data-testid="kiosk-document-token"
+        >
+          <FileCheck2 />
+        </div>
+
+        <ol className="kiosk-journey" aria-live="polite">
+          {JOURNEY.map((step) => {
+            const at = JOURNEY_ORDER.indexOf(step.status);
+            const state = reached > at ? "is-done" : reached === at ? "is-active" : "";
+            return (
+              <li key={step.status} className={state}>
+                {/* State is carried by the word as well as the colour and the
+                    motion, so it survives a monochrome screen and reduced
+                    motion alike. */}
+                <strong>{step.korean}</strong>
+                <small lang="en">{step.english}</small>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="kiosk-status-row" aria-live="polite">
+          <span className="kiosk-status-dot">
+            <CheckCircle2 aria-hidden="true" />
+          </span>
+          <strong>{statusLabel(status)}</strong>
+          <span className="kiosk-countdown">
+            작업 만료까지 <b>{formatTime(remaining)}</b>
+          </span>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function statusLabel(status: KioskStatus): string {
   return {
     preparing: "준비 중",
@@ -465,6 +567,15 @@ function formatTime(seconds: number): string {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+/**
+ * The whole sound language: one short, quiet cue when a job finishes, so
+ * somebody who walked away from the printer knows to come back.
+ *
+ * It is deliberately the only one. A service that chirps at every state change
+ * is unusable in a shared room, and every state it could announce is already on
+ * screen — the tone adds nothing a silent kiosk lacks, which is exactly why
+ * turning it off with `?sound=off` costs the visitor nothing.
+ */
 function playCompletionTone() {
   try {
     const context = new AudioContext();

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { DROP_CODE_PATTERN, DROP_ID_PATTERN } from "@print-cess/protocol";
+import { DROP_CHUNK_BYTES, DROP_CODE_PATTERN, DROP_ID_PATTERN } from "@print-cess/protocol";
 
 import {
   decryptDropChunk,
@@ -126,8 +126,28 @@ describe("chunk encryption", () => {
     await expect(decryptDropChunk(second, keys, CONTEXT, sealed)).rejects.toThrow();
   });
 
-  it("rejects an empty chunk", async () => {
-    await expect(encryptDropChunk(fileKey, keys, CONTEXT, new Uint8Array())).rejects.toThrow();
+  it("carries an empty file as a chunk that is nothing but its tag", async () => {
+    // An empty file is a real file. AES-GCM over empty plaintext produces the
+    // authentication tag alone, which is still bound to this transfer, this
+    // file, and this position through exactly the same additional data.
+    const sealed = await encryptDropChunk(fileKey, keys, CONTEXT, new Uint8Array());
+    expect(sealed.byteLength).toBe(16);
+    await expect(decryptDropChunk(fileKey, keys, CONTEXT, sealed)).resolves.toEqual(
+      new Uint8Array(),
+    );
+  });
+
+  it("still refuses an empty chunk that was moved somewhere it does not belong", async () => {
+    const sealed = await encryptDropChunk(fileKey, keys, CONTEXT, new Uint8Array());
+    await expect(
+      decryptDropChunk(fileKey, keys, { ...CONTEXT, partIndex: CONTEXT.partIndex + 1 }, sealed),
+    ).rejects.toThrow();
+  });
+
+  it("rejects a chunk larger than the chunk size", async () => {
+    await expect(
+      encryptDropChunk(fileKey, keys, CONTEXT, new Uint8Array(DROP_CHUNK_BYTES + 1)),
+    ).rejects.toThrow();
   });
 });
 
@@ -156,11 +176,20 @@ describe("manifest encryption", () => {
     ).rejects.toThrow();
   });
 
-  it("refuses an empty file", async () => {
+  it("accepts an empty file, which still occupies one chunk", async () => {
+    const empty = {
+      protocolVersion: 1 as const,
+      files: [{ name: "a.bin", size: 0, type: "", chunkCount: 1 }],
+    };
+    const sealed = await encryptDropManifest(keys, empty);
+    await expect(decryptDropManifest(keys, sealed, 1)).resolves.toEqual(empty);
+  });
+
+  it("refuses a negative size", async () => {
     await expect(
       encryptDropManifest(keys, {
         protocolVersion: 1,
-        files: [{ name: "a.bin", size: 0, type: "", chunkCount: 1 }],
+        files: [{ name: "a.bin", size: -1, type: "", chunkCount: 1 }],
       }),
     ).rejects.toThrow();
   });

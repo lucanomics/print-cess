@@ -14,21 +14,25 @@ At minimum test the oldest and newest institution-supported combinations:
 - target Windows 10/11 image, display scaling, screen, speakers, keyboard, and kiosk policy;
 - cellular paths from at least two carriers while the desktop uses its production-like wired path.
 
-For every combination run language selection, the help sheet on each step, the photo picker, the
-file picker, PDF/JPG/PNG preview, approve, progress, completion, QR
+For every combination run the language picker in the header, the help sheet on each step, the photo
+picker, the file picker, PDF/JPG/PNG preview, approve, progress, completion, QR
 expiry/reuse, network loss, locked/damaged/oversize document, cancelled picker, refresh/back, and
-reduced-motion paths. On the shared kiosk display, watch one full rotation of the eleven-language
+reduced-motion paths. Add the paths that only appear once a document is committed: a status poll
+that fails and recovers, and one that never recovers. On the shared kiosk display, watch one full rotation of the eleven-language
 scan instruction and confirm no line clips or reflows the layout.
 Record OS/browser version, viewport/scaling, assistive technology, commit/deployment, tester, UTC time,
 result, and sanitized issue link.
 
-The print flow asks for a language on its own screen, because a visitor at a shared kiosk arrives
-with no context. Everything reached from a personal phone — the entry page and both halves of the
-hand-off — instead resolves the language from the request's `Accept-Language` header and renders in
-it directly, with the picker still available. Verify with the phone set to each supported language
-that the first painted screen is already in that language and never visibly changes afterwards, and
-that `<html lang>` and `dir` match it before hydration. A page that loads in English and then
-switches is a defect even though the final state is correct.
+Every screen in the service is opened on the visitor's own phone, so every one of them resolves the
+language from the request's `Accept-Language` header and renders in it directly, with the picker
+available in the header. The print flow used to ask on a screen of its own; it no longer does, and
+a language screen reappearing anywhere is a regression. Verify with the phone set to each supported
+language that the first painted screen is already in that language and never visibly changes
+afterwards, and that `<html lang>` and `dir` match it before hydration. A page that loads in English
+and then switches is a defect even though the final state is correct.
+
+Verify too that scanning lands on the file chooser: nothing may stand between the QR and the choice
+the visitor came to make. The guide belongs in Help, reachable and never blocking.
 
 ## Accessibility protocol
 

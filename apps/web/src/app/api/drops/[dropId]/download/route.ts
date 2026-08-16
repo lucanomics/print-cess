@@ -49,11 +49,14 @@ export async function POST(request: Request, context: { params: Promise<{ dropId
       });
     }
 
-    // Counted once per batch that starts at the first part, which is the
-    // closest thing to "somebody picked this up" the server can know without
-    // learning anything about who or what.
+    // Counted once per batch that starts at the first part. This is the point
+    // at which a download has started, and no more than that: whether any byte
+    // reached the other phone's storage is something only that phone can
+    // report, which it does through the receipt endpoint.
     if (body.indexes.includes(0)) {
-      await server.drops.recordDownload(dropId, Date.now()).catch(() => undefined);
+      await server.drops
+        .recordReceiverEvent(dropId, "downloading", Date.now())
+        .catch(() => undefined);
     }
     return json({ dropId, operations });
   } catch (error) {

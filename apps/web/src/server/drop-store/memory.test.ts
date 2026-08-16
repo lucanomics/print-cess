@@ -20,9 +20,12 @@ function drop(overrides: Partial<DropRecord> = {}): DropRecord {
     manifest: "sealedManifest",
     fileCount: 1,
     partCount: 2,
+    totalBytes: 80,
     parts: [null, null],
     totalCiphertextBytes: 0,
+    openCount: 0,
     downloadCount: 0,
+    deliveredCount: 0,
     createdAt: NOW,
     expiresAt: NOW + 1_800_000,
     revision: 0,
@@ -128,16 +131,50 @@ describe("MemoryDropStore", () => {
     ).rejects.toMatchObject({ status: 409 });
   });
 
-  it("counts a pickup only once the transfer is ready", async () => {
+  it("counts a receiver event only once the transfer is ready", async () => {
     await store.create(drop({ partCount: 1, parts: [{ size: 40 }] }), 600_000);
-    await expect(store.recordDownload(DROP_ID, NOW)).rejects.toMatchObject({ status: 404 });
+    await expect(store.recordReceiverEvent(DROP_ID, "opened", NOW)).rejects.toMatchObject({
+      status: 404,
+    });
     await store.seal(DROP_ID, OWNER, NOW);
-    await expect(store.recordDownload(DROP_ID, NOW)).resolves.toMatchObject({ downloadCount: 1 });
+    await expect(store.recordReceiverEvent(DROP_ID, "opened", NOW)).resolves.toMatchObject({
+      openCount: 1,
+    });
+  });
+
+  it("keeps the three things it knows about the receiver apart", async () => {
+    await store.create(drop({ partCount: 1, parts: [{ size: 40 }] }), 600_000);
+    await store.seal(DROP_ID, OWNER, NOW);
+    await store.recordReceiverEvent(DROP_ID, "opened", NOW);
+    await store.recordReceiverEvent(DROP_ID, "downloading", NOW);
+    // Opening a transfer is not downloading it, and downloading it is not the
+    // same as the other phone reporting that it finished.
+    await expect(store.get(DROP_ID)).resolves.toMatchObject({
+      openCount: 1,
+      downloadCount: 1,
+      deliveredCount: 0,
+    });
+    await store.recordReceiverEvent(DROP_ID, "delivered", NOW);
+    await expect(store.get(DROP_ID)).resolves.toMatchObject({ deliveredCount: 1 });
   });
 
   it("reports an expired transfer as gone rather than merely missing", async () => {
     await store.create(drop({ expiresAt: NOW + 1 }), 600_000);
-    await expect(store.recordDownload(DROP_ID, NOW + 2)).rejects.toMatchObject({ status: 410 });
+    await expect(store.recordReceiverEvent(DROP_ID, "downloading", NOW + 2)).rejects.toMatchObject({
+      status: 410,
+    });
+  });
+
+  it("refuses a commit that would carry more than the declared size", async () => {
+    // The declared size is what the configured ceiling was checked against, so
+    // a sender that under-declared cannot make up the difference in commits.
+    await store.create(drop({ partCount: 1, totalBytes: 32, parts: [null] }), 600_000);
+    await expect(
+      store.commitParts(DROP_ID, OWNER, [{ index: 0, size: 4096 }], NOW),
+    ).rejects.toMatchObject({ status: 413 });
+    await expect(
+      store.commitParts(DROP_ID, OWNER, [{ index: 0, size: 48 }], NOW),
+    ).resolves.toMatchObject({ totalCiphertextBytes: 48 });
   });
 
   it("lists expired transfers so their ciphertext can be erased", async () => {

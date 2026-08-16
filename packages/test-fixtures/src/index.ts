@@ -86,3 +86,16 @@ export function createDisguisedPdf(): Uint8Array {
 export function createDamagedPdf(): Uint8Array {
   return new TextEncoder().encode("%PDF-1.7\n1 0 obj << broken and intentionally truncated");
 }
+
+export {
+  ALL_SAMPLE_GROUPS,
+  ARCHIVE_SAMPLES,
+  AUDIO_SAMPLES,
+  DOCUMENT_SAMPLES,
+  GENERIC_SAMPLES,
+  IMAGE_SAMPLES,
+  NAME_SAMPLES,
+  TEXT_SAMPLES,
+  VIDEO_SAMPLES,
+  type SyntheticFile,
+} from "./formats.js";

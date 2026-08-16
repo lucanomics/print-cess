@@ -1,3 +1,5 @@
+import { dropReceiverState, type DropSenderView } from "@print-cess/protocol";
+
 import { authenticateToken, bearerToken } from "@/server/auth";
 import { ServiceError } from "@/server/errors";
 import { assertAllowedOrigin, errorResponse, json, readDropId } from "@/server/http";
@@ -22,15 +24,19 @@ export async function GET(request: Request, context: { params: Promise<{ dropId:
       drop.ownerTokenHash,
       "drop",
     );
-    return json({
+    const view: DropSenderView = {
       protocolVersion: drop.protocolVersion,
       dropId,
       status: drop.status,
       uploadedPartCount: uploadedPartCount(drop),
       partCount: drop.partCount,
+      receiver: dropReceiverState(drop),
+      openCount: drop.openCount,
       downloadCount: drop.downloadCount,
+      deliveredCount: drop.deliveredCount,
       expiresAt: drop.expiresAt,
-    });
+    };
+    return json(view);
   } catch (error) {
     return errorResponse(error);
   }

@@ -12,12 +12,11 @@ async function openMobileAtFilePicker(
 
   const mobile = await context.newPage();
   await mobile.goto(sessionUrl);
-  await expect(mobile.getByRole("heading", { name: "Choose your language" })).toBeVisible({
+  // Straight to the choice: the language screen and the guide screen no longer
+  // stand between scanning a code and picking a document.
+  await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible({
     timeout: 20_000,
   });
-  await mobile.getByRole("button", { name: "Continue" }).click();
-  await mobile.getByRole("button", { name: "Pick my file" }).click();
-  await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible();
   return mobile;
 }
 

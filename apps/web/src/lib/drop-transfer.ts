@@ -17,9 +17,11 @@ import {
 } from "@print-cess/crypto";
 import {
   DROP_CHUNK_BYTES,
+  DROP_PART_TAG_BYTES,
   MAX_DROP_FILES,
-  MAX_DROP_FILE_NAME_LENGTH,
+  MAX_DROP_MANIFEST_BYTES,
   MAX_DROP_PARTS,
+  MAX_DROP_TOTAL_BYTES,
 } from "@print-cess/protocol";
 
 import {
@@ -32,7 +34,8 @@ import {
   sealDrop,
   type DropOperation,
 } from "./drop-client";
-import { openDropWriter, type DropWriter } from "./drop-writer";
+import { safeFileName, safeMediaType, utf8Length } from "./drop-file-name";
+import type { FileSink, SaveOutcome } from "./drop-save";
 
 /** Parts authorized and transferred together. Matches the API's batch ceiling. */
 const BATCH_SIZE = 8;
@@ -76,25 +79,69 @@ export type PreparedSelection = {
   partCount: number;
 };
 
-export function prepareSelection(files: readonly File[]): PreparedSelection {
+/**
+ * The ceilings a selection is measured against. They default to what the
+ * protocol allows and are narrowed by whatever this deployment publishes, so a
+ * transfer is refused on the phone rather than after several minutes of
+ * uploading into a server that was always going to say no.
+ */
+export type DropLimits = {
+  maximumTotalBytes: number;
+  maximumFileCount: number;
+  maximumParts: number;
+};
+
+export const PROTOCOL_DROP_LIMITS: DropLimits = {
+  maximumTotalBytes: MAX_DROP_TOTAL_BYTES,
+  maximumFileCount: MAX_DROP_FILES,
+  maximumParts: MAX_DROP_PARTS,
+};
+
+const AES_GCM_IV_BYTES = 12;
+
+/**
+ * How large the encrypted file list will be once it is sealed and base64url
+ * encoded. Twenty long Korean or emoji names cost roughly three bytes each in
+ * UTF-8 and then grow by a further third in base64, which is how a selection
+ * the sender was told was fine used to fail at the server with nothing useful
+ * to say. Measuring it here turns that into a sentence about the file names.
+ */
+export function sealedManifestBytes(files: readonly DropManifestFile[]): number {
+  const plaintext = utf8Length(JSON.stringify({ protocolVersion: 1, files }));
+  return Math.ceil((AES_GCM_IV_BYTES + plaintext + DROP_PART_TAG_BYTES) / 3) * 4;
+}
+
+export function prepareSelection(
+  files: readonly File[],
+  limits: DropLimits = PROTOCOL_DROP_LIMITS,
+): PreparedSelection {
   if (files.length < 1) throw new DropTransferError("dropNoFiles");
-  if (files.length > MAX_DROP_FILES) throw new DropTransferError("dropTooManyFiles");
+  if (files.length > Math.min(limits.maximumFileCount, MAX_DROP_FILES)) {
+    throw new DropTransferError("dropTooManyFiles");
+  }
   const accepted: File[] = [];
   const manifestFiles: DropManifestFile[] = [];
   let totalBytes = 0;
   for (const file of files) {
-    if (file.size < 1) throw new DropTransferError("dropEmptyFile");
     accepted.push(file);
     manifestFiles.push({
       name: safeFileName(file.name),
       size: file.size,
-      type: file.type.slice(0, 128),
+      type: safeMediaType(file.type),
       chunkCount: dropChunkCount(file.size),
     });
     totalBytes += file.size;
   }
   const partCount = dropTotalPartCount(manifestFiles);
-  if (partCount > MAX_DROP_PARTS) throw new DropTransferError("dropTooLarge");
+  if (partCount > Math.min(limits.maximumParts, MAX_DROP_PARTS)) {
+    throw new DropTransferError("dropTooLarge");
+  }
+  if (totalBytes > Math.min(limits.maximumTotalBytes, MAX_DROP_TOTAL_BYTES)) {
+    throw new DropTransferError("dropTooLarge");
+  }
+  if (sealedManifestBytes(manifestFiles) > MAX_DROP_MANIFEST_BYTES) {
+    throw new DropTransferError("dropNamesTooLong");
+  }
   return { files: accepted, manifestFiles, totalBytes, partCount };
 }
 
@@ -108,14 +155,22 @@ export async function sendDrop(
   options: {
     signal?: AbortSignal;
     onProgress?: (progress: DropProgress) => void;
-    onCodeReady?: (code: string) => void;
+    /**
+     * Fires once the service holds the transfer record, which is the earliest
+     * moment the code can be shown without a fast receiver being told it is
+     * invalid. The upload continues behind it, so the other phone can scan and
+     * wait instead of watching this one's progress bar.
+     */
+    onDropCreated?: (created: SendResult) => void;
   } = {},
 ): Promise<SendResult> {
   const code = generateDropCode();
-  options.onCodeReady?.(code);
   const keys = await deriveDropKeys(code);
   const manifest: DropManifest = { protocolVersion: 1, files: selection.manifestFiles };
   const sealedManifest = await encryptDropManifest(keys, manifest);
+  if (sealedManifest.length > MAX_DROP_MANIFEST_BYTES) {
+    throw new DropTransferError("dropNamesTooLong");
+  }
   const ownerToken = generateToken(32);
 
   const created = await createDrop({
@@ -124,7 +179,15 @@ export async function sendDrop(
     manifest: sealedManifest,
     fileCount: selection.files.length,
     partCount: selection.partCount,
+    totalBytes: selection.totalBytes,
   });
+  const result: SendResult = {
+    code,
+    dropId: created.dropId,
+    ownerToken,
+    expiresAt: created.expiresAt,
+  };
+  options.onDropCreated?.(result);
 
   const progress: DropProgress = {
     transferredBytes: 0,
@@ -194,7 +257,7 @@ export async function sendDrop(
   }
 
   await withRetry(() => sealDrop(created.dropId, ownerToken), options.signal);
-  return { code, dropId: created.dropId, ownerToken, expiresAt: created.expiresAt };
+  return result;
 }
 
 export type ReceivedDrop = {
@@ -206,12 +269,28 @@ export type ReceivedDrop = {
   expiresAt: number;
 };
 
-/** Reads the file list without downloading a byte of content. */
-export async function inspectDrop(rawCode: string): Promise<ReceivedDrop> {
-  const keys = await deriveDropKeys(rawCode);
+/**
+ * A transfer the receiving phone can already see but not yet read: the code is
+ * correct and the record exists, and the sending phone is still uploading.
+ */
+export type PendingDrop = { state: "collecting"; keys: DropKeys; expiresAt: number };
+
+export type InspectedDrop = ({ state: "ready" } & ReceivedDrop) | PendingDrop;
+
+/**
+ * Reads the file list without downloading a byte of content, or reports that
+ * the sender has not finished yet. Deriving the keys is the expensive half, so
+ * a caller waiting for a pending transfer passes them back in rather than
+ * stretching the same code every few seconds.
+ */
+export async function inspectDrop(
+  rawCode: string | DropKeys,
+  options: { signal?: AbortSignal } = {},
+): Promise<InspectedDrop> {
+  const keys = typeof rawCode === "string" ? await deriveDropKeys(rawCode) : rawCode;
   let view;
   try {
-    view = await openDrop(keys.dropId);
+    view = await openDrop(keys.dropId, options.signal);
   } catch (error) {
     if (error instanceof ApiClientError && error.status === 404) {
       throw new DropTransferError("dropCodeNotFound");
@@ -224,6 +303,9 @@ export async function inspectDrop(rawCode: string): Promise<ReceivedDrop> {
     }
     throw new DropTransferError("dropNetworkError");
   }
+  if (view.state === "collecting") {
+    return { state: "collecting", keys, expiresAt: view.expiresAt };
+  }
   let manifest: DropManifest;
   try {
     manifest = await decryptDropManifest(keys, view.manifest, view.fileCount);
@@ -233,6 +315,7 @@ export async function inspectDrop(rawCode: string): Promise<ReceivedDrop> {
     throw new DropTransferError("dropCodeNotFound");
   }
   return {
+    state: "ready",
     keys,
     dropId: view.dropId,
     manifest,
@@ -243,21 +326,26 @@ export async function inspectDrop(rawCode: string): Promise<ReceivedDrop> {
 }
 
 /**
- * Downloads, authenticates, and writes one file. Chunks are streamed straight
- * into the writer, so the phone never holds more than one chunk plus whatever
- * the writer has not yet flushed.
+ * Downloads, authenticates, and writes one file into the destination the
+ * visitor already chose. Chunks are streamed straight into the sink, so the
+ * phone never holds more than one chunk plus whatever the sink has not yet
+ * flushed — a two-gigabyte file costs the same working set as an eight-
+ * megabyte one.
+ *
+ * The outcome comes back from the sink rather than being assumed here, because
+ * only the sink knows whether a file was written or a download was started.
  */
 export async function receiveDropFile(
   drop: ReceivedDrop,
   fileIndex: number,
+  sink: FileSink,
   options: {
     signal?: AbortSignal;
     onProgress?: (progress: DropProgress) => void;
   } = {},
-): Promise<void> {
+): Promise<SaveOutcome> {
   const file = drop.manifest.files[fileIndex];
   if (!file) throw new DropTransferError("dropFileMissing");
-  const writer: DropWriter = await openDropWriter(file);
   const fileKey = await deriveDropFileKey(drop.keys, fileIndex);
   const progress: DropProgress = {
     transferredBytes: 0,
@@ -314,7 +402,7 @@ export async function receiveDropFile(
         } finally {
           ciphertext.fill(0);
         }
-        await writer.write(plaintext);
+        await sink.write(plaintext);
         progress.transferredBytes += plaintext.byteLength;
         progress.completedParts += 1;
         plaintext.fill(0);
@@ -322,9 +410,9 @@ export async function receiveDropFile(
       }
     }
     if (progress.transferredBytes !== file.size) throw new DropTransferError("dropDamaged");
-    await writer.finish();
+    return await sink.finish();
   } catch (error) {
-    await writer.abort();
+    await sink.abort();
     throw error;
   }
 }
@@ -399,8 +487,10 @@ async function putCiphertext(
 ): Promise<void> {
   const response = await fetch(operation.url, {
     method: "PUT",
+    // `slice` copies through the buffer rather than element by element, which
+    // matters when the element count is eight million.
     headers: operation.headers,
-    body: Uint8Array.from(bytes).buffer,
+    body: bytes.slice().buffer,
     signal: combineSignals(signal, 180_000),
   });
   if (!response.ok) {
@@ -510,20 +600,6 @@ function combineSignals(signal: AbortSignal | undefined, timeoutMs: number): Abo
 
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DropTransferError("dropCancelled");
-}
-
-/**
- * A name arrives from another person's device, so it is treated as untrusted
- * text: path separators and control characters are removed before it can reach
- * a file system, and the length is bounded.
- */
-function safeFileName(name: string): string {
-  const cleaned = name
-    .replace(/[\u0000-\u001f\u007f/\\:*?"<>|]/gu, "_")
-    .replace(/^\.+/u, "_")
-    .trim();
-  const bounded = cleaned.slice(0, MAX_DROP_FILE_NAME_LENGTH);
-  return bounded.length > 0 ? bounded : "file";
 }
 
 export { safeFileName };

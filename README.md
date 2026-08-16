@@ -11,8 +11,11 @@
 This private repository contains the mobile transfer service, public browser kiosk, shared
 protocol, and Windows kiosk for a no-login, one-document, one-copy print flow. It also carries a
 phone-to-phone file hand-off at `/send` and `/receive`: end-to-end encrypted, chunked for large
-files, and needing no kiosk — see `docs/FILE_TRANSFER.md`. Development uses encrypted local
-adapters; production integrations require separately approved Vercel and Upstash resources.
+files, format blind, and needing no kiosk — see `docs/FILE_TRANSFER.md` for how it moves bytes and
+`docs/FILE_COMPATIBILITY.md` for what it will carry, what it does to a file name, and where a
+received file actually ends up. `docs/DOCUMENT_JOURNEY.md` is the design record for what the
+screens say. Development uses encrypted local adapters; production integrations require separately
+approved Vercel and Upstash resources.
 
 The complete setup, security boundaries, test commands, macOS browser-kiosk procedure, Windows
 deployment procedure, and remaining production blockers are documented in `docs/`. Never use real

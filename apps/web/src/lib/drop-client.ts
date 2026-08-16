@@ -1,4 +1,4 @@
-import type { DropOpenView, DropSenderView } from "@print-cess/protocol";
+import type { DropCapabilities, DropOpenResponse, DropSenderView } from "@print-cess/protocol";
 
 import { ApiClientError } from "./api-client";
 
@@ -21,11 +21,17 @@ export type CreatedDrop = {
   maximumPartBytes: number;
 };
 
-async function dropJson<T>(url: string, init: RequestInit, timeoutMs = 20_000): Promise<T> {
+async function dropJson<T>(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 20_000,
+  signal?: AbortSignal,
+): Promise<T> {
+  const timeout = AbortSignal.timeout(timeoutMs);
   const response = await fetch(url, {
     ...init,
     cache: "no-store",
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
   });
   const body = (await response.json().catch(() => ({}))) as {
     error?: { code?: string; message?: string };
@@ -47,12 +53,22 @@ function ownerHeaders(ownerToken: string, json = true): Record<string, string> {
   };
 }
 
+/**
+ * The published product limits, fetched before a selection is measured so the
+ * sender is refused on their own phone rather than after a long upload. It
+ * carries nothing about the infrastructure and needs no credential.
+ */
+export async function getDropCapabilities(signal?: AbortSignal): Promise<DropCapabilities> {
+  return dropJson<DropCapabilities>("/api/drops/capabilities", { method: "GET" }, 10_000, signal);
+}
+
 export async function createDrop(input: {
   dropId: string;
   ownerTokenHash: string;
   manifest: string;
   fileCount: number;
   partCount: number;
+  totalBytes: number;
 }): Promise<CreatedDrop> {
   return dropJson<CreatedDrop>("/api/drops", {
     method: "POST",
@@ -107,12 +123,30 @@ export async function revokeDrop(dropId: string, ownerToken: string): Promise<vo
   });
 }
 
-export async function openDrop(dropId: string): Promise<DropOpenView> {
-  return dropJson<DropOpenView>(`/api/drops/${dropId}/open`, {
+export async function openDrop(dropId: string, signal?: AbortSignal): Promise<DropOpenResponse> {
+  return dropJson<DropOpenResponse>(
+    `/api/drops/${dropId}/open`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    },
+    20_000,
+    signal,
+  );
+}
+
+/**
+ * Tells the sending phone that a receiver's own flow finished handling every
+ * file. It carries no identity, no file name, and no destination — only that
+ * somebody holding the transfer code got to the end.
+ */
+export async function reportDropDelivered(dropId: string): Promise<void> {
+  await dropJson(`/api/drops/${dropId}/receipt`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: "{}",
-  });
+  }).catch(() => undefined);
 }
 
 export async function authorizeDropDownload(

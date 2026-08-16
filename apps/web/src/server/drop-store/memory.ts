@@ -1,8 +1,14 @@
 import type { DropRecord } from "@print-cess/protocol";
 
-import type { DropPartCommit, DropStore } from "../contracts";
+import type { DropPartCommit, DropReceiverEvent, DropStore } from "../contracts";
 import { ServiceError } from "../errors";
-import { applyPartCommits, assertSealable, requireOwner, type DropMutation } from "./transitions";
+import {
+  applyPartCommits,
+  applyReceiverEvent,
+  assertSealable,
+  requireOwner,
+  type DropMutation,
+} from "./transitions";
 
 type StoredDrop = { drop: DropRecord; retentionExpiresAt: number };
 
@@ -51,13 +57,12 @@ export class MemoryDropStore implements DropStore {
     });
   }
 
-  public async recordDownload(dropId: string, now: number): Promise<DropRecord> {
-    return this.mutate(dropId, now, (drop) => {
-      if (drop.status !== "ready") {
-        throw new ServiceError("not_found", "This transfer is not ready yet.", 404);
-      }
-      return { ...drop, downloadCount: drop.downloadCount + 1, revision: drop.revision + 1 };
-    });
+  public async recordReceiverEvent(
+    dropId: string,
+    event: DropReceiverEvent,
+    now: number,
+  ): Promise<DropRecord> {
+    return this.mutate(dropId, now, (drop) => applyReceiverEvent(drop, event));
   }
 
   public async remove(dropId: string): Promise<void> {

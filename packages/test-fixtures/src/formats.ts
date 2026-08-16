@@ -1,0 +1,207 @@
+/**
+ * Synthetic samples for the file-compatibility matrix.
+ *
+ * The hand-off is format blind: it moves bytes, a name, and an optional media
+ * type, and never parses what it is carrying. These fixtures exist to prove
+ * that claim rather than to assume it, so each one begins with the real magic
+ * bytes of the format it stands for — enough that a `file`-style sniffer would
+ * name it correctly — and continues with deterministic filler.
+ *
+ * They are deliberately not valid documents. Nothing in the transfer path reads
+ * past the first byte, and building real Office or video files here would add
+ * heavy dependencies to prove something the transport does not depend on.
+ * Never put a real personal document in this repository.
+ */
+
+export type SyntheticFile = {
+  name: string;
+  /** What a phone would report. Empty is common and must be carried as empty. */
+  mediaType: string;
+  bytes: Uint8Array;
+};
+
+/**
+ * Deterministic filler, so a failing digest points at the transfer rather than
+ * at a fixture that changed between runs. Every sample gets different bytes,
+ * which is what makes a digest comparison mean anything at all.
+ */
+function filler(seed: number, length: number): Uint8Array {
+  const bytes = new Uint8Array(length);
+  let state = (seed * 2_654_435_761) >>> 0;
+  for (let index = 0; index < length; index += 1) {
+    state = (state * 1_664_525 + 1_013_904_223) >>> 0;
+    bytes[index] = (state >>> 24) & 0xff;
+  }
+  return bytes;
+}
+
+function bytesFrom(...parts: (string | number[] | Uint8Array)[]): Uint8Array {
+  const chunks = parts.map((part) =>
+    typeof part === "string"
+      ? new TextEncoder().encode(part)
+      : part instanceof Uint8Array
+        ? part
+        : Uint8Array.from(part),
+  );
+  const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
+let seed = 0;
+function sample(
+  name: string,
+  mediaType: string,
+  ...parts: (string | number[] | Uint8Array)[]
+): SyntheticFile {
+  seed += 1;
+  return { name, mediaType, bytes: bytesFrom(...parts, filler(seed, 512 + seed * 7)) };
+}
+
+const OLE = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+const ZIP = [0x50, 0x4b, 0x03, 0x04];
+const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const JPEG = [0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10];
+const GZIP = [0x1f, 0x8b, 0x08];
+
+/** Documents, including the Hancom formats this service exists for. */
+export const DOCUMENT_SAMPLES: SyntheticFile[] = [
+  sample("report.pdf", "application/pdf", "%PDF-1.7\n%âãÏÓ\n"),
+  sample("minutes.doc", "application/msword", OLE),
+  sample(
+    "minutes.docx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ZIP,
+  ),
+  sample("budget.xls", "application/vnd.ms-excel", OLE),
+  sample("budget.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ZIP),
+  sample("deck.ppt", "application/vnd.ms-powerpoint", OLE),
+  sample(
+    "deck.pptx",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ZIP,
+  ),
+  // Phones commonly report no media type at all for Hancom documents.
+  sample("임대차계약서.hwp", "", OLE),
+  sample("전입신고서.hwpx", "", ZIP, "mimetypeapplication/hwp+zip"),
+  sample("letter.rtf", "application/rtf", "{\\rtf1\\ansi\\deff0 "),
+  sample("notes.odt", "application/vnd.oasis.opendocument.text", ZIP),
+  sample("totals.ods", "application/vnd.oasis.opendocument.spreadsheet", ZIP),
+  sample("slides.odp", "application/vnd.oasis.opendocument.presentation", ZIP),
+];
+
+/** Text and structured data, where an encoding mistake would be visible. */
+export const TEXT_SAMPLES: SyntheticFile[] = [
+  sample("readme.txt", "text/plain", "Print-cess synthetic fixture\nline two\n"),
+  sample("rows.csv", "text/csv", "name,size\nsample,1\n"),
+  sample("rows.tsv", "text/tab-separated-values", "name\tsize\nsample\t1\n"),
+  sample("notes.md", "text/markdown", "# Sample\n\nSynthetic fixture.\n"),
+  sample("data.json", "application/json", '{"sample":true}\n'),
+  sample("data.xml", "application/xml", '<?xml version="1.0"?><sample/>\n'),
+  sample("config.yaml", "application/yaml", "sample: true\n"),
+  sample("config.yml", "", "sample: true\n"),
+  sample("page.html", "text/html", "<!doctype html><title>Sample</title>\n"),
+  sample("styles.css", "text/css", ".sample { color: #008a8a; }\n"),
+  sample("script.js", "text/javascript", "export const sample = true;\n"),
+  sample("schema.sql", "application/sql", "SELECT 1;\n"),
+];
+
+export const IMAGE_SAMPLES: SyntheticFile[] = [
+  sample("photo.jpg", "image/jpeg", JPEG, "JFIF"),
+  sample("photo.jpeg", "image/jpeg", JPEG, "JFIF"),
+  sample("diagram.png", "image/png", PNG),
+  // HEIC and HEIF are ISO base media files whose brand follows a size field.
+  sample("holiday.heic", "image/heic", [0, 0, 0, 0x18], "ftypheic"),
+  sample("holiday.heif", "image/heif", [0, 0, 0, 0x18], "ftypmif1"),
+  sample("banner.webp", "image/webp", "RIFF", [0, 0, 0, 0], "WEBPVP8 "),
+  sample("loop.gif", "image/gif", "GIF89a"),
+  sample("scan.bmp", "image/bmp", "BM"),
+  sample("scan.tiff", "image/tiff", [0x49, 0x49, 0x2a, 0x00]),
+  sample("logo.svg", "image/svg+xml", '<svg xmlns="http://www.w3.org/2000/svg"/>'),
+];
+
+export const AUDIO_SAMPLES: SyntheticFile[] = [
+  sample("song.mp3", "audio/mpeg", "ID3", [0x04, 0x00, 0x00, 0, 0, 0, 0]),
+  sample("voice.m4a", "audio/mp4", [0, 0, 0, 0x18], "ftypM4A "),
+  sample("clip.aac", "audio/aac", [0xff, 0xf1, 0x50, 0x80]),
+  sample("tone.wav", "audio/wav", "RIFF", [0, 0, 0, 0], "WAVEfmt "),
+  sample("master.flac", "audio/flac", "fLaC"),
+  sample("speech.ogg", "audio/ogg", "OggS", [0x00, 0x02]),
+  sample("speech.opus", "audio/opus", "OggS", [0x00, 0x02], "OpusHead"),
+];
+
+export const VIDEO_SAMPLES: SyntheticFile[] = [
+  sample("clip.mp4", "video/mp4", [0, 0, 0, 0x18], "ftypisom"),
+  sample("clip.mov", "video/quicktime", [0, 0, 0, 0x14], "ftypqt  "),
+  sample("clip.webm", "video/webm", [0x1a, 0x45, 0xdf, 0xa3]),
+  sample("clip.mkv", "video/x-matroska", [0x1a, 0x45, 0xdf, 0xa3]),
+  sample("clip.avi", "video/x-msvideo", "RIFF", [0, 0, 0, 0], "AVI LIST"),
+];
+
+export const ARCHIVE_SAMPLES: SyntheticFile[] = [
+  sample("bundle.zip", "application/zip", ZIP),
+  sample("bundle.7z", "application/x-7z-compressed", [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]),
+  sample("bundle.rar", "application/vnd.rar", "Rar!", [0x1a, 0x07, 0x00]),
+  // A tar's signature lives at offset 257, well past anything the transfer reads.
+  sample("bundle.tar", "application/x-tar", new Uint8Array(257), "ustar\u000000"),
+  sample("bundle.tar.gz", "application/gzip", GZIP),
+  sample("bundle.tgz", "application/gzip", GZIP),
+  sample("notes.gz", "application/gzip", GZIP),
+];
+
+/**
+ * The cases a general transport has to carry precisely because nothing can
+ * identify them: unknown types, no type, no extension, and a media type that
+ * actively lies about the bytes behind it.
+ */
+export const GENERIC_SAMPLES: SyntheticFile[] = [
+  sample("firmware.bin", "application/octet-stream", [0x00, 0x01, 0x02, 0x03]),
+  sample("payload.xyzzy", "application/octet-stream", [0xde, 0xad, 0xbe, 0xef]),
+  sample("LICENSE", "", "All rights reserved.\n"),
+  sample("Makefile", "", "all:\n\techo sample\n"),
+  sample(".gitignore", "", "node_modules\n"),
+  sample("archive.tar.gz.part1.of.2", "", GZIP),
+  // The bytes are a PNG and the type says PDF. The transfer must not care, and
+  // must not "correct" either one.
+  sample("misleading.pdf", "image/png", PNG),
+  sample("no-type-at-all.dat", "", [0x7f, 0x45, 0x4c, 0x46]),
+];
+
+/**
+ * File names, in the scripts this service actually serves and in the shapes
+ * that break naive handling. The bytes barely matter here; the name is the
+ * thing under test.
+ */
+export const NAME_SAMPLES: SyntheticFile[] = [
+  sample("전입신고서 (사본).hwpx", "", ZIP),
+  sample("报销单-2026.xlsx", "", ZIP),
+  sample("請求書・控え.pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("فاتورة الكهرباء.pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("बिजली का बिल.pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("hóa đơn tiền điện.pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("faktur listrik (revisi 2).pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("resibo ng bayad.pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("résumé — février.pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("🎉 party plan 🎊.pdf", "application/pdf", "%PDF-1.7\n"),
+  sample("my.holiday.photo.2026.jpeg", "image/jpeg", JPEG),
+  // Composed and decomposed spellings of the same Korean word are different
+  // strings, and both have to survive unchanged.
+  sample("\uc11c\uc6b8.txt", "text/plain", "composed\n"),
+  sample("\u1109\u1165\u110b\u116e\u11af.txt", "text/plain", "decomposed\n"),
+];
+
+export const ALL_SAMPLE_GROUPS: { group: string; files: SyntheticFile[] }[] = [
+  { group: "documents", files: DOCUMENT_SAMPLES },
+  { group: "text", files: TEXT_SAMPLES },
+  { group: "images", files: IMAGE_SAMPLES },
+  { group: "audio", files: AUDIO_SAMPLES },
+  { group: "video", files: VIDEO_SAMPLES },
+  { group: "archives", files: ARCHIVE_SAMPLES },
+  { group: "generic", files: GENERIC_SAMPLES },
+  { group: "names", files: NAME_SAMPLES },
+];

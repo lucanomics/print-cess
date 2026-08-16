@@ -1,58 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Languages } from "lucide-react";
-
+import type { ReactNode } from "react";
 import {
-  isRightToLeft,
-  LOCALE_NAMES,
-  matchLocale,
-  SUPPORTED_LOCALES,
-  translate,
-  type SupportedLocale,
-} from "@print-cess/i18n";
+  File,
+  FileArchive,
+  FileAudio,
+  FileCode2,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileType,
+  FileVideo,
+  Languages,
+  Presentation,
+} from "lucide-react";
+
+import { LOCALE_NAMES, SUPPORTED_LOCALES, type SupportedLocale } from "@print-cess/i18n";
 import { ScreenShell, Wordmark } from "@print-cess/ui";
 
-export type Text = (key: string, values?: Record<string, string | number>) => string;
+import { dropFileKind, dropFileKindLabelKey, type DropFileKind } from "@/lib/drop-file-kind";
+import { useVisitorLocale, type Text } from "@/lib/use-visitor-locale";
+
+export type { Text };
 
 /**
- * The printing flow asks for a language on its own screen because the visitor
- * arrives from a shared kiosk with no context. Someone sending a file arrives
- * from their own phone, so the browser already knows the answer; the picker
- * stays available but never blocks the first screen.
+ * Both halves of the hand-off and the printing flow resolve the visitor's
+ * language the same way, through one hook, so they cannot drift into two
+ * answers to the same question.
  */
-export function useDropLocale(
-  initialLocale: SupportedLocale = "en",
-): [SupportedLocale, (locale: SupportedLocale) => void, Text] {
-  // The browser's preference is read as an external snapshot rather than in an
-  // effect, so server rendering and hydration each have one defined answer.
-  //
-  // The server already resolved a language from `Accept-Language` and rendered
-  // in it, so that is the snapshot to hand back during hydration. Defaulting to
-  // English here instead would make a Korean visitor watch the page load in
-  // English and then change under them.
-  const detected = useSyncExternalStore(subscribeNever, readBrowserLocale, () => initialLocale);
-  const [chosen, setChosen] = useState<SupportedLocale>();
-  const locale = chosen ?? detected;
-  const setLocale = useCallback((next: SupportedLocale) => setChosen(next), []);
-
-  useEffect(() => {
-    document.documentElement.lang = locale;
-    document.documentElement.dir = isRightToLeft(locale) ? "rtl" : "ltr";
-  }, [locale]);
-
-  const text = useCallback<Text>((key, values) => translate(locale, key, values), [locale]);
-  return [locale, setLocale, text];
-}
-
-function subscribeNever(): () => void {
-  // Language preferences do not change while a transfer screen is open.
-  return () => {};
-}
-
-function readBrowserLocale(): SupportedLocale {
-  return matchLocale(navigator.languages);
-}
+export const useDropLocale = useVisitorLocale;
 
 export function DropShell({
   locale,
@@ -122,6 +98,52 @@ export function TransferBar({
     </div>
   );
 }
+
+/**
+ * One file in a list, on either side of a hand-off.
+ *
+ * The icon and the category come from the extension and the declared media
+ * type alone. Nothing here opens the file to find out what it is: a hand-off
+ * service that parses arbitrary formats to choose a picture has taken on every
+ * parser as an attack surface, in exchange for an icon.
+ */
+export function FileRow({
+  file,
+  text,
+}: {
+  file: { name: string; size: number; type: string };
+  text: Text;
+}) {
+  const kind = dropFileKind(file.name, file.type);
+  const Icon = FILE_KIND_ICONS[kind];
+  return (
+    <div className="drop-file__row">
+      <span className="drop-file__icon" aria-hidden="true">
+        <Icon />
+      </span>
+      <span className="drop-file__detail">
+        <span className="drop-file-list__name">{file.name}</span>
+        <span className="drop-file-list__size">
+          {text(dropFileKindLabelKey(kind))} · {formatBytes(file.size)}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+const FILE_KIND_ICONS: Record<DropFileKind, typeof FileText> = {
+  pdf: FileType,
+  image: FileImage,
+  video: FileVideo,
+  audio: FileAudio,
+  archive: FileArchive,
+  document: FileText,
+  sheet: FileSpreadsheet,
+  slides: Presentation,
+  text: FileCode2,
+  hancom: FileType,
+  file: File,
+};
 
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

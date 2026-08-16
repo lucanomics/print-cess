@@ -10,6 +10,7 @@ import {
   DROP_PART_TAG_BYTES,
   MAX_DROP_FILES,
   MAX_DROP_FILE_NAME_LENGTH,
+  MAX_DROP_MIME_LENGTH,
   MAX_DROP_PARTS,
   normalizeDropCode,
 } from "@print-cess/protocol";
@@ -131,8 +132,13 @@ export async function encryptDropChunk(
   context: DropChunkContext,
   plaintext: Uint8Array,
 ): Promise<Uint8Array> {
-  if (plaintext.byteLength < 1 || plaintext.byteLength > DROP_CHUNK_BYTES) {
-    throw new Error("A drop chunk must hold between one byte and the chunk size");
+  // An empty file is a real file, and a general transport that refuses one is
+  // simply broken. AES-GCM over empty plaintext yields the authentication tag
+  // alone, which is a complete, authenticated, correctly sized part: the
+  // chunk's position and its transfer are still bound through the same AAD, so
+  // nothing about the security argument changes.
+  if (plaintext.byteLength > DROP_CHUNK_BYTES) {
+    throw new Error("A drop chunk must not exceed the chunk size");
   }
   const ciphertext = await cryptoRuntime().subtle.encrypt(
     {
@@ -325,9 +331,9 @@ function assertManifest(value: unknown): asserts value is DropManifest {
       file.name.length < 1 ||
       file.name.length > MAX_DROP_FILE_NAME_LENGTH ||
       typeof file.type !== "string" ||
-      file.type.length > 128 ||
+      file.type.length > MAX_DROP_MIME_LENGTH ||
       !Number.isSafeInteger(file.size) ||
-      file.size < 1 ||
+      file.size < 0 ||
       !Number.isSafeInteger(file.chunkCount) ||
       file.chunkCount < 1 ||
       file.chunkCount > MAX_DROP_PARTS ||

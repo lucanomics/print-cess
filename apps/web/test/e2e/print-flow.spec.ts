@@ -23,7 +23,12 @@ async function openSession(page: Page, kioskPath = "/kiosk"): Promise<string> {
   return (await qr.getAttribute("data-session-url"))!;
 }
 
-async function openMobileAtLanguage(
+/**
+ * Scanning lands on the file chooser. There is no language screen and no guide
+ * screen in front of it: the browser already carries the visitor's language,
+ * and the guide is in Help for whoever wants it.
+ */
+async function openMobile(
   kiosk: Page,
   context: BrowserContext,
   kioskPath = "/kiosk",
@@ -31,25 +36,17 @@ async function openMobileAtLanguage(
   const sessionUrl = await openSession(kiosk, kioskPath);
   const mobile = await context.newPage();
   await mobile.goto(sessionUrl);
-  await expect(mobile.getByRole("heading", { name: "Choose your language" })).toBeVisible({
+  await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible({
     timeout: 20_000,
   });
   return { mobile, sessionUrl };
-}
-
-async function reachFilePicker(mobile: Page): Promise<void> {
-  await mobile.getByRole("button", { name: "Continue" }).click();
-  await expect(mobile.getByRole("heading", { name: "How to print" })).toBeVisible();
-  await mobile.getByRole("button", { name: "Pick my file" }).click();
-  await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible();
 }
 
 test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   page,
   context,
 }) => {
-  const { mobile } = await openMobileAtLanguage(page, context, "/kiosk?printing=auto");
-  await reachFilePicker(mobile);
+  const { mobile } = await openMobile(page, context, "/kiosk?printing=auto");
   await mobile.getByTestId("file-input").setInputFiles({
     name: "synthetic-ticket.png",
     mimeType: "image/png",
@@ -103,7 +100,7 @@ test("ending a visit tells the browser to drop this origin's data", async ({ req
 });
 
 test("a captured QR cannot be claimed by a second phone", async ({ page, context }) => {
-  const { sessionUrl } = await openMobileAtLanguage(page, context);
+  const { sessionUrl } = await openMobile(page, context);
   const second = await context.newPage();
   await second.goto(sessionUrl);
   await expect(second.getByText(/already using this QR code/u)).toBeVisible();
@@ -114,7 +111,7 @@ test("missing or refreshed fragment fails closed", async ({ page, context }) => 
   await expect(page.getByText(/This link is not complete/u)).toBeVisible();
 
   const kiosk = await context.newPage();
-  const { mobile } = await openMobileAtLanguage(kiosk, context);
+  const { mobile } = await openMobile(kiosk, context);
   await mobile.reload();
   await expect(mobile.getByText(/This link is not complete/u)).toBeVisible();
 });
@@ -142,8 +139,7 @@ test("a claim network interruption produces a recovery instruction", async ({ pa
 });
 
 test("large files are rejected before encryption", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await reachFilePicker(mobile);
+  const { mobile } = await openMobile(page, context);
   await mobile.getByTestId("file-input").setInputFiles({
     name: "too-large.pdf",
     mimeType: "application/pdf",
@@ -153,8 +149,7 @@ test("large files are rejected before encryption", async ({ page, context }) => 
 });
 
 test("cancelling a file picker keeps the claimed session ready", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await reachFilePicker(mobile);
+  const { mobile } = await openMobile(page, context);
   await mobile.getByTestId("file-input").dispatchEvent("cancel");
   await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "Open my photos" })).toBeVisible();
@@ -162,8 +157,7 @@ test("cancelling a file picker keeps the claimed session ready", async ({ page, 
 });
 
 test("a gallery photo taken sideways reaches the preview", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await reachFilePicker(mobile);
+  const { mobile } = await openMobile(page, context);
   await mobile.getByTestId("photo-input").setInputFiles({
     name: "synthetic-sideways.jpg",
     mimeType: "image/jpeg",
@@ -179,8 +173,7 @@ test("a gallery photo taken sideways reaches the preview", async ({ page, contex
 });
 
 test("a locked PDF is rejected with a safe alternative", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await reachFilePicker(mobile);
+  const { mobile } = await openMobile(page, context);
   await mobile.getByTestId("file-input").setInputFiles({
     name: "synthetic-locked.pdf",
     mimeType: "application/pdf",
@@ -190,8 +183,7 @@ test("a locked PDF is rejected with a safe alternative", async ({ page, context 
 });
 
 test("a synthetic PDF is validated and previewed", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await reachFilePicker(mobile);
+  const { mobile } = await openMobile(page, context);
   await mobile.getByTestId("file-input").setInputFiles({
     name: "synthetic-confirmation.pdf",
     mimeType: "application/pdf",
@@ -203,41 +195,56 @@ test("a synthetic PDF is validated and previewed", async ({ page, context }) => 
   await expect(mobile.locator("canvas")).toBeVisible({ timeout: 30_000 });
 });
 
-test("language selection shows a localized guide and help sheet", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await mobile.getByLabel("한국어").check();
+test("the language picker and the guide are available without blocking anything", async ({
+  page,
+  context,
+}) => {
+  const { mobile } = await openMobile(page, context);
 
+  // The picker is in the header, so changing language costs nothing and
+  // interrupts nothing.
+  await mobile.getByLabel("Choose your language").selectOption("ko");
+  await expect(mobile.getByRole("heading", { name: "인쇄할 문서 한 개를 고르세요" })).toBeVisible();
+  await expect(mobile.locator("html")).toHaveAttribute("lang", "ko");
+
+  // The guide that used to be a screen of its own is one tap away from the
+  // screen that needs it.
   const sheet = mobile.getByRole("dialog");
-  await mobile.getByRole("button", { name: "도움이 필요해요" }).click();
+  await mobile.getByRole("button", { name: "어떻게 쓰나요?" }).click();
   await expect(sheet.getByRole("heading", { name: "지금 무엇을 하면 되나요?" })).toBeVisible();
-  await expect(sheet.getByText(/내 언어가 적힌 칸을 누르세요/u)).toBeVisible();
+  await expect(sheet.getByText("1. QR코드 스캔하기")).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "인쇄할 문서가 어디에 있나요?" })).toBeVisible();
+  await expect(sheet.getByText("카카오톡에 있어요", { exact: true })).toBeVisible();
   await expect(sheet.getByText(/직원에게 도움을 요청하세요/u)).toBeVisible();
   await sheet.getByRole("button", { name: "알겠어요" }).click();
   await expect(sheet).toBeHidden();
 
-  await mobile.getByRole("button", { name: "계속" }).click();
-  await expect(mobile.getByRole("heading", { name: "인쇄 방법" })).toBeVisible();
-  await expect(mobile.getByText("1. QR코드 스캔하기")).toBeVisible();
-  await mobile.getByRole("button", { name: "문서 고르기", exact: true }).click();
+  // The picker screen itself stays down to two actions plus the quiet link.
   await expect(mobile.getByRole("button", { name: "사진에서 고르기" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "파일에서 고르기" })).toBeVisible();
-
-  // The places a document usually hides belong in the help sheet, not on the
-  // picker screen, which stays down to two actions.
   await expect(mobile.getByText("카카오톡")).toHaveCount(0);
-  await expect(mobile.getByText("이메일")).toHaveCount(0);
-  await mobile.getByRole("button", { name: "도움이 필요해요" }).click();
-  await expect(sheet.getByRole("heading", { name: "인쇄할 문서가 어디에 있나요?" })).toBeVisible();
-  await expect(sheet.getByText("카카오톡에 있어요", { exact: true })).toBeVisible();
-  await expect(sheet.getByText("이메일에 있어요", { exact: true })).toBeVisible();
-  await expect(sheet.getByText("문서가 없어요", { exact: true })).toBeVisible();
 
   const accessibility = await new AxeBuilder({ page: mobile }).analyze();
   expect(accessibility.violations).toEqual([]);
 });
 
+test("the kiosk stops asking for a scan once a phone has connected", async ({ page, context }) => {
+  const { mobile } = await openMobile(page, context);
+
+  // The QR is no longer valid and the work is on the visitor's phone, so the
+  // shared screen says where to look instead of repeating an instruction the
+  // visitor has already carried out.
+  await expect(page.locator("[data-kiosk-state='connected']")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".kiosk-connected__badge")).toContainText("휴대전화가 연결됐어요");
+  await expect(page.locator(".kiosk-connected__headline")).toContainText("휴대전화에서 계속하세요");
+  await expect(page.locator(".kiosk-qr")).toHaveCount(0);
+  // The public screen never names the document, only its stage.
+  await expect(page.getByTestId("kiosk-document-token")).toBeVisible();
+  expect(await mobile.title()).toBeTruthy();
+});
+
 test("browser Back never restores QR credentials after claim", async ({ page, context }) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
+  const { mobile } = await openMobile(page, context);
   await mobile.goBack();
   expect(mobile.url()).not.toMatch(/[#&](?:t|fp)=/u);
 });
@@ -246,7 +253,7 @@ test("@viewport primary controls fit and pass basic accessibility checks", async
   page,
   context,
 }, testInfo) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
+  const { mobile } = await openMobile(page, context);
   if (testInfo.project.name !== "iphone") {
     for (let attempt = 0; attempt < 8; attempt += 1) {
       await mobile.keyboard.press("Tab");
@@ -259,14 +266,10 @@ test("@viewport primary controls fit and pass basic accessibility checks", async
   expect(accessibility.violations).toEqual([]);
 });
 
-test("@viewport Arabic picture guide is right-to-left and fits the screen", async ({
-  page,
-  context,
-}) => {
-  const { mobile } = await openMobileAtLanguage(page, context);
-  await mobile.getByLabel("العربية").check();
-  await mobile.getByRole("button", { name: "متابعة" }).click();
-  await expect(mobile.getByRole("heading", { name: "كيف تطبع" })).toBeVisible();
+test("@viewport Arabic reads right-to-left and fits the screen", async ({ page, context }) => {
+  const { mobile } = await openMobile(page, context);
+  await mobile.getByLabel("Choose your language").selectOption("ar");
+
   await expect(mobile.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(mobile.locator("html")).toHaveAttribute("lang", "ar");
   expect(
@@ -274,7 +277,6 @@ test("@viewport Arabic picture guide is right-to-left and fits the screen", asyn
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     ),
   ).toBe(0);
-  await expect(mobile.getByRole("button", { name: "اختيار ملفي" })).toBeVisible();
   const accessibility = await new AxeBuilder({ page: mobile }).analyze();
   expect(accessibility.violations).toEqual([]);
 });

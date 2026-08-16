@@ -1,6 +1,4 @@
-import { DROP_CODE_PATTERN, normalizeDropCode } from "@print-cess/protocol";
-
-import { parseDropFragment } from "./drop-link";
+import { parseDropCode } from "./drop-link";
 
 /**
  * Reads a transfer code off the sending phone's screen with the camera.
@@ -97,7 +95,7 @@ export async function startDropScanner(video: HTMLVideoElement): Promise<DropSca
     try {
       if (video.readyState >= 2) {
         for (const detection of await detector.detect(video)) {
-          const code = readTransferCode(detection.rawValue);
+          const code = parseDropCode(detection.rawValue);
           if (code) {
             finish(code);
             return;
@@ -112,19 +110,4 @@ export async function startDropScanner(video: HTMLVideoElement): Promise<DropSca
   timer = window.setTimeout(() => void tick(), SCAN_INTERVAL_MS);
 
   return { stream, codes, stop };
-}
-
-/**
- * Accepts either shape a code can arrive in: the full link this service prints
- * into its QR, or a bare code somebody re-encoded by hand.
- */
-export function readTransferCode(rawValue: string): string | null {
-  try {
-    const fromLink = parseDropFragment(new URL(rawValue, "https://placeholder.invalid").hash);
-    if (fromLink) return fromLink;
-  } catch {
-    // Not a URL; fall through to the bare-code reading below.
-  }
-  const bare = normalizeDropCode(rawValue);
-  return DROP_CODE_PATTERN.test(bare) ? bare : null;
 }

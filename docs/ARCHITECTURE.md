@@ -4,7 +4,10 @@
 
 Print-cess by Paradiso is a one-document, one-copy transfer and printing system. It also carries a
 separate phone-to-phone file hand-off that reuses the blob and cleanup machinery but none of the
-print session state machine; that subsystem is documented in `FILE_TRANSFER.md`.
+print session state machine; that subsystem is documented in `FILE_TRANSFER.md`, its format and
+file-name guarantees in `FILE_COMPATIBILITY.md`, and its save architecture in
+`adr/0001-save-destinations.md`. What the screens on both flows say, and why, is in
+`DOCUMENT_JOURNEY.md`.
 
 ```mermaid
 flowchart LR
@@ -28,16 +31,16 @@ must reject request bodies large enough to be documents and must never proxy Blo
 
 ## Components
 
-| Component              | Responsibility                                                                                                                  | Data it must not retain                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Mobile web flow        | Read QR fragment, select locale and one file, validate, preview, verify kiosk-key fingerprint, encrypt, direct PUT, show status | Original filename, plaintext after the active view is released, token in history/analytics/logs |
-| Next.js Route Handlers | Create, claim, authorize upload, register upload, consume, report status, and verify cleanup callbacks                          | Plaintext, ciphertext body, private keys, raw token, complete signed URL in logs                |
-| `SessionStore`         | TTL record, token hashes, revision, atomic state changes, consume-once                                                          | Raw tokens, filenames, document contents, private keys                                          |
-| `BlobTransport`        | Exact-path signed PUT/GET/DELETE and local ciphertext equivalent                                                                | Original filename or plaintext                                                                  |
-| `CleanupScheduler`     | Schedule cleanup only after upload authorization/blob risk begins                                                               | Document content, token, full signed URL                                                        |
-| `DropStore`            | TTL record and part table for a phone-to-phone hand-off, owner token hash, revision, seal-once                                  | Raw tokens, file names, document contents, transfer codes                                       |
-| WPF kiosk              | Create ECDH key, show QR, consume once, download, decrypt, validate, submit once, reset                                         | Plaintext on ordinary disk, reusable session key, prior-user UI                                 |
-| Printer/spooler        | Render and physically print fixed settings                                                                                      | Retention is OS/driver dependent and must be governed operationally                             |
+| Component              | Responsibility                                                                                                                   | Data it must not retain                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Mobile web flow        | Read QR fragment, select locale and one file, validate, preview, verify kiosk-key fingerprint, encrypt, direct PUT, show status  | Original filename, plaintext after the active view is released, token in history/analytics/logs |
+| Next.js Route Handlers | Create, claim, authorize upload, register upload, consume, report status, and verify cleanup callbacks                           | Plaintext, ciphertext body, private keys, raw token, complete signed URL in logs                |
+| `SessionStore`         | TTL record, token hashes, revision, atomic state changes, consume-once                                                           | Raw tokens, filenames, document contents, private keys                                          |
+| `BlobTransport`        | Exact-path signed PUT/GET/DELETE and local ciphertext equivalent                                                                 | Original filename or plaintext                                                                  |
+| `CleanupScheduler`     | Schedule cleanup only after upload authorization/blob risk begins                                                                | Document content, token, full signed URL                                                        |
+| `DropStore`            | TTL record and part table for a phone-to-phone hand-off, owner token hash, revision, seal-once, declared size, receiver counters | Raw tokens, file names, document contents, transfer codes                                       |
+| WPF kiosk              | Create ECDH key, show QR, consume once, download, decrypt, validate, submit once, reset                                          | Plaintext on ordinary disk, reusable session key, prior-user UI                                 |
+| Printer/spooler        | Render and physically print fixed settings                                                                                       | Retention is OS/driver dependent and must be governed operationally                             |
 
 Local development uses `MemorySessionStore`, `LocalEncryptedBlobTransport`, and
 `InProcessCleanupScheduler`. Local Blob content is still the encrypted envelope; plaintext must
@@ -84,6 +87,11 @@ document content and remains until conditional Blob deletion is finalized.
 
 ## Mobile flow
 
+The visitor's language is resolved from `Accept-Language` on the server and rendered into the first
+paint, so the flow lands on the file chooser rather than on a question the browser had already
+answered. The picker stays in the header and the guide lives in Help; neither blocks the task. See
+`DOCUMENT_JOURNEY.md`.
+
 1. The kiosk registers a fresh key and session. The server returns a session ID and independent raw
    tokens once; Redis receives only their hashes.
 2. The kiosk displays
@@ -102,7 +110,11 @@ document content and remains until conditional Blob deletion is finalized.
 7. The phone PUTs `application/octet-stream` directly to Private Blob. It then registers the exact
    expected ciphertext size through a small JSON request. The server reads the provider-authoritative
    ETag and size; the original filename is never sent.
-8. The phone polls a redacted public status view until terminal or expired.
+8. The phone polls a redacted public status view until terminal or expired. Once the upload is
+   committed the phone is a status observer and nothing more: a failed poll reports a lost
+   connection and retries, never cancels the session, and never reports a print outcome the phone
+   cannot know. Exhausting the deadline without contact yields an explicit "we do not know", not a
+   failure.
 
 ## Kiosk flow
 
