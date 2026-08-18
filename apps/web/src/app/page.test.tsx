@@ -33,7 +33,7 @@ describe("home page", () => {
     acceptLanguage.value = "";
   });
 
-  it("keeps file hand-off discoverable when the browser kiosk is enabled", async () => {
+  it("keeps file hand-off and kiosk entry discoverable when the browser kiosk is enabled", async () => {
     vi.stubEnv("ENABLE_BROWSER_KIOSK", "true");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
     vi.stubEnv("VERCEL_ENV", "production");
@@ -41,7 +41,7 @@ describe("home page", () => {
     const page = await HomePage();
 
     expect(page.props.className).toBe("status-page");
-    expect(hrefsOf(page)).toEqual(expect.arrayContaining(["/send", "/receive"]));
+    expect(hrefsOf(page)).toEqual(expect.arrayContaining(["/send", "/receive", "/kiosk"]));
   });
 
   it("keeps the public entry page on the dedicated kiosk Preview branch", async () => {
@@ -52,7 +52,7 @@ describe("home page", () => {
     const page = await HomePage();
 
     expect(page.props.className).toBe("status-page");
-    expect(hrefsOf(page)).toEqual(expect.arrayContaining(["/send", "/receive"]));
+    expect(hrefsOf(page)).toEqual(expect.arrayContaining(["/send", "/receive", "/kiosk"]));
   });
 
   it("greets a visitor in the language their browser asked for", async () => {
@@ -63,6 +63,7 @@ describe("home page", () => {
     expect(copy).toContain("안전하게 인쇄하고 주고받아요");
     expect(copy).toContain("파일 보내기");
     expect(copy).toContain("파일 받기");
+    expect(copy).toContain("키오스크 열기");
     expect(copy).not.toContain("Secure print and transfer service");
   });
 
@@ -72,5 +73,6 @@ describe("home page", () => {
     expect(copy).toContain("Secure print and transfer service");
     expect(copy).toContain("Send files");
     expect(copy).toContain("Receive files");
+    expect(copy).toContain("Open kiosk");
   });
 });
