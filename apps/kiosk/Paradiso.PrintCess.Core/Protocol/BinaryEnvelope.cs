@@ -130,7 +130,7 @@ public static class BinaryEnvelope
             _ => throw new EnvelopeFormatException("Envelope file kind is unsupported."),
         };
 
-        if (plaintextLength is 0 || plaintextLength > MaximumPlaintextBytes(kind) ||
+        if (plaintextLength is 0 || plaintextLength > checked((uint)MaximumPlaintextBytes(kind)) ||
             ciphertextLength != plaintextLength + TagBytes)
         {
             throw new EnvelopeFormatException("Envelope payload sizes are invalid.");
@@ -192,7 +192,7 @@ public static class BinaryEnvelope
         return aad;
     }
 
-    private static uint MaximumPlaintextBytes(DocumentKind kind) =>
+    private static int MaximumPlaintextBytes(DocumentKind kind) =>
         kind == DocumentKind.Bundle ? MaxBundleBytes : MaxPlaintextBytes;
 }
 
