@@ -83,7 +83,7 @@ export async function decryptDocument(
   envelope: Uint8Array,
   context: AadContext,
   kioskPrivateKey: CryptoKey,
-): Promise<{ plaintext: Uint8Array; fileKind: FileKind }> {
+): Promise<{ plaintext: Uint8Array<ArrayBuffer>; fileKind: FileKind }> {
   const parsed = parseEnvelope(envelope);
   const mobilePublicKey = await importPublicKey(parsed.ephemeralPublicKey);
   const sharedSecret = await deriveSharedSecret(kioskPrivateKey, mobilePublicKey);
