@@ -12,7 +12,7 @@ jobs:
   debug:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 15
     env:
       CI: "true"
       LANG: C.UTF-8
@@ -35,11 +35,11 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @print-cess/web exec playwright install --with-deps chromium
-      - name: Capture print flow
+      - name: Capture multi-file print test
         shell: bash
         run: |
           set +e
-          pnpm --filter @print-cess/web exec playwright test test/e2e/print-flow.spec.ts --project=chromium --reporter=line > e2e-debug.txt 2>&1
+          pnpm --filter @print-cess/web exec playwright test test/e2e/print-flow.spec.ts --project=chromium --grep "one kiosk scan prints multiple" --retries=0 --reporter=line > e2e-debug.txt 2>&1
           code=$?
           printf '\nEXIT_CODE=%s\n' "$code" >> e2e-debug.txt
           cat e2e-debug.txt
