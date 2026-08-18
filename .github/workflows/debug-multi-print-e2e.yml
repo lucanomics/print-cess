@@ -34,6 +34,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages used by the web app
+        run: pnpm exec turbo run build --filter=@print-cess/web^...
       - run: pnpm --filter @print-cess/web exec playwright install --with-deps chromium
       - name: Capture multi-file print test
         shell: bash
