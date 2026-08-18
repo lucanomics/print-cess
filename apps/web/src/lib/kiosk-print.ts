@@ -1,13 +1,13 @@
-import type { FileKind } from "@print-cess/protocol";
+import type { PrintableFileKind } from "@print-cess/protocol";
 
 export type PrintArtifact = {
   url: string;
   filename: string;
   mimeType: string;
-  fileKind: FileKind;
+  fileKind: PrintableFileKind;
 };
 
-const PRINT_METADATA: Record<FileKind, { filename: string; mimeType: string }> = {
+const PRINT_METADATA: Record<PrintableFileKind, { filename: string; mimeType: string }> = {
   pdf: { filename: "print-cess-document.pdf", mimeType: "application/pdf" },
   jpeg: { filename: "print-cess-document.jpg", mimeType: "image/jpeg" },
   png: { filename: "print-cess-document.png", mimeType: "image/png" },
@@ -15,7 +15,7 @@ const PRINT_METADATA: Record<FileKind, { filename: string; mimeType: string }> =
   hwp: { filename: "print-cess-document.hwp", mimeType: "application/x-hwp" },
 };
 
-export function createPrintArtifact(bytes: Uint8Array, fileKind: FileKind): PrintArtifact {
+export function createPrintArtifact(bytes: Uint8Array, fileKind: PrintableFileKind): PrintArtifact {
   const metadata = PRINT_METADATA[fileKind];
   const blob = new Blob([Uint8Array.from(bytes).buffer], { type: metadata.mimeType });
   return {
