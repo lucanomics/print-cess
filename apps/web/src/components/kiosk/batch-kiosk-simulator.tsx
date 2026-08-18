@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Download,
   FileCheck2,
+  Files,
   Languages,
   LockKeyhole,
   Printer,
