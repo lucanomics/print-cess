@@ -3,6 +3,8 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security;
+using Microsoft.Win32;
 using Paradiso.PrintCess.Core.Documents;
 
 namespace Paradiso.PrintCess.Infrastructure.Printing;
@@ -11,11 +13,11 @@ internal static class HancomHwpxRenderer
 {
     private const int MaximumRenderedPdfBytes = 64 * 1024 * 1024;
     private const string SecurityModuleEnvironmentVariable = "PRINT_CESS_HANCOM_SECURITY_MODULE";
+    private const string DefaultSecurityModuleName = "FilePathCheckerModuleExample";
+    private const string SecurityModuleRegistryPath = @"Software\HNC\HwpAutomation\Modules";
 
     public static bool IsAvailable =>
-        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(SecurityModuleEnvironmentVariable)) &&
-        (Type.GetTypeFromProgID("HWPFrame.HwpObject.2", throwOnError: false) is not null ||
-         Type.GetTypeFromProgID("HWPFrame.HwpObject", throwOnError: false) is not null);
+        GetAutomationType() is not null && ResolveSecurityModuleName() is not null;
 
     public static Task<byte[]> RenderToPdfAsync(
         byte[] content,
@@ -29,17 +31,17 @@ internal static class HancomHwpxRenderer
         }
         cancellationToken.ThrowIfCancellationRequested();
 
-        var moduleName = Environment.GetEnvironmentVariable(SecurityModuleEnvironmentVariable)?.Trim();
+        var moduleName = ResolveSecurityModuleName();
         if (string.IsNullOrWhiteSpace(moduleName))
         {
             throw new InvalidDataException(
-                $"{SecurityModuleEnvironmentVariable} must name an installed Hancom file-path security module.");
+                $"No usable Hancom Automation file-path security module is registered under HKCU\\{SecurityModuleRegistryPath}. " +
+                $"Register '{DefaultSecurityModuleName}' or set {SecurityModuleEnvironmentVariable} to the exact registered value name.");
         }
 
         var directory = Path.Combine(Path.GetTempPath(), "PrintCess", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var extension = kind == DocumentKind.Hwp ? "hwp" : "hwpx";
-        var format = kind == DocumentKind.Hwp ? "HWP" : "HWPX";
         var inputPath = Path.Combine(directory, $"document.{extension}");
         var outputPath = Path.Combine(directory, "document.pdf");
         object? automation = null;
@@ -49,8 +51,7 @@ internal static class HancomHwpxRenderer
             cancellationToken.ThrowIfCancellationRequested();
             File.WriteAllBytes(inputPath, content);
 
-            var automationType = Type.GetTypeFromProgID("HWPFrame.HwpObject.2", throwOnError: false) ??
-                                 Type.GetTypeFromProgID("HWPFrame.HwpObject", throwOnError: false);
+            var automationType = GetAutomationType();
             if (automationType is null)
             {
                 throw new InvalidDataException("A supported Hancom Office automation component is not installed.");
@@ -62,16 +63,20 @@ internal static class HancomHwpxRenderer
             var registered = Invoke(automation, "RegisterModule", "FilePathCheckDLL", moduleName);
             if (registered is not bool registeredResult || !registeredResult)
             {
-                throw new InvalidDataException("The configured Hancom security module could not be registered.");
+                throw new InvalidDataException(
+                    $"Hancom rejected security module '{moduleName}'. Verify the HKCU Automation module registration and DLL path.");
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            // Let Hancom detect the real document format. This is more robust than forcing
+            // HWP/HWPX from the extension and is the vendor-recommended behavior when the
+            // exact underlying format is not guaranteed by the filename alone.
             var opened = Invoke(
                 automation,
                 "Open",
                 inputPath,
-                format,
-                "forceopen:true;suspendpassword:true");
+                string.Empty,
+                "lock:false;forceopen:true;suspendpassword:true;versionwarning:false;");
             if (opened is bool openedResult && !openedResult)
             {
                 throw new InvalidDataException("Hancom Office rejected the Hangul document.");
@@ -99,7 +104,8 @@ internal static class HancomHwpxRenderer
             return Task.FromResult(File.ReadAllBytes(outputPath));
         }
         catch (Exception exception) when (exception is COMException or TargetInvocationException or
-                                          MissingMethodException or UnauthorizedAccessException or IOException)
+                                          MissingMethodException or UnauthorizedAccessException or
+                                          SecurityException or IOException)
         {
             throw new InvalidDataException("Hangul document rendering failed safely.", exception);
         }
@@ -128,6 +134,51 @@ internal static class HancomHwpxRenderer
             {
                 // The application-owned cleanup job retries abandoned temporary directories.
             }
+        }
+    }
+
+    private static Type? GetAutomationType() =>
+        Type.GetTypeFromProgID("HWPFrame.HwpObject.2", throwOnError: false) ??
+        Type.GetTypeFromProgID("HWPFrame.HwpObject", throwOnError: false);
+
+    private static string? ResolveSecurityModuleName()
+    {
+        var configuredName = Environment.GetEnvironmentVariable(SecurityModuleEnvironmentVariable)?.Trim();
+        if (!string.IsNullOrWhiteSpace(configuredName))
+        {
+            return IsSecurityModuleRegistered(configuredName) ? configuredName : null;
+        }
+
+        return IsSecurityModuleRegistered(DefaultSecurityModuleName)
+            ? DefaultSecurityModuleName
+            : null;
+    }
+
+    private static bool IsSecurityModuleRegistered(string moduleName) =>
+        TryFindSecurityModule(moduleName, RegistryView.Registry64) ||
+        TryFindSecurityModule(moduleName, RegistryView.Registry32);
+
+    private static bool TryFindSecurityModule(string moduleName, RegistryView view)
+    {
+        try
+        {
+            using var currentUser = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, view);
+            using var modules = currentUser.OpenSubKey(SecurityModuleRegistryPath, writable: false);
+            var registeredPath = modules?.GetValue(
+                moduleName,
+                defaultValue: null,
+                RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+            if (string.IsNullOrWhiteSpace(registeredPath))
+            {
+                return false;
+            }
+
+            var expandedPath = Environment.ExpandEnvironmentVariables(registeredPath.Trim());
+            return Path.IsPathFullyQualified(expandedPath) && File.Exists(expandedPath);
+        }
+        catch (Exception exception) when (exception is SecurityException or UnauthorizedAccessException or IOException)
+        {
+            return false;
         }
     }
 
