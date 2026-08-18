@@ -10,7 +10,7 @@ import {
 
 async function openSession(page: Page, kioskPath = "/kiosk"): Promise<string> {
   await page.goto(kioskPath);
-  await expect(page.getByRole("heading", { name: /QR코드를 스캔하세요/u })).toBeVisible();
+  await expect(page.getByText("QR코드를 카메라로 비추세요", { exact: true })).toBeVisible();
   const qr = page.locator(".kiosk-qr");
   // A cold Next.js development server can compile this API route while all
   // three browser projects arrive together. Wait for the actual session
@@ -24,9 +24,9 @@ async function openSession(page: Page, kioskPath = "/kiosk"): Promise<string> {
 }
 
 /**
- * Scanning lands on the file chooser. There is no language screen and no guide
- * screen in front of it: the browser already carries the visitor's language,
- * and the guide is in Help for whoever wants it.
+ * Scanning lands on the multi-file chooser. There is no language screen and no
+ * guide screen in front of it: the browser already carries the visitor's
+ * language, and the guide is in Help for whoever wants it.
  */
 async function openMobile(
   kiosk: Page,
@@ -36,7 +36,7 @@ async function openMobile(
   const sessionUrl = await openSession(kiosk, kioskPath);
   const mobile = await context.newPage();
   await mobile.goto(sessionUrl);
-  await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible({
+  await expect(mobile.getByRole("heading", { name: "Pick files to print" })).toBeVisible({
     timeout: 20_000,
   });
   return { mobile, sessionUrl };
@@ -58,10 +58,10 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   await expect(page.getByRole("heading", { name: "인쇄가 시작됐어요" })).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByText("프린터에서 종이를 가져가세요")).toBeVisible();
+  await expect(page.getByText("선택한 파일 1개를 처리했습니다")).toBeVisible();
   await expect(page.getByRole("button", { name: "인쇄 창 다시 열기" })).toHaveCount(0);
-  const download = page.getByRole("link", { name: "파일 다운로드 (직원용)" });
-  await expect(download).toHaveAttribute("download", "print-cess-document.png");
+  const download = page.getByRole("link", { name: "파일 1 다운로드 (직원용)" });
+  await expect(download).toHaveAttribute("download", "print-cess-1-print-cess-document.png");
   await expect(download).toHaveAttribute("href", /^blob:/u);
   await expect(mobile.getByRole("heading", { name: "All done" })).toBeVisible({
     timeout: 60_000,
@@ -85,6 +85,41 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
     await expect(mobile.getByRole("button", { name: "Need help?" })).toHaveCount(0);
     expect(mobile.url()).not.toMatch(/#/u);
   }
+});
+
+test("one kiosk scan prints multiple selected photo and document files in order", async ({
+  page,
+  context,
+}) => {
+  const { mobile } = await openMobile(page, context, "/kiosk?printing=auto");
+  await mobile.getByTestId("file-input").setInputFiles([
+    {
+      name: "01-photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(await createSyntheticPng(800, 1100)),
+    },
+    {
+      name: "02-document.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(await createSyntheticPdf(2)),
+    },
+  ]);
+
+  await expect(mobile.getByRole("heading", { name: "Check these files" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(mobile.getByText("1. 01-photo.png", { exact: true })).toBeVisible();
+  await expect(mobile.getByText("2. 02-document.pdf", { exact: true })).toBeVisible();
+  await expect(mobile.getByText("2 files selected", { exact: true })).toBeVisible();
+  await mobile.getByRole("button", { name: "Print 2 files" }).click();
+
+  await expect(page.getByRole("heading", { name: "인쇄가 시작됐어요" })).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.getByText("선택한 파일 2개를 처리했습니다")).toBeVisible();
+  await expect(page.getByRole("link", { name: "파일 1 다운로드 (직원용)" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "파일 2 다운로드 (직원용)" })).toBeVisible();
+  await expect(mobile.getByRole("heading", { name: "All done" })).toBeVisible({ timeout: 60_000 });
 });
 
 test("ending a visit tells the browser to drop this origin's data", async ({ request }) => {
@@ -151,7 +186,7 @@ test("large files are rejected before encryption", async ({ page, context }) => 
 test("cancelling a file picker keeps the claimed session ready", async ({ page, context }) => {
   const { mobile } = await openMobile(page, context);
   await mobile.getByTestId("file-input").dispatchEvent("cancel");
-  await expect(mobile.getByRole("heading", { name: "Pick one file to print" })).toBeVisible();
+  await expect(mobile.getByRole("heading", { name: "Pick files to print" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "Open my photos" })).toBeVisible();
   await expect(mobile.getByRole("button", { name: "Open my files" })).toBeVisible();
 });
@@ -204,7 +239,7 @@ test("the language picker and the guide are available without blocking anything"
   // The picker is in the header, so changing language costs nothing and
   // interrupts nothing.
   await mobile.getByLabel("Choose your language").selectOption("ko");
-  await expect(mobile.getByRole("heading", { name: "인쇄할 문서 한 개를 고르세요" })).toBeVisible();
+  await expect(mobile.getByRole("heading", { name: "출력할 파일을 선택하세요" })).toBeVisible();
   await expect(mobile.locator("html")).toHaveAttribute("lang", "ko");
 
   // The guide that used to be a screen of its own is one tap away from the
