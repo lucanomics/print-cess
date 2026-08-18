@@ -18,13 +18,16 @@ public sealed class PrintBundle : IDisposable
 
     public IReadOnlyList<PrintBundleEntry> Entries { get; }
 
+    public static bool LooksLike(ReadOnlySpan<byte> bytes) =>
+        bytes.Length >= Magic.Length && bytes[..Magic.Length].SequenceEqual(Magic);
+
     public static PrintBundle Parse(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length is < BundleHeaderBytes or > BinaryEnvelope.MaxBundleBytes)
         {
             throw new EnvelopeFormatException("Print bundle size is invalid.");
         }
-        if (!bytes[..Magic.Length].SequenceEqual(Magic))
+        if (!LooksLike(bytes))
         {
             throw new EnvelopeFormatException("Print bundle magic is invalid.");
         }
