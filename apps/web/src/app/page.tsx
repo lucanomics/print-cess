@@ -4,6 +4,7 @@ import { translate } from "@print-cess/i18n";
 import { Wordmark } from "@print-cess/ui";
 
 import { requestLocale } from "@/lib/request-locale";
+import { isBrowserKioskEnabled } from "@/server/demo";
 
 const kioskCta = {
   en: "Open kiosk",
@@ -27,6 +28,9 @@ export default async function HomePage() {
   // makes the independent phone-to-phone hand-off discoverable in Production.
   const locale = await requestLocale();
   const text = (key: string) => translate(locale, key);
+  // In Production the browser-kiosk route deliberately fails closed unless it
+  // is enabled. Do not advertise a shortcut to a route that will return 404.
+  const kioskAvailable = process.env.NODE_ENV !== "production" || isBrowserKioskEnabled();
 
   return (
     <main className="status-page">
@@ -42,9 +46,11 @@ export default async function HomePage() {
           <a href="/receive">
             <Download aria-hidden="true" /> {text("dropReceiveCta")}
           </a>
-          <a href="/kiosk">
-            <Monitor aria-hidden="true" /> {kioskCta[locale]}
-          </a>
+          {kioskAvailable ? (
+            <a href="/kiosk">
+              <Monitor aria-hidden="true" /> {kioskCta[locale]}
+            </a>
+          ) : null}
         </nav>
         <p className="status-page__privacy">
           {text("homeScanHint")} {text("homeNoAccount")}
