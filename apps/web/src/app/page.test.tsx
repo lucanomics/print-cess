@@ -44,6 +44,19 @@ describe("home page", () => {
     expect(hrefsOf(page)).toEqual(expect.arrayContaining(["/send", "/receive", "/kiosk"]));
   });
 
+  it("hides the kiosk shortcut when the production route is disabled", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ENABLE_BROWSER_KIOSK", "false");
+    vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
+    vi.stubEnv("VERCEL_ENV", "production");
+
+    const page = await HomePage();
+    const hrefs = hrefsOf(page);
+
+    expect(hrefs).toEqual(expect.arrayContaining(["/send", "/receive"]));
+    expect(hrefs).not.toContain("/kiosk");
+  });
+
   it("keeps the public entry page on the dedicated kiosk Preview branch", async () => {
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
     vi.stubEnv("VERCEL_ENV", "preview");
