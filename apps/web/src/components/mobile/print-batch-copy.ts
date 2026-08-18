@@ -32,9 +32,12 @@ const COPY: Record<SupportedLocale, PrintBatchCopy> = {
     batchTooLarge: "These files are too large together. Keep the whole print job under 32 MB.",
     guideChooseTitle: "2. Pick your files",
     guideChooseBody: "Choose up to 10 photos or PDFs from your phone.",
-    guideChooseBodyHancom: "Choose up to 10 photos, PDFs or supported HWP/HWPX files from your phone.",
-    helpFile: "Pick one or several photos or documents. You can select up to 10 files in one print job.",
-    helpPreview: "Check the list. The files print once each in this order, then tap the print button.",
+    guideChooseBodyHancom:
+      "Choose up to 10 photos, PDFs or supported HWP/HWPX files from your phone.",
+    helpFile:
+      "Pick one or several photos or documents. You can select up to 10 files in one print job.",
+    helpPreview:
+      "Check the list. The files print once each in this order, then tap the print button.",
   },
   ko: {
     chooseFiles: "출력할 파일을 선택하세요",
@@ -46,12 +49,16 @@ const COPY: Record<SupportedLocale, PrintBatchCopy> = {
     changeSelection: "파일 다시 선택하기",
     selected: "파일 {{count}}개 선택됨",
     tooManyFiles: "한 번에 최대 10개까지 출력할 수 있습니다. 파일 수를 줄여 주세요.",
-    batchTooLarge: "선택한 파일의 전체 용량이 너무 큽니다. 한 번의 출력은 32MB 이하로 선택해 주세요.",
+    batchTooLarge:
+      "선택한 파일의 전체 용량이 너무 큽니다. 한 번의 출력은 32MB 이하로 선택해 주세요.",
     guideChooseTitle: "2. 파일을 선택하세요",
     guideChooseBody: "휴대전화에서 사진이나 PDF를 최대 10개까지 선택할 수 있습니다.",
-    guideChooseBodyHancom: "휴대전화에서 사진, PDF 또는 지원되는 HWP/HWPX 파일을 최대 10개까지 선택할 수 있습니다.",
-    helpFile: "사진이나 문서를 하나 또는 여러 개 선택하세요. 한 번에 최대 10개까지 출력할 수 있습니다.",
-    helpPreview: "목록과 순서를 확인하세요. 각 파일을 1부씩 출력합니다. 맞으면 출력 버튼을 누르세요.",
+    guideChooseBodyHancom:
+      "휴대전화에서 사진, PDF 또는 지원되는 HWP/HWPX 파일을 최대 10개까지 선택할 수 있습니다.",
+    helpFile:
+      "사진이나 문서를 하나 또는 여러 개 선택하세요. 한 번에 최대 10개까지 출력할 수 있습니다.",
+    helpPreview:
+      "목록과 순서를 확인하세요. 각 파일을 1부씩 출력합니다. 맞으면 출력 버튼을 누르세요.",
   },
   "zh-CN": {
     chooseFiles: "选择要打印的文件",
@@ -83,26 +90,32 @@ const COPY: Record<SupportedLocale, PrintBatchCopy> = {
     batchTooLarge: "Total file terlalu besar. Batasi satu pekerjaan cetak hingga 32 MB.",
     guideChooseTitle: "2. Pilih file",
     guideChooseBody: "Pilih hingga 10 foto atau PDF dari ponsel Anda.",
-    guideChooseBodyHancom: "Pilih hingga 10 foto, PDF, atau file HWP/HWPX yang didukung dari ponsel Anda.",
+    guideChooseBodyHancom:
+      "Pilih hingga 10 foto, PDF, atau file HWP/HWPX yang didukung dari ponsel Anda.",
     helpFile: "Pilih satu atau beberapa foto atau dokumen. Maksimal 10 file per pekerjaan cetak.",
-    helpPreview: "Periksa daftar dan urutannya. Setiap file dicetak sekali, lalu ketuk tombol cetak.",
+    helpPreview:
+      "Periksa daftar dan urutannya. Setiap file dicetak sekali, lalu ketuk tombol cetak.",
   },
   fil: {
     chooseFiles: "Piliin ang mga file na ipi-print",
     rules: "Hanggang 10 larawan o PDF · 32 MB kabuuan · hanggang 10 pahina bawat PDF",
-    rulesHancom: "Hanggang 10 larawan, PDF o HWP/HWPX · 32 MB kabuuan · hanggang 10 pahina bawat PDF",
+    rulesHancom:
+      "Hanggang 10 larawan, PDF o HWP/HWPX · 32 MB kabuuan · hanggang 10 pahina bawat PDF",
     checkFiles: "Suriin ang napiling mga file",
     previewHelp: "Tig-iisang kopya ang ipi-print sa pagkakasunod na nasa ibaba.",
     printFiles: "I-print ang {{count}} file",
     changeSelection: "Pumili ng ibang mga file",
     selected: "{{count}} file ang napili",
     tooManyFiles: "Hanggang 10 file lang ang maaaring i-print nang sabay. Bawasan ang mga file.",
-    batchTooLarge: "Masyadong malaki ang kabuuang file. Panatilihin sa ilalim ng 32 MB ang isang print job.",
+    batchTooLarge:
+      "Masyadong malaki ang kabuuang file. Panatilihin sa ilalim ng 32 MB ang isang print job.",
     guideChooseTitle: "2. Piliin ang mga file",
     guideChooseBody: "Pumili ng hanggang 10 larawan o PDF mula sa iyong telepono.",
-    guideChooseBodyHancom: "Pumili ng hanggang 10 larawan, PDF o suportadong HWP/HWPX file mula sa iyong telepono.",
+    guideChooseBodyHancom:
+      "Pumili ng hanggang 10 larawan, PDF o suportadong HWP/HWPX file mula sa iyong telepono.",
     helpFile: "Pumili ng isa o maraming larawan o dokumento. Hanggang 10 file bawat print job.",
-    helpPreview: "Suriin ang listahan at ayos. Tig-iisang kopya ang ipi-print, saka pindutin ang print.",
+    helpPreview:
+      "Suriin ang listahan at ayos. Tig-iisang kopya ang ipi-print, saka pindutin ang print.",
   },
   vi: {
     chooseFiles: "Chọn các tệp cần in",
@@ -153,7 +166,8 @@ const COPY: Record<SupportedLocale, PrintBatchCopy> = {
     guideChooseBody: "फोनबाट बढीमा १० फोटो वा PDF छान्नुहोस्।",
     guideChooseBodyHancom: "फोनबाट बढीमा १० फोटो, PDF वा समर्थित HWP/HWPX फाइल छान्नुहोस्।",
     helpFile: "एक वा धेरै फोटो वा कागजात छान्नुहोस्। एउटै प्रिन्ट काममा बढीमा १० फाइल।",
-    helpPreview: "सूची र क्रम जाँच्नुहोस्। प्रत्येक फाइल १ पटक प्रिन्ट हुन्छ, त्यसपछि प्रिन्ट बटन थिच्नुहोस्।",
+    helpPreview:
+      "सूची र क्रम जाँच्नुहोस्। प्रत्येक फाइल १ पटक प्रिन्ट हुन्छ, त्यसपछि प्रिन्ट बटन थिच्नुहोस्।",
   },
   km: {
     chooseFiles: "ជ្រើសឯកសារដែលត្រូវបោះពុម្ព",
@@ -202,9 +216,11 @@ const COPY: Record<SupportedLocale, PrintBatchCopy> = {
     batchTooLarge: "Общий размер файлов слишком велик. Одна печать должна быть меньше 32 МБ.",
     guideChooseTitle: "2. Выберите файлы",
     guideChooseBody: "Выберите на телефоне до 10 фото или PDF.",
-    guideChooseBodyHancom: "Выберите на телефоне до 10 фото, PDF или поддерживаемых HWP/HWPX файлов.",
+    guideChooseBodyHancom:
+      "Выберите на телефоне до 10 фото, PDF или поддерживаемых HWP/HWPX файлов.",
     helpFile: "Выберите один или несколько снимков или документов. До 10 файлов за одну печать.",
-    helpPreview: "Проверьте список и порядок. Каждый файл печатается один раз, затем нажмите кнопку печати.",
+    helpPreview:
+      "Проверьте список и порядок. Каждый файл печатается один раз, затем нажмите кнопку печати.",
   },
   mn: {
     chooseFiles: "Хэвлэх файлуудаа сонгоно уу",
@@ -219,9 +235,11 @@ const COPY: Record<SupportedLocale, PrintBatchCopy> = {
     batchTooLarge: "Файлуудын нийт хэмжээ хэт их байна. Нэг хэвлэлтийг 32 MB-аас бага байлгана уу.",
     guideChooseTitle: "2. Файлуудаа сонгоно уу",
     guideChooseBody: "Утаснаасаа 10 хүртэл зураг эсвэл PDF сонгоно уу.",
-    guideChooseBodyHancom: "Утаснаасаа 10 хүртэл зураг, PDF эсвэл дэмжигдэх HWP/HWPX файл сонгоно уу.",
+    guideChooseBodyHancom:
+      "Утаснаасаа 10 хүртэл зураг, PDF эсвэл дэмжигдэх HWP/HWPX файл сонгоно уу.",
     helpFile: "Нэг эсвэл хэд хэдэн зураг, баримт сонгоно уу. Нэг хэвлэлтэд 10 хүртэл файл.",
-    helpPreview: "Жагсаалт ба дарааллыг шалгана уу. Файл бүр 1 удаа хэвлэгдэнэ, дараа нь хэвлэх товчийг дарна уу.",
+    helpPreview:
+      "Жагсаалт ба дарааллыг шалгана уу. Файл бүр 1 удаа хэвлэгдэнэ, дараа нь хэвлэх товчийг дарна уу.",
   },
   uk: {
     chooseFiles: "Виберіть файли для друку",
@@ -236,9 +254,12 @@ const COPY: Record<SupportedLocale, PrintBatchCopy> = {
     batchTooLarge: "Загальний розмір файлів завеликий. Одне завдання друку має бути менше 32 МБ.",
     guideChooseTitle: "2. Виберіть файли",
     guideChooseBody: "Виберіть на телефоні до 10 фото або PDF.",
-    guideChooseBodyHancom: "Виберіть на телефоні до 10 фото, PDF або підтримуваних HWP/HWPX файлів.",
-    helpFile: "Виберіть одну або кілька фотографій чи документів. До 10 файлів за одне завдання друку.",
-    helpPreview: "Перевірте список і порядок. Кожен файл друкується один раз, потім натисніть кнопку друку.",
+    guideChooseBodyHancom:
+      "Виберіть на телефоні до 10 фото, PDF або підтримуваних HWP/HWPX файлів.",
+    helpFile:
+      "Виберіть одну або кілька фотографій чи документів. До 10 файлів за одне завдання друку.",
+    helpPreview:
+      "Перевірте список і порядок. Кожен файл друкується один раз, потім натисніть кнопку друку.",
   },
 };
 

@@ -185,7 +185,8 @@ export function BatchKioskSimulator({
             );
           }
           if (body.status === "claimed") setStatus("claimed");
-          if (body.status === "upload_authorized" || body.status === "uploading") setStatus("uploading");
+          if (body.status === "upload_authorized" || body.status === "uploading")
+            setStatus("uploading");
           if (body.status === "uploaded" && !processing.current) {
             processing.current = true;
             setStatus("uploaded");
@@ -237,23 +238,47 @@ export function BatchKioskSimulator({
       <div className="kiosk-layout">
         <section className="kiosk-instructions">
           <h1 className="kiosk-step-heading">
-            <span className="kiosk-step-number" aria-hidden="true">1</span>
+            <span className="kiosk-step-number" aria-hidden="true">
+              1
+            </span>
             <span className="kiosk-step-heading__text">
-              <span>휴대전화에서</span><span>카메라를 여세요</span>
+              <span>휴대전화에서</span>
+              <span>카메라를 여세요</span>
             </span>
           </h1>
-          <p className="kiosk-english" lang="en">Open the camera on your phone</p>
+          <p className="kiosk-english" lang="en">
+            Open the camera on your phone
+          </p>
           <p className="kiosk-spotlight">
-            <span>여러 파일 가능</span> 사진과 문서를 최대 {MAX_PRINT_BUNDLE_FILES}개까지 한 번에 출력할 수 있어요
+            <span>여러 파일 가능</span> 사진과 문서를 최대 {MAX_PRINT_BUNDLE_FILES}개까지 한 번에
+            출력할 수 있어요
           </p>
           <div className="kiosk-facts">
-            <p><FileCheck2 aria-hidden="true" /><span>인쇄할 수 있는 파일<br /><strong>PDF · JPG/JPEG · HEIC 등 사진</strong></span></p>
-            <p><LockKeyhole aria-hidden="true" /><span>인쇄가 끝나면<br /><strong>업로드 파일 자동 삭제</strong></span></p>
+            <p>
+              <FileCheck2 aria-hidden="true" />
+              <span>
+                인쇄할 수 있는 파일
+                <br />
+                <strong>PDF · JPG/JPEG · HEIC 등 사진</strong>
+              </span>
+            </p>
+            <p>
+              <LockKeyhole aria-hidden="true" />
+              <span>
+                인쇄가 끝나면
+                <br />
+                <strong>업로드 파일 자동 삭제</strong>
+              </span>
+            </p>
           </div>
           <div className="kiosk-status-row" aria-live="polite">
-            <span className="kiosk-status-dot"><CheckCircle2 aria-hidden="true" /></span>
+            <span className="kiosk-status-dot">
+              <CheckCircle2 aria-hidden="true" />
+            </span>
             <strong>{statusLabel(status)}</strong>
-            <span className="kiosk-countdown">QR코드 변경까지 <b>{formatTime(remaining)}</b></span>
+            <span className="kiosk-countdown">
+              QR코드 변경까지 <b>{formatTime(remaining)}</b>
+            </span>
           </div>
         </section>
         <section
@@ -262,19 +287,34 @@ export function BatchKioskSimulator({
           data-session-url={process.env.NODE_ENV === "production" ? undefined : session?.qrUrl}
         >
           <div className="kiosk-qr__instruction">
-            <span className="kiosk-step-number" aria-hidden="true">2</span>
-            <div><strong>QR코드를 카메라로 비추세요</strong><small>Point your camera at the QR code</small></div>
+            <span className="kiosk-step-number" aria-hidden="true">
+              2
+            </span>
+            <div>
+              <strong>QR코드를 카메라로 비추세요</strong>
+              <small>Point your camera at the QR code</small>
+            </div>
           </div>
           {session ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={session.qrImage} alt="휴대전화로 스캔할 Print-cess 보안 QR코드" />
-          ) : <div className="kiosk-qr__loading" aria-busy="true" />}
+          ) : (
+            <div className="kiosk-qr__loading" aria-busy="true" />
+          )}
           <div className="kiosk-qr__action">
-            <span className="kiosk-step-number" aria-hidden="true">3</span>
+            <span className="kiosk-step-number" aria-hidden="true">
+              3
+            </span>
             <Smartphone aria-hidden="true" />
-            <div><strong>파일을 하나 또는 여러 개 선택하세요</strong><small>Select one or multiple files, then print them together</small></div>
+            <div>
+              <strong>파일을 하나 또는 여러 개 선택하세요</strong>
+              <small>Select one or multiple files, then print them together</small>
+            </div>
           </div>
-          <p className="kiosk-languages"><Languages aria-hidden="true" /><span>다국어 지원 · languages</span></p>
+          <p className="kiosk-languages">
+            <Languages aria-hidden="true" />
+            <span>다국어 지원 · languages</span>
+          </p>
         </section>
       </div>
     </main>
@@ -292,7 +332,10 @@ async function consumeValidateAndPrint(
   try {
     const consumeResponse = await fetch(`/api/sessions/${session.sessionId}/consume`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-print-cess-kiosk-token": session.kioskToken },
+      headers: {
+        "Content-Type": "application/json",
+        "x-print-cess-kiosk-token": session.kioskToken,
+      },
       body: JSON.stringify({ consumeIdHash: await hashToken(generateToken(), "kiosk") }),
     });
     if (!consumeResponse.ok) throw new Error("consume failed");
@@ -323,9 +366,10 @@ async function consumeValidateAndPrint(
     setStatus("validating");
     await kioskTransition(session, "validating");
 
-    const items = decrypted.fileKind === "bundle"
-      ? (bundleItems = parsePrintBundle(plaintext))
-      : [{ fileKind: printableKind(decrypted.fileKind), bytes: plaintext }];
+    const items =
+      decrypted.fileKind === "bundle"
+        ? (bundleItems = parsePrintBundle(plaintext))
+        : [{ fileKind: printableKind(decrypted.fileKind), bytes: plaintext }];
 
     const nextArtifacts: PrintArtifact[] = [];
     try {
@@ -364,13 +408,15 @@ async function validateBrowserPrintable(bytes: Uint8Array, expectedKind: Printab
   if (detected !== expectedKind) throw new Error("file kind mismatch");
   if (detected === "pdf") await validatePdf(bytes);
   else if (detected === "png" || detected === "jpeg") {
-    const { width, height } = detected === "png" ? parsePngDimensions(bytes) : parseJpegDimensions(bytes);
+    const { width, height } =
+      detected === "png" ? parsePngDimensions(bytes) : parseJpegDimensions(bytes);
     validateDimensions(width, height);
   } else throw new Error("unsupported browser print kind");
 }
 
 function printableKind(kind: string): PrintableFileKind {
-  if (kind === "pdf" || kind === "jpeg" || kind === "png" || kind === "hwp" || kind === "hwpx") return kind;
+  if (kind === "pdf" || kind === "jpeg" || kind === "png" || kind === "hwp" || kind === "hwpx")
+    return kind;
   throw new Error("outer print kind is not printable");
 }
 
@@ -391,16 +437,31 @@ function ConnectedScreen({ status, remaining }: { status: KioskStatus; remaining
     <main className="kiosk-shell kiosk-shell--connected" lang="ko" data-kiosk-state="connected">
       <Wordmark />
       <div className="kiosk-connected">
-        <p className="kiosk-connected__badge"><Smartphone aria-hidden="true" /> 휴대전화가 연결됐어요<small lang="en">Phone connected</small></p>
+        <p className="kiosk-connected__badge">
+          <Smartphone aria-hidden="true" /> 휴대전화가 연결됐어요
+          <small lang="en">Phone connected</small>
+        </p>
         <h1 className="kiosk-connected__headline">
           {status === "printing" ? "선택한 파일을 인쇄하고 있어요" : "휴대전화에서 계속하세요"}
-          <small lang="en">{status === "printing" ? "Printing your selected files" : "Continue on your phone"}</small>
+          <small lang="en">
+            {status === "printing" ? "Printing your selected files" : "Continue on your phone"}
+          </small>
         </h1>
-        <div className={`kiosk-token kiosk-token--${status}`} aria-hidden="true" data-testid="kiosk-document-token"><Files /></div>
+        <div
+          className={`kiosk-token kiosk-token--${status}`}
+          aria-hidden="true"
+          data-testid="kiosk-document-token"
+        >
+          <Files />
+        </div>
         <div className="kiosk-status-row" aria-live="polite">
-          <span className="kiosk-status-dot"><CheckCircle2 aria-hidden="true" /></span>
+          <span className="kiosk-status-dot">
+            <CheckCircle2 aria-hidden="true" />
+          </span>
           <strong>{statusLabel(status)}</strong>
-          <span className="kiosk-countdown">작업 만료까지 <b>{formatTime(remaining)}</b></span>
+          <span className="kiosk-countdown">
+            작업 만료까지 <b>{formatTime(remaining)}</b>
+          </span>
         </div>
       </div>
     </main>
@@ -417,18 +478,33 @@ function CompletedScreen({
   remaining: number;
 }) {
   return (
-    <main className="kiosk-result kiosk-result--success" lang="ko" data-printing-mode={automaticPrinting ? "automatic" : "interactive"}>
+    <main
+      className="kiosk-result kiosk-result--success"
+      lang="ko"
+      data-printing-mode={automaticPrinting ? "automatic" : "interactive"}
+    >
       <Wordmark />
       <CheckCircle2 aria-hidden="true" />
       <h1>{automaticPrinting ? "인쇄가 시작됐어요" : "인쇄 준비가 끝났어요"}</h1>
-      <p><Printer aria-hidden="true" /> 선택한 파일 {artifacts.length}개를 처리했습니다</p>
-      <p className="kiosk-result__english" lang="en">Processed {artifacts.length} selected file{artifacts.length === 1 ? "" : "s"}.</p>
+      <p>
+        <Printer aria-hidden="true" /> 선택한 파일 {artifacts.length}개를 처리했습니다
+      </p>
+      <p className="kiosk-result__english" lang="en">
+        Processed {artifacts.length} selected file{artifacts.length === 1 ? "" : "s"}.
+      </p>
       <div className="kiosk-result__actions">
         {automaticPrinting ? null : (
-          <button type="button" onClick={() => void printAll(artifacts)}><Printer aria-hidden="true" /> 인쇄 창 다시 열기</button>
+          <button type="button" onClick={() => void printAll(artifacts)}>
+            <Printer aria-hidden="true" /> 인쇄 창 다시 열기
+          </button>
         )}
         {artifacts.map((artifact, index) => (
-          <a key={artifact.url} href={artifact.url} download={`print-cess-${index + 1}-${artifact.filename}`} className="kiosk-download">
+          <a
+            key={artifact.url}
+            href={artifact.url}
+            download={`print-cess-${index + 1}-${artifact.filename}`}
+            className="kiosk-download"
+          >
             <Download aria-hidden="true" /> 파일 {index + 1} 다운로드 (직원용)
           </a>
         ))}
@@ -445,12 +521,17 @@ async function printAll(artifacts: readonly PrintArtifact[]) {
 function UnavailableScreen({ onReset }: { onReset: () => void }) {
   return (
     <main className="kiosk-result kiosk-result--error" lang="ko">
-      <Wordmark /><ShieldCheck aria-hidden="true" />
+      <Wordmark />
+      <ShieldCheck aria-hidden="true" />
       <h1>지금은 인쇄할 수 없어요</h1>
       <p>잠시 뒤에 다시 시도해 주세요.</p>
-      <p className="kiosk-result__english" lang="en">Printing is unavailable right now. Please try again in a moment.</p>
+      <p className="kiosk-result__english" lang="en">
+        Printing is unavailable right now. Please try again in a moment.
+      </p>
       <span>보내신 파일은 삭제됐습니다.</span>
-      <button type="button" onClick={onReset}>새 QR코드 만들기</button>
+      <button type="button" onClick={onReset}>
+        새 QR코드 만들기
+      </button>
     </main>
   );
 }

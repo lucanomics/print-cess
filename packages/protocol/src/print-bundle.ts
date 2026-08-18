@@ -87,7 +87,8 @@ export function parsePrintBundle(bytes: Uint8Array): PrintBundleItem[] {
         throw new PrintBundleError("Print bundle entry size is invalid");
       }
       offset += ENTRY_HEADER_BYTES;
-      if (offset + length > bytes.byteLength) throw new PrintBundleError("Print bundle is truncated");
+      if (offset + length > bytes.byteLength)
+        throw new PrintBundleError("Print bundle is truncated");
       items.push({ fileKind: kind, bytes: bytes.slice(offset, offset + length) });
       offset += length;
     }

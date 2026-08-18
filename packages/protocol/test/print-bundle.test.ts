@@ -50,9 +50,7 @@ describe("print bundle", () => {
 
   it("keeps every inner document within the existing 10 MiB document ceiling", () => {
     expect(() =>
-      encodePrintBundle([
-        { fileKind: "pdf", bytes: new Uint8Array(MAX_PLAINTEXT_BYTES + 1) },
-      ]),
+      encodePrintBundle([{ fileKind: "pdf", bytes: new Uint8Array(MAX_PLAINTEXT_BYTES + 1) }]),
     ).toThrow(PrintBundleError);
   });
 });

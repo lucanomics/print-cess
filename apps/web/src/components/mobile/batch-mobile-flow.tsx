@@ -62,7 +62,8 @@ import { useVisitorLocale } from "@/lib/use-visitor-locale";
 import { DocumentPreview } from "./document-preview";
 import { formatBatchCopy, printBatchCopy, type PrintBatchCopy } from "./print-batch-copy";
 
-type Stage = "boot" | "file" | "preview" | "transfer" | "progress" | "complete" | "closed" | "error";
+type Stage =
+  "boot" | "file" | "preview" | "transfer" | "progress" | "complete" | "closed" | "error";
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
 type SelectedDocument = { file: File; validated: ValidatedMobileFile };
 
@@ -228,8 +229,7 @@ export function BatchMobileFlow({
       } catch (error) {
         for (const item of next) item.validated.bytes.fill(0);
         if (error instanceof BatchSelectionError) setBatchError(error.message);
-        else
-          setFileErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
+        else setFileErrorKey(error instanceof FileValidationError ? error.code : "damagedFile");
       }
     },
     [clearDocuments, copy.batchTooLarge, copy.tooManyFiles, supportsHwp, supportsHwpx],
@@ -279,11 +279,7 @@ export function BatchMobileFlow({
       );
       await startUpload(sessionId, mobileToken);
       setProgressKey("uploading");
-      await completeUpload(
-        sessionId,
-        mobileToken,
-        await uploadCiphertext(authorization, envelope),
-      );
+      await completeUpload(sessionId, mobileToken, await uploadCiphertext(authorization, envelope));
     } catch (error) {
       await cancelClaim();
       setErrorKey(
@@ -325,7 +321,10 @@ export function BatchMobileFlow({
   const step = stage === "file" ? 1 : stage === "preview" ? 2 : 3;
   const supportsHancom = supportsHwp || supportsHwpx;
   const hancomLabel = hancomFormatLabel(supportsHwp, supportsHwpx);
-  const rules = (supportsHancom ? copy.rulesHancom : copy.rules).replaceAll("HWP/HWPX", hancomLabel);
+  const rules = (supportsHancom ? copy.rulesHancom : copy.rules).replaceAll(
+    "HWP/HWPX",
+    hancomLabel,
+  );
 
   return (
     <ScreenShell>
@@ -347,7 +346,11 @@ export function BatchMobileFlow({
                 ))}
               </select>
             </label>
-            <button type="button" className="mobile-help-open" onClick={() => setHelpOpen((v) => !v)}>
+            <button
+              type="button"
+              className="mobile-help-open"
+              onClick={() => setHelpOpen((v) => !v)}
+            >
               <CircleQuestionMark aria-hidden="true" /> {text("helpOpen")}
             </button>
           </div>
@@ -392,11 +395,17 @@ export function BatchMobileFlow({
             onChange={(event) => void chooseFiles(event.target.files)}
           />
           {batchError ? (
-            <p className="mobile-file-error" role="alert">{batchError}</p>
+            <p className="mobile-file-error" role="alert">
+              {batchError}
+            </p>
           ) : fileErrorKey ? (
-            <p className="mobile-file-error" role="alert">{text(fileErrorKey)}</p>
+            <p className="mobile-file-error" role="alert">
+              {text(fileErrorKey)}
+            </p>
           ) : fileNoticeKey ? (
-            <p className="mobile-file-notice" role="status">{text(fileNoticeKey)}</p>
+            <p className="mobile-file-notice" role="status">
+              {text(fileNoticeKey)}
+            </p>
           ) : null}
           <div className="mobile-source-actions">
             <PrimaryButton onClick={() => photoInput.current?.click()}>
@@ -429,7 +438,9 @@ export function BatchMobileFlow({
             <ul className="drop-file-list">
               {documents.map(({ file, validated }, index) => (
                 <li key={`${file.name}-${file.size}-${file.lastModified}-${index}`}>
-                  <span className="drop-file-list__name">{index + 1}. {file.name}</span>
+                  <span className="drop-file-list__name">
+                    {index + 1}. {file.name}
+                  </span>
                   <span className="drop-file-list__size">{documentSummary(validated)}</span>
                 </li>
               ))}
@@ -439,8 +450,12 @@ export function BatchMobileFlow({
             {formatBatchCopy(copy.selected, documents.length)}
           </p>
           <div className="mobile-summary">
-            <p><Printer aria-hidden="true" /> {text("printSummary")}</p>
-            <p><LockKeyhole aria-hidden="true" /> {text("privacySummary")}</p>
+            <p>
+              <Printer aria-hidden="true" /> {text("printSummary")}
+            </p>
+            <p>
+              <LockKeyhole aria-hidden="true" /> {text("privacySummary")}
+            </p>
           </div>
           <PrimaryButton onClick={() => void print()}>
             <Printer aria-hidden="true" /> {formatBatchCopy(copy.printFiles, documents.length)}
@@ -524,14 +539,19 @@ function SingleAction({
   action?: string;
   onAction?: () => void;
 }) {
-  const Icon = icon === "success" ? CheckCircle2 : icon === "error" ? TriangleAlert : CircleQuestionMark;
+  const Icon =
+    icon === "success" ? CheckCircle2 : icon === "error" ? TriangleAlert : CircleQuestionMark;
   return (
     <section className="mobile-step mobile-step--single">
-      <StatusIcon tone={icon}><Icon size={34} aria-hidden="true" /></StatusIcon>
+      <StatusIcon tone={icon}>
+        <Icon size={34} aria-hidden="true" />
+      </StatusIcon>
       <h1>{title}</h1>
       {body ? <p>{body}</p> : null}
       {action && onAction ? (
-        <PrimaryButton onClick={onAction}><X aria-hidden="true" /> {action}</PrimaryButton>
+        <PrimaryButton onClick={onAction}>
+          <X aria-hidden="true" /> {action}
+        </PrimaryButton>
       ) : null}
     </section>
   );
@@ -544,8 +564,20 @@ function hancomFormatLabel(supportsHwp: boolean, supportsHwpx: boolean): string 
 
 function documentAccept(supportsHwp: boolean, supportsHwpx: boolean): string {
   const base = [
-    "application/pdf", ".pdf", "image/*", ".jpg", ".jpeg", ".png", ".heic", ".heif",
-    ".webp", ".avif", ".bmp", ".gif", ".tif", ".tiff",
+    "application/pdf",
+    ".pdf",
+    "image/*",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".heic",
+    ".heif",
+    ".webp",
+    ".avif",
+    ".bmp",
+    ".gif",
+    ".tif",
+    ".tiff",
   ];
   const hancom: string[] = [];
   if (supportsHwp) hancom.push("application/x-hwp", "application/haansofthwp", ".hwp");
