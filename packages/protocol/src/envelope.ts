@@ -2,6 +2,8 @@ import { DIGEST_PATTERN, SESSION_ID_PATTERN } from "./canonical.js";
 
 export const MAX_PLAINTEXT_BYTES = 10 * 1024 * 1024;
 export const MAX_PDF_PAGES = 10;
+export const MAX_PRINT_BUNDLE_FILES = 10;
+export const MAX_PRINT_BUNDLE_BYTES = 32 * 1024 * 1024;
 export const ENVELOPE_FIXED_HEADER_BYTES = 26;
 export const P256_PUBLIC_KEY_BYTES = 65;
 export const HKDF_SALT_BYTES = 32;
@@ -10,7 +12,10 @@ export const AES_GCM_TAG_BYTES = 16;
 export const ENVELOPE_HEADER_BYTES =
   ENVELOPE_FIXED_HEADER_BYTES + P256_PUBLIC_KEY_BYTES + HKDF_SALT_BYTES + AES_GCM_IV_BYTES;
 export const ENVELOPE_OVERHEAD_BYTES = ENVELOPE_HEADER_BYTES + AES_GCM_TAG_BYTES;
-export const MAX_ENVELOPE_BYTES = MAX_PLAINTEXT_BYTES + ENVELOPE_OVERHEAD_BYTES;
+// A normal document still tops out at 10 MiB. Only the authenticated bundle
+// container may use the larger payload budget, so adding batch printing does
+// not quietly make single-document validation more permissive.
+export const MAX_ENVELOPE_BYTES = MAX_PRINT_BUNDLE_BYTES + ENVELOPE_OVERHEAD_BYTES;
 export const HKDF_INFO = "print-cess-by-paradiso:file:v1";
 
 const MAGIC = new Uint8Array([0x50, 0x43, 0x45, 0x4e, 0x56, 0x30, 0x31, 0x00]);
@@ -22,9 +27,11 @@ export const FILE_KIND_CODES = {
   png: 3,
   hwpx: 4,
   hwp: 5,
+  bundle: 6,
 } as const;
 
 export type FileKind = keyof typeof FILE_KIND_CODES;
+export type PrintableFileKind = Exclude<FileKind, "bundle">;
 
 export type EnvelopeMetadata = {
   protocolVersion: 1;
@@ -112,13 +119,15 @@ export function parseEnvelope(envelope: Uint8Array): ParsedEnvelope {
   if (saltLength !== HKDF_SALT_BYTES) throw new EnvelopeError("Invalid HKDF salt size");
   if (ivLength !== AES_GCM_IV_BYTES) throw new EnvelopeError("Invalid AES-GCM IV size");
   if (tagLength !== AES_GCM_TAG_BYTES) throw new EnvelopeError("Invalid AES-GCM tag size");
+
+  const fileKind = fileKindFromCode(kindCode);
   if (plaintextLength < 1) throw new EnvelopeError("Plaintext must not be empty");
-  if (plaintextLength > MAX_PLAINTEXT_BYTES) throw new EnvelopeError("Plaintext is too large");
+  if (plaintextLength > maximumPlaintextBytes(fileKind))
+    throw new EnvelopeError("Plaintext is too large");
   if (ciphertextLength !== plaintextLength + AES_GCM_TAG_BYTES) {
     throw new EnvelopeError("Invalid ciphertext size");
   }
 
-  const fileKind = fileKindFromCode(kindCode);
   const headerLength = ENVELOPE_FIXED_HEADER_BYTES + publicKeyLength + saltLength + ivLength;
   if (envelope.byteLength !== headerLength + ciphertextLength) {
     throw new EnvelopeError("Envelope length does not match the header");
@@ -183,7 +192,7 @@ function validateMetadata(metadata: EnvelopeMetadata): void {
   if (!Number.isInteger(metadata.plaintextLength) || metadata.plaintextLength < 1) {
     throw new EnvelopeError("Invalid plaintext length");
   }
-  if (metadata.plaintextLength > MAX_PLAINTEXT_BYTES)
+  if (metadata.plaintextLength > maximumPlaintextBytes(metadata.fileKind))
     throw new EnvelopeError("Plaintext is too large");
   if (metadata.ephemeralPublicKey.byteLength !== P256_PUBLIC_KEY_BYTES) {
     throw new EnvelopeError("Invalid public key size");
@@ -195,11 +204,15 @@ function validateMetadata(metadata: EnvelopeMetadata): void {
   if (metadata.iv.byteLength !== AES_GCM_IV_BYTES) throw new EnvelopeError("Invalid IV size");
 }
 
-function fileKindFromCode(code: number): FileKind {
+export function fileKindFromCode(code: number): FileKind {
   for (const [kind, value] of Object.entries(FILE_KIND_CODES)) {
     if (value === code) return kind as FileKind;
   }
   throw new EnvelopeError("Unsupported file kind");
+}
+
+function maximumPlaintextBytes(kind: FileKind): number {
+  return kind === "bundle" ? MAX_PRINT_BUNDLE_BYTES : MAX_PLAINTEXT_BYTES;
 }
 
 function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
