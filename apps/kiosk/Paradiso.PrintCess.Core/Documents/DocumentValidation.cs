@@ -72,6 +72,7 @@ public enum DocumentValidationError
     CorruptHwp,
     UnsafeHwpContent,
     EncryptedHwp,
+    CorruptBundle,
 }
 
 public sealed class DocumentValidationException : Exception
@@ -87,7 +88,7 @@ public sealed class DocumentValidationException : Exception
     private static string MessageFor(DocumentValidationError error) => error switch
     {
         DocumentValidationError.Empty => "The document is empty.",
-        DocumentValidationError.TooLarge => "The document exceeds the 10 MiB limit.",
+        DocumentValidationError.TooLarge => "The document or print batch exceeds the permitted size.",
         DocumentValidationError.TypeMismatch => "The document content does not match its expected type.",
         DocumentValidationError.MimeMismatch => "The declared media type does not match the document.",
         DocumentValidationError.CorruptPdf => "The PDF structure is invalid.",
@@ -102,6 +103,7 @@ public sealed class DocumentValidationException : Exception
         DocumentValidationError.CorruptHwp => "The HWP compound document is invalid.",
         DocumentValidationError.UnsafeHwpContent => "The HWP document contains unsafe active content.",
         DocumentValidationError.EncryptedHwp => "Encrypted, DRM, or distribution HWP documents are not supported.",
+        DocumentValidationError.CorruptBundle => "The multi-file print batch is invalid.",
         _ => "The document is invalid.",
     };
 }
@@ -127,7 +129,10 @@ public sealed class PortableDocumentValidator : IDocumentValidator
             throw new DocumentValidationException(DocumentValidationError.Empty);
         }
 
-        if (content.Length > BinaryEnvelope.MaxPlaintextBytes)
+        var maximumSize = expectedKind == DocumentKind.Bundle
+            ? BinaryEnvelope.MaxBundleBytes
+            : BinaryEnvelope.MaxPlaintextBytes;
+        if (content.Length > maximumSize)
         {
             throw new DocumentValidationException(DocumentValidationError.TooLarge);
         }
@@ -151,6 +156,7 @@ public sealed class PortableDocumentValidator : IDocumentValidator
             DocumentKind.Jpeg => JpegDocumentInspector.Validate(content),
             DocumentKind.Hwpx => HwpxDocumentInspector.Validate(content),
             DocumentKind.Hwp => HwpDocumentInspector.Validate(content),
+            DocumentKind.Bundle => PrintBundleDocumentInspector.Validate(content),
             _ => throw new DocumentValidationException(DocumentValidationError.TypeMismatch),
         };
 
@@ -167,6 +173,11 @@ public sealed class PortableDocumentValidator : IDocumentValidator
         if (content.StartsWith(PngMagic))
         {
             return DocumentKind.Png;
+        }
+
+        if (PrintBundle.LooksLike(content))
+        {
+            return DocumentKind.Bundle;
         }
 
         if (HwpxDocumentInspector.LooksLikeHwpx(content))
