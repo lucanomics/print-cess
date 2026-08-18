@@ -112,7 +112,6 @@ function validateItemCount(count: number): void {
 }
 
 function validatePrintableItem(item: PrintBundleItem): void {
-  if (item.fileKind === "bundle") throw new PrintBundleError("Nested print bundles are not supported");
   if (item.bytes.byteLength < 1 || item.bytes.byteLength > MAX_PLAINTEXT_BYTES) {
     throw new PrintBundleError("Print bundle entry size is invalid");
   }
