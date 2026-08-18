@@ -2,14 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Ban,
   CheckCircle2,
   CircleQuestionMark,
+  FileCheck2,
   FileImage,
   Files,
   Image as ImageIcon,
   Languages,
   LockKeyhole,
+  Mail,
+  MessageCircle,
   Printer,
+  ScanLine,
+  Send,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -57,18 +63,36 @@ import {
 import { watchPrintStatus, type PrintWatchState } from "@/lib/print-status";
 import { parseSessionFragment } from "@/lib/session-fragment";
 import { clearBrowserSiteData } from "@/lib/session-teardown";
-import { useVisitorLocale } from "@/lib/use-visitor-locale";
+import { useVisitorLocale, type Text } from "@/lib/use-visitor-locale";
 
 import { DocumentPreview } from "./document-preview";
 import { formatBatchCopy, printBatchCopy, type PrintBatchCopy } from "./print-batch-copy";
 
 type Stage =
-  "boot" | "file" | "preview" | "transfer" | "progress" | "complete" | "closed" | "error";
+  | "boot"
+  | "file"
+  | "preview"
+  | "transfer"
+  | "progress"
+  | "complete"
+  | "closed"
+  | "error";
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
 type SelectedDocument = { file: File; validated: ValidatedMobileFile };
 
 const CLOSE_CONFIRM_MS = 150;
 const AUTOMATIC_SHUTDOWN_MS = 30_000;
+
+const HELP_KEYS: Record<Stage, string> = {
+  boot: "helpProgress",
+  file: "helpFile",
+  preview: "helpPreview",
+  transfer: "helpProgress",
+  progress: "helpProgress",
+  complete: "helpDone",
+  closed: "helpDone",
+  error: "helpError",
+};
 
 export function BatchMobileFlow({
   sessionId,
@@ -91,6 +115,7 @@ export function BatchMobileFlow({
   const [watching, setWatching] = useState<PrintWatchState>({ kind: "waiting" });
   const [supportsHwpx, setSupportsHwpx] = useState(false);
   const [supportsHwp, setSupportsHwp] = useState(false);
+  const [reminderStage, setReminderStage] = useState<Stage>();
   const [helpOpen, setHelpOpen] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -127,6 +152,11 @@ export function BatchMobileFlow({
     const timer = window.setTimeout(shutdownPage, AUTOMATIC_SHUTDOWN_MS);
     return () => window.clearTimeout(timer);
   }, [shutdownPage, stage]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReminderStage(stage), 30_000);
+    return () => window.clearTimeout(timer);
+  }, [stage]);
 
   useEffect(() => () => watchAbort.current?.abort(), []);
 
@@ -325,6 +355,8 @@ export function BatchMobileFlow({
     "HWP/HWPX",
     hancomLabel,
   );
+  const single = documents.length === 1;
+  const reminder = helpForStage(stage, text, copy);
 
   return (
     <ScreenShell>
@@ -349,7 +381,8 @@ export function BatchMobileFlow({
             <button
               type="button"
               className="mobile-help-open"
-              onClick={() => setHelpOpen((v) => !v)}
+              onClick={() => setHelpOpen(true)}
+              aria-haspopup="dialog"
             >
               <CircleQuestionMark aria-hidden="true" /> {text("helpOpen")}
             </button>
@@ -361,13 +394,13 @@ export function BatchMobileFlow({
         <ProgressSteps current={step} total={3} label={text("step", { current: step, total: 3 })} />
       ) : null}
 
-      {helpOpen && (stage === "file" || stage === "preview") ? (
-        <div className="mobile-file-notice" role="status">
-          {stage === "file" ? copy.helpFile : copy.helpPreview}
-        </div>
+      {reminderStage === stage && !["boot", "complete", "error", "closed"].includes(stage) ? (
+        <p className="mobile-reminder" role="status">
+          {reminder}
+        </p>
       ) : null}
 
-      {stage === "boot" ? <ProgressState text={text("preparingSession")} note="" /> : null}
+      {stage === "boot" ? <Loading text={text("preparingSession")} /> : null}
 
       {stage === "file" ? (
         <section className="mobile-step">
@@ -415,14 +448,17 @@ export function BatchMobileFlow({
               <Files aria-hidden="true" /> {text("locationFiles")}
             </SecondaryButton>
           </div>
+          <button type="button" className="mobile-guide-link" onClick={() => setHelpOpen(true)}>
+            {text("guideOpen")}
+          </button>
         </section>
       ) : null}
 
       {stage === "preview" && documents.length > 0 ? (
         <section className="mobile-step mobile-step--preview">
-          <h1>{copy.checkFiles}</h1>
-          <p>{copy.previewHelp}</p>
-          {documents.length === 1 && documents[0] ? (
+          <h1>{single ? text("checkDocument") : copy.checkFiles}</h1>
+          <p>{single ? text("previewHelp") : copy.previewHelp}</p>
+          {single && documents[0] ? (
             <DocumentPreview
               file={documents[0].file}
               validated={documents[0].validated}
@@ -446,9 +482,11 @@ export function BatchMobileFlow({
               ))}
             </ul>
           )}
-          <p className="mobile-file-notice" role="status">
-            {formatBatchCopy(copy.selected, documents.length)}
-          </p>
+          {single ? null : (
+            <p className="mobile-file-notice" role="status">
+              {formatBatchCopy(copy.selected, documents.length)}
+            </p>
+          )}
           <div className="mobile-summary">
             <p>
               <Printer aria-hidden="true" /> {text("printSummary")}
@@ -458,7 +496,8 @@ export function BatchMobileFlow({
             </p>
           </div>
           <PrimaryButton onClick={() => void print()}>
-            <Printer aria-hidden="true" /> {formatBatchCopy(copy.printFiles, documents.length)}
+            <Printer aria-hidden="true" />
+            {single ? text("printOneCopy") : formatBatchCopy(copy.printFiles, documents.length)}
           </PrimaryButton>
           <SecondaryButton
             onClick={() => {
@@ -466,7 +505,7 @@ export function BatchMobileFlow({
               setStage("file");
             }}
           >
-            {copy.changeSelection}
+            {single ? text("chooseAnother") : copy.changeSelection}
           </SecondaryButton>
         </section>
       ) : null}
@@ -490,7 +529,16 @@ export function BatchMobileFlow({
         />
       ) : null}
       {stage === "closed" ? (
-        <SingleAction icon="success" title={text("closedTitle")} body={text("closedBody")} />
+        <section className="mobile-step mobile-step--single mobile-step--closed">
+          <StatusIcon tone="success">
+            <CheckCircle2 size={34} aria-hidden="true" />
+          </StatusIcon>
+          <h1>{text("closedTitle")}</h1>
+          <p>{text("closedBody")}</p>
+          <a className="mobile-drop-link" href="/send">
+            <Send aria-hidden="true" /> {text("dropTitle")}
+          </a>
+        </section>
       ) : null}
       {stage === "error" ? (
         <SingleAction
@@ -499,8 +547,141 @@ export function BatchMobileFlow({
           body={errorKey === "printOutcomeUnknown" ? text("printOutcomeUnknownBody") : ""}
         />
       ) : null}
+      <HelpSheet
+        open={helpOpen}
+        stage={stage}
+        text={text}
+        copy={copy}
+        supportsHancom={supportsHancom}
+        hancomLabel={hancomLabel}
+        onClose={() => setHelpOpen(false)}
+      />
     </ScreenShell>
   );
+}
+
+function Loading({ text }: { text: string }) {
+  return (
+    <section className="mobile-step" aria-busy="true">
+      <div className="mobile-spinner" />
+      <p>{text}</p>
+    </section>
+  );
+}
+
+function HelpSheet({
+  open,
+  stage,
+  text,
+  copy,
+  supportsHancom,
+  hancomLabel,
+  onClose,
+}: {
+  open: boolean;
+  stage: Stage;
+  text: Text;
+  copy: PrintBatchCopy;
+  supportsHancom: boolean;
+  hancomLabel: string;
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const node = dialog.current;
+    if (!node) return;
+    if (open && !node.open) node.showModal();
+    if (!open && node.open) node.close();
+  }, [open]);
+
+  const showFileLocations = stage === "file";
+
+  return (
+    <dialog
+      ref={dialog}
+      className="mobile-help"
+      onClose={onClose}
+      aria-labelledby="mobile-help-title"
+    >
+      {open ? (
+        <>
+          <h2 id="mobile-help-title">{text("helpTitle")}</h2>
+          <p className="mobile-help__now">{helpForStage(stage, text, copy)}</p>
+          <ol className="mobile-guide" aria-label={text("guideTitle")}>
+            {guideStepsFor(supportsHancom, copy).map(({ icon: Icon, title, body, completed }) => (
+              <li key={title} className={completed ? "is-complete" : undefined}>
+                <span className="mobile-guide__icon" aria-hidden="true">
+                  <Icon />
+                  {completed ? <CheckCircle2 className="mobile-guide__check" /> : null}
+                </span>
+                <span>
+                  <strong>{title.startsWith("batch:") ? title.slice(6) : text(title)}</strong>
+                  <small>
+                    {applyHancomLabel(body.startsWith("batch:") ? body.slice(6) : text(body), hancomLabel)}
+                  </small>
+                </span>
+              </li>
+            ))}
+          </ol>
+          {showFileLocations ? (
+            <div className="mobile-help__where">
+              <h3>{text("chooseLocation")}</h3>
+              <ul>
+                <li>
+                  <MessageCircle aria-hidden="true" />
+                  <span>
+                    <strong>{text("locationKakao")}</strong>
+                    <small>{text("kakaoGuide")}</small>
+                  </span>
+                </li>
+                <li>
+                  <Mail aria-hidden="true" />
+                  <span>
+                    <strong>{text("locationEmail")}</strong>
+                    <small>{text("emailGuide")}</small>
+                  </span>
+                </li>
+                <li>
+                  <Ban aria-hidden="true" />
+                  <span>
+                    <strong>{text("locationMissing")}</strong>
+                    <small>
+                      {text("missingTitle")} {text("missingBody")}
+                    </small>
+                  </span>
+                </li>
+              </ul>
+            </div>
+          ) : null}
+          <p className="mobile-help__staff">{text("helpAskStaff")}</p>
+          <div className="mobile-help__actions">
+            <PrimaryButton onClick={onClose}>{text("helpClose")}</PrimaryButton>
+          </div>
+        </>
+      ) : null}
+    </dialog>
+  );
+}
+
+function guideStepsFor(supportsHancom: boolean, copy: PrintBatchCopy) {
+  return [
+    { icon: ScanLine, title: "guideScanTitle", body: "guideScanBody", completed: true },
+    {
+      icon: ImageIcon,
+      title: `batch:${copy.guideChooseTitle}`,
+      body: `batch:${supportsHancom ? copy.guideChooseBodyHancom : copy.guideChooseBody}`,
+      completed: false,
+    },
+    { icon: FileCheck2, title: "guideCheckTitle", body: "guideCheckBody", completed: false },
+    { icon: Printer, title: "guideCollectTitle", body: "guideCollectBody", completed: false },
+  ] as const;
+}
+
+function helpForStage(stage: Stage, text: Text, copy: PrintBatchCopy): string {
+  if (stage === "file") return copy.helpFile;
+  if (stage === "preview") return copy.helpPreview;
+  return text(HELP_KEYS[stage]);
 }
 
 function printableKind(kind: ValidatedMobileFile["fileKind"]): PrintableFileKind {
@@ -560,6 +741,10 @@ function SingleAction({
 function hancomFormatLabel(supportsHwp: boolean, supportsHwpx: boolean): string {
   if (supportsHwp === supportsHwpx) return "HWP/HWPX";
   return supportsHwp ? "HWP" : "HWPX";
+}
+
+function applyHancomLabel(value: string, label: string): string {
+  return value.replaceAll("HWP/HWPX", label).replaceAll("HWPX", label);
 }
 
 function documentAccept(supportsHwp: boolean, supportsHwpx: boolean): string {
