@@ -16,7 +16,9 @@ public sealed class PrintBundleTests
 
         using var bundle = PrintBundle.Parse(encoded);
 
-        Assert.Equal([DocumentKind.Jpeg, DocumentKind.Pdf, DocumentKind.Hwpx], bundle.Entries.Select(entry => entry.Kind));
+        Assert.Equal(
+            new[] { DocumentKind.Jpeg, DocumentKind.Pdf, DocumentKind.Hwpx },
+            bundle.Entries.Select(entry => entry.Kind));
         Assert.Equal(new byte[] { 0xff, 0xd8, 0xff, 1 }, bundle.Entries[0].Bytes);
         Assert.Equal("%PDF-test"u8.ToArray(), bundle.Entries[1].Bytes);
     }
