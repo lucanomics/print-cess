@@ -79,9 +79,15 @@ both temporary files. The public browser kiosk does not claim or emulate HWPX pr
 Before enabling the capability:
 
 1. Install an institution-approved Hancom Office version that registers `HWPFrame.HwpObject`.
-2. Obtain, install, and register Hancom's file-path security module under the kiosk account.
-3. Set `PRINT_CESS_HANCOM_SECURITY_MODULE` to the registered module name. The kiosk advertises HWPX
-   in its QR only when both the COM component and this setting are present.
+2. Obtain, install, and register Hancom's file-path security module under
+   `HKCU\Software\HNC\HwpAutomation\Modules` for the kiosk account. The registered value must point
+   to an existing DLL.
+3. The kiosk automatically uses `FilePathCheckerModuleExample` when that default registration exists
+   and `PRINT_CESS_HANCOM_SECURITY_MODULE` is unset. Set the variable to another exact registered
+   value name only when an approved deployment uses a different module. HWP/HWPX is advertised only
+   when both a supported Hancom COM component and a usable registered security module are present.
+   To deliberately disable HWP/HWPX capability without uninstalling Hancom, set the variable to a
+   reserved unregistered value such as `disabled`; an explicit but unregistered module fails closed.
 4. Confirm with Hancom that the institution's automation and redistribution use is licensed and
    approved. Personal-use automation terms must not be assumed to cover an institutional kiosk.
 5. Test representative synthetic HWPX files containing tables, images, page breaks, headers,
@@ -171,6 +177,10 @@ Set machine/account-protected variables or an approved configuration store:
 - `PRINT_CESS_PRINTER_NAME`: exact approved queue;
 - `PRINT_CESS_ALLOWED_PRINTERS`: optional comma-separated additional approved installed queues,
   never wildcards; the configured default is always included;
+- `PRINT_CESS_HANCOM_SECURITY_MODULE`: optional Hancom Automation security-module override. Leave it
+  unset to use a valid registered `FilePathCheckerModuleExample`; set it to another exact registered
+  value name to override; set it to an intentionally unregistered sentinel such as `disabled` to
+  suppress HWP/HWPX capability advertisement;
 - `PRINT_CESS_ADMIN_PASSWORD_HASH`: salted modern hash, never a plaintext/hard-coded password;
 - `PRINT_CESS_ADMIN_API_SECRET`: independent random server administrator secret (at least 32
   characters) for `/api/admin/health` and the bounded `/api/cleanup` sweep; protect it separately
