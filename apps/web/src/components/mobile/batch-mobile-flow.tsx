@@ -69,14 +69,7 @@ import { DocumentPreview } from "./document-preview";
 import { formatBatchCopy, printBatchCopy, type PrintBatchCopy } from "./print-batch-copy";
 
 type Stage =
-  | "boot"
-  | "file"
-  | "preview"
-  | "transfer"
-  | "progress"
-  | "complete"
-  | "closed"
-  | "error";
+  "boot" | "file" | "preview" | "transfer" | "progress" | "complete" | "closed" | "error";
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
 type SelectedDocument = { file: File; validated: ValidatedMobileFile };
 
@@ -618,7 +611,10 @@ function HelpSheet({
                 <span>
                   <strong>{title.startsWith("batch:") ? title.slice(6) : text(title)}</strong>
                   <small>
-                    {applyHancomLabel(body.startsWith("batch:") ? body.slice(6) : text(body), hancomLabel)}
+                    {applyHancomLabel(
+                      body.startsWith("batch:") ? body.slice(6) : text(body),
+                      hancomLabel,
+                    )}
                   </small>
                 </span>
               </li>
