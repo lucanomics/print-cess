@@ -28,8 +28,9 @@ The kiosk fails closed for:
 ## Deployment requirements
 
 - Institution-approved Hancom Office installation registering `HWPFrame.HwpObject`.
-- Hancom file-path security module installed for the kiosk account.
-- `PRINT_CESS_HANCOM_SECURITY_MODULE` set to the registered module name.
+- Hancom file-path security module installed and registered under `HKCU\Software\HNC\HwpAutomation\Modules` for the kiosk account, with the registered value pointing to an existing DLL.
+- When `PRINT_CESS_HANCOM_SECURITY_MODULE` is unset, the kiosk automatically uses the registered `FilePathCheckerModuleExample` module. Set the variable to another exact registered value name to override the default.
+- To deliberately disable HWP/HWPX capability advertisement without uninstalling Hancom, set `PRINT_CESS_HANCOM_SECURITY_MODULE` to a reserved unregistered value such as `disabled`; an explicitly configured but unregistered module fails closed and suppresses the capability.
 - Confirmed institutional automation and licensing terms.
 - Target-PC acceptance tests using synthetic HWP 5.x files with tables, images, shapes, headers, footers, page breaks, and required fonts.
 - Comparison against interactive Hancom Office output on the same machine and printer.
