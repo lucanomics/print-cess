@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, CircleAlert, LoaderCircle, ShieldAlert } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Copy = {
   checking: string;
@@ -26,39 +26,13 @@ type ReadinessCheck = {
 };
 
 export function WorkstationReadiness({ copy }: { copy: Copy }) {
-  const [checks, setChecks] = useState<ReadinessCheck[] | null>(null);
+  const hydrated = useSyncExternalStore(subscribeNever, readHydrated, readNotHydrated);
+  const secureContext = useSyncExternalStore(subscribeNever, readSecureContext, readNotHydrated);
+  const webCrypto = useSyncExternalStore(subscribeNever, readWebCrypto, readNotHydrated);
+  const fileApi = useSyncExternalStore(subscribeNever, readFileApi, readNotHydrated);
+  const downloadApi = useSyncExternalStore(subscribeNever, readDownloadApi, readNotHydrated);
 
-  useEffect(() => {
-    const anchor = document.createElement("a");
-    setChecks([
-      {
-        key: "secure-context",
-        label: copy.secureContext,
-        ok: window.isSecureContext,
-        required: true,
-      },
-      {
-        key: "web-crypto",
-        label: copy.webCrypto,
-        ok: Boolean(globalThis.crypto?.subtle),
-        required: true,
-      },
-      {
-        key: "file-api",
-        label: copy.fileApi,
-        ok: typeof File !== "undefined" && typeof Blob !== "undefined" && typeof FileReader !== "undefined",
-        required: true,
-      },
-      {
-        key: "download-api",
-        label: copy.downloadApi,
-        ok: "download" in anchor,
-        required: false,
-      },
-    ]);
-  }, [copy]);
-
-  if (!checks) {
+  if (!hydrated) {
     return (
       <section className="workstation-readiness" aria-live="polite">
         <div className="workstation-readiness__headline">
@@ -69,6 +43,12 @@ export function WorkstationReadiness({ copy }: { copy: Copy }) {
     );
   }
 
+  const checks: ReadinessCheck[] = [
+    { key: "secure-context", label: copy.secureContext, ok: secureContext, required: true },
+    { key: "web-crypto", label: copy.webCrypto, ok: webCrypto, required: true },
+    { key: "file-api", label: copy.fileApi, ok: fileApi, required: true },
+    { key: "download-api", label: copy.downloadApi, ok: downloadApi, required: false },
+  ];
   const requiredFailure = checks.some((check) => check.required && !check.ok);
   const optionalFailure = checks.some((check) => !check.required && !check.ok);
   const tone = requiredFailure ? "blocked" : optionalFailure ? "limited" : "ready";
@@ -92,4 +72,32 @@ export function WorkstationReadiness({ copy }: { copy: Copy }) {
       {requiredFailure ? <p>{copy.blockedHint}</p> : optionalFailure ? <p>{copy.limitedHint}</p> : null}
     </section>
   );
+}
+
+function subscribeNever(): () => void {
+  return () => undefined;
+}
+
+function readHydrated(): boolean {
+  return true;
+}
+
+function readNotHydrated(): boolean {
+  return false;
+}
+
+function readSecureContext(): boolean {
+  return window.isSecureContext;
+}
+
+function readWebCrypto(): boolean {
+  return Boolean(globalThis.crypto?.subtle);
+}
+
+function readFileApi(): boolean {
+  return typeof File !== "undefined" && typeof Blob !== "undefined" && typeof FileReader !== "undefined";
+}
+
+function readDownloadApi(): boolean {
+  return "download" in document.createElement("a");
 }
