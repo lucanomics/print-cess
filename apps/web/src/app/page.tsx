@@ -1,4 +1,4 @@
-import { Download, Monitor, Send, ShieldCheck } from "lucide-react";
+import { Building2, Download, Monitor, Send, ShieldCheck } from "lucide-react";
 
 import { translate } from "@print-cess/i18n";
 import { Wordmark } from "@print-cess/ui";
@@ -20,6 +20,22 @@ const kioskCta = {
   ru: "Открыть киоск",
   mn: "Киоск нээх",
   uk: "Відкрити кіоск",
+} as const;
+
+const workstationCta = {
+  en: "Work computer",
+  ko: "업무용 PC",
+  "zh-CN": "办公电脑",
+  id: "Komputer kerja",
+  fil: "Computer sa trabaho",
+  vi: "Máy tính cơ quan",
+  th: "คอมพิวเตอร์ที่ทำงาน",
+  ne: "कार्य कम्प्युटर",
+  km: "កុំព្យូទ័រការងារ",
+  ar: "كمبيوتر العمل",
+  ru: "Рабочий компьютер",
+  mn: "Ажлын компьютер",
+  uk: "Робочий комп’ютер",
 } as const;
 
 export default async function HomePage() {
@@ -45,6 +61,9 @@ export default async function HomePage() {
           </a>
           <a href="/receive">
             <Download aria-hidden="true" /> {text("dropReceiveCta")}
+          </a>
+          <a href="/workstation">
+            <Building2 aria-hidden="true" /> {workstationCta[locale]}
           </a>
           {kioskAvailable ? (
             <a href="/kiosk">
