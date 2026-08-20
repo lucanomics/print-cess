@@ -67,7 +67,14 @@ import { useVisitorLocale, type Text } from "@/lib/use-visitor-locale";
 import { DocumentPreview } from "./document-preview";
 
 type Stage =
-  "boot" | "file" | "preview" | "transfer" | "progress" | "complete" | "closed" | "error";
+  | "boot"
+  | "file"
+  | "preview"
+  | "transfer"
+  | "progress"
+  | "complete"
+  | "closed"
+  | "error";
 
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
 type SelectedDocument = { file: File; validated: ValidatedMobileFile };
@@ -265,7 +272,10 @@ export function MobileFlow({
           });
           next.push({ file, validated });
         }
-        if (next.length > 1 && printBundleEncodedBytes(next.map((item) => item.validated)) > MAX_PLAINTEXT_BYTES) {
+        if (
+          next.length > 1 &&
+          printBundleEncodedBytes(next.map((item) => item.validated)) > MAX_PLAINTEXT_BYTES
+        ) {
           throw new FileValidationError("tooLarge");
         }
         clearDocuments();
@@ -379,7 +389,10 @@ export function MobileFlow({
             <label className="drop-language">
               <Languages aria-hidden="true" />
               <span className="drop-visually-hidden">{text("selectLanguage")}</span>
-              <select value={locale} onChange={(event) => setLocale(event.target.value as SupportedLocale)}>
+              <select
+                value={locale}
+                onChange={(event) => setLocale(event.target.value as SupportedLocale)}
+              >
                 {SUPPORTED_LOCALES.map((candidate) => (
                   <option key={candidate} value={candidate}>
                     {LOCALE_NAMES[candidate]}
@@ -413,7 +426,13 @@ export function MobileFlow({
           <StatusIcon>
             <FileImage size={32} aria-hidden="true" />
           </StatusIcon>
-          <h1>{locale === "ko" && supportsBundle ? "인쇄할 파일을 고르세요" : locale === "en" && supportsBundle ? "Pick files to print" : text("chooseFile")}</h1>
+          <h1>
+            {locale === "ko" && supportsBundle
+              ? "인쇄할 파일을 고르세요"
+              : locale === "en" && supportsBundle
+                ? "Pick files to print"
+                : text("chooseFile")}
+          </h1>
           <p>
             {supportsBundle
               ? locale === "ko"
@@ -519,7 +538,9 @@ export function MobileFlow({
       {stage === "progress" ? (
         <ProgressState
           text={text(watching.kind === "reconnecting" ? "reconnecting" : progressKey)}
-          note={text(watching.kind === "reconnecting" ? "kioskMayStillBePrinting" : "keepPageOpen")}
+          note={text(
+            watching.kind === "reconnecting" ? "kioskMayStillBePrinting" : "keepPageOpen",
+          )}
         />
       ) : null}
       {stage === "complete" ? (
@@ -555,7 +576,6 @@ export function MobileFlow({
         stage={stage}
         text={text}
         supportsHancom={supportsHancom}
-        supportsBundle={supportsBundle}
         hancomLabel={hancomLabel}
         onClose={() => setHelpOpen(false)}
       />
@@ -577,7 +597,6 @@ function HelpSheet({
   stage,
   text,
   supportsHancom,
-  supportsBundle,
   hancomLabel,
   onClose,
 }: {
@@ -585,7 +604,6 @@ function HelpSheet({
   stage: Stage;
   text: Text;
   supportsHancom: boolean;
-  supportsBundle: boolean;
   hancomLabel: string;
   onClose: () => void;
 }) {
@@ -601,15 +619,16 @@ function HelpSheet({
   const showFileLocations = stage === "file";
 
   return (
-    <dialog ref={dialog} className="mobile-help" onClose={onClose} aria-labelledby="mobile-help-title">
+    <dialog
+      ref={dialog}
+      className="mobile-help"
+      onClose={onClose}
+      aria-labelledby="mobile-help-title"
+    >
       {open ? (
         <>
           <h2 id="mobile-help-title">{text("helpTitle")}</h2>
-          <p className="mobile-help__now">
-            {supportsBundle && stage === "file"
-              ? "Choose one or several files, then check every preview before printing."
-              : text(HELP_KEYS[stage])}
-          </p>
+          <p className="mobile-help__now">{text(HELP_KEYS[stage])}</p>
           <ol className="mobile-guide" aria-label={text("guideTitle")}>
             {guideStepsFor(supportsHancom).map(({ icon: Icon, title, body, completed }) => (
               <li key={title} className={completed ? "is-complete" : undefined}>
