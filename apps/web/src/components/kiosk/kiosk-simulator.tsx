@@ -28,6 +28,7 @@ import {
   translate,
   type SupportedLocale,
 } from "@print-cess/i18n";
+import { decodePrintBundle, type PrintableFileKind } from "@print-cess/protocol";
 import { Wordmark } from "@print-cess/ui";
 
 import {
@@ -55,9 +56,6 @@ type KioskStatus =
   | "completed"
   | "failed";
 
-// Korean and English stay on screen permanently; the remaining languages take
-// turns on one line so a visitor sees the same instruction in their own
-// language without the display filling up with text.
 const SPOTLIGHT_LOCALES: readonly SupportedLocale[] = SUPPORTED_LOCALES.filter(
   (locale) => locale !== "ko" && locale !== "en",
 );
@@ -138,6 +136,7 @@ export function KioskSimulator({
             protocolVersion: 1,
             kioskPublicKey,
             kioskPublicKeyFingerprint: fingerprint,
+            supportsBundle: true,
           }),
         });
         if (!response.ok) throw new Error("session registration failed");
@@ -256,9 +255,6 @@ export function KioskSimulator({
       />
     );
   if (status === "failed") return <UnavailableScreen onReset={reset} />;
-  // Once a phone has claimed the session, telling the room to scan a QR code
-  // that is no longer valid is both wrong and confusing: the visitor standing
-  // here is looking for what happens next, and it is happening on their phone.
   if (status !== "preparing" && status !== "waiting") {
     return <ConnectedScreen status={status} remaining={remaining} />;
   }
@@ -287,10 +283,6 @@ export function KioskSimulator({
           <p className="kiosk-english" lang="en">
             Open the camera on your phone
           </p>
-          {/* One line, rotating through the languages that are not permanently
-              on screen, so a visitor who reads neither Korean nor English still
-              sees what to do. Hidden from assistive technology because a line
-              that changes on a timer would interrupt it repeatedly. */}
           <p
             className="kiosk-spotlight"
             lang={spotlight}
@@ -306,7 +298,7 @@ export function KioskSimulator({
               <span>
                 인쇄할 수 있는 파일
                 <br />
-                <strong>PDF · JPG/JPEG · HEIC 등 사진</strong>
+                <strong>PDF · JPG/JPEG · HEIC 등 사진 · 여러 파일</strong>
               </span>
             </p>
             <p>
@@ -331,10 +323,6 @@ export function KioskSimulator({
         <section
           className="kiosk-qr"
           aria-label="휴대전화로 스캔할 QR코드"
-          // The QR URL carries the one-time upload token and key fingerprint.
-          // End-to-end tests need to read it, but a Production kiosk must not
-          // publish it as page text where a DOM snapshot or an extension could
-          // pick it up; the QR image alone is enough there.
           data-session-url={process.env.NODE_ENV === "production" ? undefined : session?.qrUrl}
         >
           <div className="kiosk-qr__instruction">
@@ -379,6 +367,8 @@ async function consumeAndPrint(
 ) {
   let envelope: Uint8Array<ArrayBufferLike> = new Uint8Array();
   let plaintext: Uint8Array<ArrayBufferLike> = new Uint8Array();
+  let bundleEntries: ReturnType<typeof decodePrintBundle> = [];
+  const transientArtifacts: PrintArtifact[] = [];
   try {
     const consumeId = generateToken();
     const consumeResponse = await fetch(`/api/sessions/${session.sessionId}/consume`, {
@@ -416,34 +406,55 @@ async function consumeAndPrint(
     plaintext = decrypted.plaintext;
     setStatus("validating");
     await kioskTransition(session, "validating");
-    const detected = detectFileKind(plaintext);
-    if (detected !== decrypted.fileKind) throw new Error("file kind mismatch");
-    if (detected === "pdf") {
-      await validatePdf(plaintext);
-    } else if (detected === "png" || detected === "jpeg") {
-      // `docs/SECURITY.md` requires the kiosk to enforce the image dimension
-      // and resource budget itself, not to inherit the phone's verdict.
-      const { width, height } =
-        detected === "png" ? parsePngDimensions(plaintext) : parseJpegDimensions(plaintext);
-      validateDimensions(width, height);
-    } else {
-      // Only the Windows kiosk carries a Hancom renderer, and this browser
-      // kiosk never advertises HWP/HWPX support, so anything else fails closed.
-      throw new Error("unsupported file kind for the browser kiosk");
+
+    const printables =
+      decrypted.fileKind === "bundle"
+        ? (bundleEntries = decodePrintBundle(plaintext))
+        : [{ fileKind: browserPrintableKind(decrypted.fileKind), bytes: plaintext }];
+
+    for (let index = 0; index < printables.length; index += 1) {
+      const printable = printables[index]!;
+      await validateBrowserPrintable(printable.bytes, printable.fileKind);
+      const artifact = createPrintArtifact(printable.bytes, printable.fileKind);
+      if (index === 0) {
+        setArtifact(artifact);
+        setStatus("printing");
+        await kioskTransition(session, "printing");
+      } else {
+        transientArtifacts.push(artifact);
+      }
+      await printArtifact(artifact).catch(() => undefined);
     }
-    const artifact = createPrintArtifact(plaintext, decrypted.fileKind);
-    setArtifact(artifact);
-    setStatus("printing");
-    await kioskTransition(session, "printing");
-    await printArtifact(artifact).catch(() => undefined);
+
     await kioskTransition(session, "completed");
     setStatus("completed");
   } catch {
     setStatus("failed");
     await kioskTransition(session, "failed").catch(() => undefined);
   } finally {
+    for (const artifact of transientArtifacts) revokePrintArtifact(artifact);
+    for (const entry of bundleEntries) entry.bytes.fill(0);
     envelope.fill(0);
     plaintext.fill(0);
+  }
+}
+
+function browserPrintableKind(kind: string): PrintableFileKind {
+  if (kind === "pdf" || kind === "jpeg" || kind === "png") return kind;
+  throw new Error("unsupported file kind for the browser kiosk");
+}
+
+async function validateBrowserPrintable(bytes: Uint8Array, expected: PrintableFileKind) {
+  const detected = detectFileKind(bytes);
+  if (detected !== expected) throw new Error("file kind mismatch");
+  if (detected === "pdf") {
+    await validatePdf(bytes);
+  } else if (detected === "png" || detected === "jpeg") {
+    const { width, height } =
+      detected === "png" ? parsePngDimensions(bytes) : parseJpegDimensions(bytes);
+    validateDimensions(width, height);
+  } else {
+    throw new Error("unsupported file kind for the browser kiosk");
   }
 }
 
@@ -459,13 +470,6 @@ async function kioskTransition(
   if (!response.ok) throw new Error(`transition ${status} failed`);
 }
 
-/**
- * The stations a document passes through, as the kiosk sees them.
- *
- * Each one maps to a state the protocol actually has. Nothing here is invented
- * for the animation: a step lights up because the session reached that state,
- * so what the screen shows and what the service knows cannot drift apart.
- */
 const JOURNEY: { status: KioskStatus; korean: string; english: string }[] = [
   { status: "uploading", korean: "도착하는 중", english: "Arriving" },
   { status: "validating", korean: "확인하는 중", english: "Checking" },
@@ -481,13 +485,6 @@ const JOURNEY_ORDER: KioskStatus[] = [
   "completed",
 ];
 
-/**
- * What the shared screen shows while the work is happening on somebody's phone.
- *
- * It names a category and a stage, never a file. A public display in a room
- * full of strangers must not be able to say what the visitor is printing, so
- * the document appears here as an anonymous token and nothing else.
- */
 function ConnectedScreen({ status, remaining }: { status: KioskStatus; remaining: number }) {
   const reached = JOURNEY_ORDER.indexOf(status);
   return (
@@ -509,8 +506,6 @@ function ConnectedScreen({ status, remaining }: { status: KioskStatus; remaining
           </small>
         </h1>
 
-        {/* The document as the room is allowed to see it: a shape, a stage, and
-            nothing that could identify it or the person who sent it. */}
         <div
           className={`kiosk-token kiosk-token--${status}`}
           aria-hidden="true"
@@ -525,9 +520,6 @@ function ConnectedScreen({ status, remaining }: { status: KioskStatus; remaining
             const state = reached > at ? "is-done" : reached === at ? "is-active" : "";
             return (
               <li key={step.status} className={state}>
-                {/* State is carried by the word as well as the colour and the
-                    motion, so it survives a monochrome screen and reduced
-                    motion alike. */}
                 <strong>{step.korean}</strong>
                 <small lang="en">{step.english}</small>
               </li>
@@ -567,15 +559,6 @@ function formatTime(seconds: number): string {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-/**
- * The whole sound language: one short, quiet cue when a job finishes, so
- * somebody who walked away from the printer knows to come back.
- *
- * It is deliberately the only one. A service that chirps at every state change
- * is unusable in a shared room, and every state it could announce is already on
- * screen — the tone adds nothing a silent kiosk lacks, which is exactly why
- * turning it off with `?sound=off` costs the visitor nothing.
- */
 function playCompletionTone() {
   try {
     const context = new AudioContext();
@@ -625,11 +608,8 @@ function CompletedScreen({
             <Printer aria-hidden="true" /> 인쇄 창 다시 열기
           </button>
         )}
-        {/* Operator-only recovery path: it writes a plaintext copy into the
-            kiosk account's Downloads folder, so it must never read as a normal
-            visitor action. See docs/VERCEL_DEPLOYMENT.md. */}
         <a href={artifact.url} download={artifact.filename} className="kiosk-download">
-          <Download aria-hidden="true" /> 파일 다운로드 (직원용)
+          <Download aria-hidden="true" /> 첫 파일 다운로드 (직원용)
         </a>
       </div>
       <span>서버에 보관된 파일은 삭제됐습니다 · {remaining}초 후 새 QR코드</span>
