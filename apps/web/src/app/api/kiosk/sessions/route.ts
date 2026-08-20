@@ -40,7 +40,8 @@ export async function POST(request: Request) {
     });
 
     const qrBaseUrl = trustedVercelPreviewOrigin ? origin : server.config.publicBaseUrl;
-    const qrUrl = `${qrBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}`;
+    const capability = `${input.supportsHwpx ? "&hwpx=1" : ""}${input.supportsHwp ? "&hwp=1" : ""}${input.supportsBundle ? "&bundle=1" : ""}`;
+    const qrUrl = `${qrBaseUrl}/s/${session.sessionId}#t=${uploadToken}&fp=${session.kioskPublicKeyFingerprint}${capability}`;
     return json(
       {
         protocolVersion: 1,
