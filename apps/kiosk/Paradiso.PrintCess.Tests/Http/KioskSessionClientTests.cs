@@ -18,7 +18,7 @@ public sealed class KioskSessionClientTests
         var fingerprint = TestDocuments.Fingerprint(publicKey);
         var uploadToken = Token(1);
         var kioskToken = Token(2);
-        var qrUrl = $"http://localhost:3000/s/{TestDocuments.SessionId}#t={uploadToken}&fp={fingerprint}";
+        var qrUrl = $"http://localhost:3000/s/{TestDocuments.SessionId}#t={uploadToken}&fp={fingerprint}&bundle=1";
         var handler = new StubHandler(async request =>
         {
             Assert.Equal(HttpMethod.Post, request.Method);
@@ -27,6 +27,7 @@ public sealed class KioskSessionClientTests
             Assert.Equal("http://localhost:3000", Assert.Single(request.Headers.GetValues("Origin")));
             var body = await request.Content!.ReadAsStringAsync();
             Assert.Contains(encodedKey, body, StringComparison.Ordinal);
+            Assert.Contains("\"supportsBundle\":true", body, StringComparison.Ordinal);
             return Json(HttpStatusCode.Created, $$"""
                 {"protocolVersion":1,"sessionId":"{{TestDocuments.SessionId}}","status":"waiting","expiresAt":4102444800000,"kioskToken":"{{kioskToken}}","qrUrl":"{{qrUrl}}"}
                 """);
@@ -49,7 +50,7 @@ public sealed class KioskSessionClientTests
         var fingerprint = TestDocuments.Fingerprint(publicKey);
         var uploadToken = Token(4);
         var kioskToken = Token(5);
-        var qrUrl = $"http://localhost:3000/s/{TestDocuments.SessionId}#t={uploadToken}&fp={fingerprint}";
+        var qrUrl = $"http://localhost:3000/s/{TestDocuments.SessionId}#t={uploadToken}&fp={fingerprint}&hwpx=1&hwp=1&bundle=1";
         string? capturedBody = null;
         var handler = new StubHandler(async request =>
         {
@@ -63,13 +64,10 @@ public sealed class KioskSessionClientTests
 
         await client.CreateAsync(encodedKey, fingerprint, CancellationToken.None);
 
-        // One Hancom automation object renders both formats. Sending only
-        // `supportsHwpx` told the service this kiosk could not open a .hwp file
-        // it can in fact print, and the web layer hid that by inferring legacy
-        // support from the newer flag. Both must be stated outright.
         Assert.NotNull(capturedBody);
         Assert.Contains("\"supportsHwpx\"", capturedBody, StringComparison.Ordinal);
         Assert.Contains("\"supportsHwp\"", capturedBody, StringComparison.Ordinal);
+        Assert.Contains("\"supportsBundle\":true", capturedBody, StringComparison.Ordinal);
         var hwpx = capturedBody!.Contains("\"supportsHwpx\":true", StringComparison.Ordinal);
         var hwp = capturedBody.Contains("\"supportsHwp\":true", StringComparison.Ordinal);
         Assert.Equal(hwpx, hwp);
