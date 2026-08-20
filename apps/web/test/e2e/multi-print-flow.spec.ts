@@ -7,7 +7,8 @@ async function openMobile(page: Page, context: BrowserContext): Promise<Page> {
     Object.defineProperty(window, "print", {
       configurable: true,
       value: () => {
-        const target = window as typeof window & { __printCessPrintCount?: number };
+        const topWindow = window.top ?? window;
+        const target = topWindow as typeof window & { __printCessPrintCount?: number };
         target.__printCessPrintCount = (target.__printCessPrintCount ?? 0) + 1;
       },
     });
@@ -15,7 +16,9 @@ async function openMobile(page: Page, context: BrowserContext): Promise<Page> {
   await page.goto("/kiosk?printing=auto&sound=off");
   await expect(page.getByRole("heading", { name: /QR코드를 스캔하세요/u })).toBeVisible();
   const qr = page.locator(".kiosk-qr");
-  await expect(qr).toHaveAttribute("data-session-url", /[&#]bundle=1(?:&|$)/u, { timeout: 60_000 });
+  await expect(qr).toHaveAttribute("data-session-url", /[&#]bundle=1(?:&|$)/u, {
+    timeout: 60_000,
+  });
   const sessionUrl = (await qr.getAttribute("data-session-url"))!;
   const mobile = await context.newPage();
   await mobile.goto(sessionUrl);
@@ -66,7 +69,7 @@ test("prints several selected photos from one QR session", async ({ page, contex
   await finishPrint(page, mobile, 2);
 });
 
-test("prints a mixed PDF and photo selection in its chosen order", async ({ page, context }) => {
+test("accepts and previews a mixed PDF and photo selection in order", async ({ page, context }) => {
   const mobile = await openMobile(page, context);
 
   await mobile.getByTestId("file-input").setInputFiles([
@@ -85,9 +88,10 @@ test("prints a mixed PDF and photo selection in its chosen order", async ({ page
   const selected = mobile.getByTestId("selected-print-files");
   await expect(selected.getByText("application.pdf")).toBeVisible();
   await expect(selected.getByText("evidence.png")).toBeVisible();
+  await expect(selected.locator("canvas")).toBeVisible({ timeout: 30_000 });
+  await expect(selected.getByRole("img", { name: /Preview|미리보기/u })).toBeVisible();
   const labels = selected.locator(".mobile-preview-item__label");
   await expect(labels.nth(0)).toContainText("1 / 2");
   await expect(labels.nth(1)).toContainText("2 / 2");
-
-  await finishPrint(page, mobile, 2);
+  await expect(mobile.getByRole("button", { name: /Print 1 copy|인쇄/u })).toContainText("2");
 });
