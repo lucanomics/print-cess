@@ -135,6 +135,7 @@ public static class BinaryEnvelope
             (byte)DocumentKind.Png => DocumentKind.Png,
             (byte)DocumentKind.Hwpx => DocumentKind.Hwpx,
             (byte)DocumentKind.Hwp => DocumentKind.Hwp,
+            (byte)DocumentKind.Bundle => DocumentKind.Bundle,
             _ => throw new EnvelopeFormatException("Envelope file kind is unsupported."),
         };
 
