@@ -33,16 +33,13 @@ public sealed class KioskSessionClient
         using var request = CreateJsonRequest(
             HttpMethod.Post,
             "api/sessions",
-            // One Hancom automation object renders both formats, so a kiosk that
-            // can print HWPX can print legacy HWP too. Declare both explicitly:
-            // leaving SupportsHwp at its default told the service this kiosk
-            // could not open a .hwp file it is in fact able to print.
             new CreateSessionRequest(
                 ProtocolConstants.Version,
                 kioskPublicKey,
                 kioskPublicKeyFingerprint,
                 HancomHwpxRenderer.IsAvailable,
-                HancomHwpxRenderer.IsAvailable));
+                HancomHwpxRenderer.IsAvailable,
+                SupportsPrintBundles: true));
         if (_registrationSecret is not null)
         {
             request.Headers.TryAddWithoutValidation("x-kiosk-registration-secret", _registrationSecret);
@@ -265,11 +262,12 @@ public sealed class KioskSessionClient
         }
 
         var pairs = fragment[1..].Split('&', StringSplitOptions.None);
-        if (pairs.Length is < 2 or > 3)
+        if (pairs.Length is < 2 or > 5)
         {
             return false;
         }
 
+        var capabilities = new HashSet<string>(StringComparer.Ordinal);
         foreach (var pair in pairs)
         {
             var separator = pair.IndexOf('=');
@@ -288,7 +286,8 @@ public sealed class KioskSessionClient
             {
                 fingerprint = value;
             }
-            else if (name == "hwpx" && value == "1")
+            else if ((name == "hwpx" || name == "hwp" || name == "bundle") &&
+                     value == "1" && capabilities.Add(name))
             {
                 // Optional capability marker. It is advisory and never weakens kiosk validation.
             }
