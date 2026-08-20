@@ -100,9 +100,7 @@ function readWebCrypto(): boolean {
 
 function readFileApi(): boolean {
   return (
-    typeof File !== "undefined" &&
-    typeof Blob !== "undefined" &&
-    typeof FileReader !== "undefined"
+    typeof File !== "undefined" && typeof Blob !== "undefined" && typeof FileReader !== "undefined"
   );
 }
 
