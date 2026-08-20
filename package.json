@@ -12,7 +12,7 @@
     "create:readiness-evidence-template": "node scripts/acceptance/create-readiness-evidence-template.mjs",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",
-    "format:check": "prettier --write apps/web/src/components/mobile/mobile-flow.tsx apps/web/src/lib/session-fragment.ts packages/protocol/src/print-bundle.ts packages/protocol/test/print-bundle.test.ts && git diff -- apps/web/src/components/mobile/mobile-flow.tsx apps/web/src/lib/session-fragment.ts packages/protocol/src/print-bundle.ts packages/protocol/test/print-bundle.test.ts && false",
+    "format:check": "prettier --check .",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
