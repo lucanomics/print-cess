@@ -28,7 +28,8 @@ export function encodePrintBundle(entries: readonly PrintBundleEntry[]): Uint8Ar
 
   let total = PRINT_BUNDLE_HEADER_BYTES;
   for (const entry of entries) {
-    if (entry.bytes.byteLength < 1) throw new PrintBundleError("Print bundle files must not be empty");
+    if (entry.bytes.byteLength < 1)
+      throw new PrintBundleError("Print bundle files must not be empty");
     total += PRINT_BUNDLE_ENTRY_HEADER_BYTES + entry.bytes.byteLength;
     if (total > MAX_PLAINTEXT_BYTES) {
       throw new PrintBundleError("Print bundle exceeds the encrypted payload limit");
@@ -98,7 +99,10 @@ export function decodePrintBundle(bytes: Uint8Array): PrintBundleEntry[] {
 export function printBundleEncodedBytes(entries: readonly { bytes: Uint8Array }[]): number {
   return (
     PRINT_BUNDLE_HEADER_BYTES +
-    entries.reduce((total, entry) => total + PRINT_BUNDLE_ENTRY_HEADER_BYTES + entry.bytes.byteLength, 0)
+    entries.reduce(
+      (total, entry) => total + PRINT_BUNDLE_ENTRY_HEADER_BYTES + entry.bytes.byteLength,
+      0,
+    )
   );
 }
 
