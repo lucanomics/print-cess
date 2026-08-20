@@ -20,9 +20,7 @@ export function parseSessionFragment(hash: string): SessionFragment | null {
   const supportsHwpx = parameters.get("hwpx") === "1";
   const supportsHwp = parameters.get("hwp") === "1";
   const supportsBundle = parameters.get("bundle") === "1";
-  if (
-    [...parameters.keys()].some((key) => !["t", "fp", "hwpx", "hwp", "bundle"].includes(key))
-  )
+  if ([...parameters.keys()].some((key) => !["t", "fp", "hwpx", "hwp", "bundle"].includes(key)))
     return null;
   return { uploadToken, fingerprint, supportsHwpx, supportsHwp, supportsBundle };
 }
