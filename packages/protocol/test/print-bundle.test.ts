@@ -24,7 +24,9 @@ describe("print bundle", () => {
 
   it("rejects a truncated bundle instead of returning a partial print set", () => {
     const bundle = encodePrintBundle([{ fileKind: "png", bytes: new Uint8Array([1, 2, 3]) }]);
-    expect(() => decodePrintBundle(bundle.subarray(0, bundle.byteLength - 1))).toThrow(PrintBundleError);
+    expect(() => decodePrintBundle(bundle.subarray(0, bundle.byteLength - 1))).toThrow(
+      PrintBundleError,
+    );
   });
 
   it("rejects more than the bounded file count", () => {
