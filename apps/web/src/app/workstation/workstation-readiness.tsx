@@ -27,11 +27,7 @@ type ReadinessCheck = {
 
 export function WorkstationReadiness({ copy }: { copy: Copy }) {
   const hydrated = useSyncExternalStore(subscribeNever, readHydrated, readNotHydrated);
-  const secureContext = useSyncExternalStore(
-    subscribeNever,
-    readSecureContext,
-    readNotHydrated,
-  );
+  const secureContext = useSyncExternalStore(subscribeNever, readSecureContext, readNotHydrated);
   const webCrypto = useSyncExternalStore(subscribeNever, readWebCrypto, readNotHydrated);
   const fileApi = useSyncExternalStore(subscribeNever, readFileApi, readNotHydrated);
   const downloadApi = useSyncExternalStore(subscribeNever, readDownloadApi, readNotHydrated);
