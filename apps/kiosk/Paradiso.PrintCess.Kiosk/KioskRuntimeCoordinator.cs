@@ -497,11 +497,6 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
                 envelope,
                 new AadContext(ProtocolConstants.Version, registration.SessionId, kioskKey.PublicKeyFingerprint),
                 kioskKey);
-            using var document = _validator.Validate(
-                decrypted.Bytes,
-                decrypted.Kind,
-                decrypted.Kind.CanonicalMimeType(),
-                registration.SessionId);
 
             PrintSettings printSettings;
             lock (_sync)
@@ -509,36 +504,29 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
                 printSettings = _printSettings;
             }
 
-            var printResult = await _printEngine.PrintAsync(
-                document,
-                printSettings,
-                cancellationToken,
-                async readyCancellationToken =>
-                {
-                    await _sessions.TransitionAsync(
-                        registration.SessionId,
-                        registration.KioskToken,
-                        PrintSessionStatus.Printing,
-                        readyCancellationToken);
-                    RecordServerSuccess();
-                    _viewModel.ShowPrinting();
-                });
-            if (!printResult.WasSubmitted)
+            if (decrypted.Kind == DocumentKind.Bundle)
             {
-                var failedCleanupConfirmed = await TryTransitionFailedAsync(registration);
-                if (string.Equals(printResult.Code, "F-01", StringComparison.Ordinal))
+                using var bundle = PrintBundle.Parse(decrypted.Bytes);
+                await PrintBundleAsync(bundle, registration, printSettings, cancellationToken);
+            }
+            else
+            {
+                using var document = _validator.Validate(
+                    decrypted.Bytes,
+                    decrypted.Kind,
+                    decrypted.Kind.CanonicalMimeType(),
+                    registration.SessionId);
+                var result = await PrintDocumentAsync(
+                    document,
+                    registration,
+                    printSettings,
+                    transitionToPrinting: true,
+                    cancellationToken);
+                if (!result.WasSubmitted)
                 {
-                    _viewModel.ShowSessionError(
-                        "이 문서를 안전하게 열 수 없습니다",
-                        "휴대전화에서 파일을 다시 저장한 뒤 새 QR로 다시 보내세요",
-                        failedCleanupConfirmed);
+                    await HandlePrintFailureAsync(registration, result, anySubmitted: false);
+                    return;
                 }
-                else
-                {
-                    _viewModel.Suspend(printResult.Code, failedCleanupConfirmed);
-                }
-
-                return;
             }
 
             var cleanupConfirmed = true;
@@ -553,7 +541,7 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
             }
             catch (KioskApiException)
             {
-                // The spooler accepted the guarded job. Server TTL/QStash remain the cleanup fallback.
+                // Every document reached the spooler. Server TTL/QStash remain the cleanup fallback.
                 cleanupConfirmed = false;
             }
 
@@ -562,6 +550,98 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
         finally
         {
             CryptographicOperations.ZeroMemory(envelope);
+        }
+    }
+
+    private async Task PrintBundleAsync(
+        PrintBundle bundle,
+        KioskSessionRegistration registration,
+        PrintSettings printSettings,
+        CancellationToken cancellationToken)
+    {
+        var submitted = 0;
+        foreach (var entry in bundle.Entries)
+        {
+            byte[]? idempotencyBytes = null;
+            try
+            {
+                idempotencyBytes = RandomNumberGenerator.GetBytes(16);
+                using var document = _validator.Validate(
+                    entry.Bytes,
+                    entry.Kind,
+                    entry.Kind.CanonicalMimeType(),
+                    CanonicalEncoding.EncodeBase64Url(idempotencyBytes));
+                var result = await PrintDocumentAsync(
+                    document,
+                    registration,
+                    printSettings,
+                    transitionToPrinting: submitted == 0,
+                    cancellationToken);
+                if (!result.WasSubmitted)
+                {
+                    await HandlePrintFailureAsync(registration, result, anySubmitted: submitted > 0);
+                    throw new PrintBundleSubmissionException();
+                }
+                submitted++;
+            }
+            finally
+            {
+                if (idempotencyBytes is not null)
+                {
+                    CryptographicOperations.ZeroMemory(idempotencyBytes);
+                }
+            }
+        }
+    }
+
+    private async Task<PrintResult> PrintDocumentAsync(
+        ValidatedDocument document,
+        KioskSessionRegistration registration,
+        PrintSettings printSettings,
+        bool transitionToPrinting,
+        CancellationToken cancellationToken)
+    {
+        Func<CancellationToken, Task>? onReady = null;
+        if (transitionToPrinting)
+        {
+            onReady = async readyCancellationToken =>
+            {
+                await _sessions.TransitionAsync(
+                    registration.SessionId,
+                    registration.KioskToken,
+                    PrintSessionStatus.Printing,
+                    readyCancellationToken);
+                RecordServerSuccess();
+                _viewModel.ShowPrinting();
+            };
+        }
+
+        return await _printEngine.PrintAsync(document, printSettings, cancellationToken, onReady);
+    }
+
+    private async Task HandlePrintFailureAsync(
+        KioskSessionRegistration registration,
+        PrintResult printResult,
+        bool anySubmitted)
+    {
+        var failedCleanupConfirmed = await TryTransitionFailedAsync(registration);
+        if (anySubmitted)
+        {
+            _viewModel.ShowSessionError(
+                "일부 문서는 인쇄됐지만 전체 작업을 끝내지 못했습니다",
+                "프린터 출력물을 확인한 뒤 필요한 문서만 새 QR로 다시 보내세요",
+                failedCleanupConfirmed);
+        }
+        else if (string.Equals(printResult.Code, "F-01", StringComparison.Ordinal))
+        {
+            _viewModel.ShowSessionError(
+                "이 문서를 안전하게 열 수 없습니다",
+                "휴대전화에서 파일을 다시 저장한 뒤 새 QR로 다시 보내세요",
+                failedCleanupConfirmed);
+        }
+        else
+        {
+            _viewModel.Suspend(printResult.Code, failedCleanupConfirmed);
         }
     }
 
@@ -612,7 +692,8 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
     }
 
     private static bool IsVisitorDocumentFailure(Exception exception) =>
-        exception is EnvelopeDecryptionException or EnvelopeFormatException or DocumentValidationException or CryptographicException;
+        exception is EnvelopeDecryptionException or EnvelopeFormatException or PrintBundleException or
+            DocumentValidationException or CryptographicException;
 
     private static (string Primary, string NextAction) DocumentErrorMessage(Exception exception) => exception switch
     {
@@ -624,6 +705,8 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
             ("PDF, JPG, PNG 파일만 인쇄할 수 있습니다", "지원 형식으로 저장하거나 선명한 화면 캡처를 새 QR로 보내세요"),
         DocumentValidationException =>
             ("이 문서를 안전하게 열 수 없습니다", "휴대전화에서 파일을 다시 저장한 뒤 새 QR로 다시 보내세요"),
+        PrintBundleException =>
+            ("여러 파일 묶음을 안전하게 확인할 수 없습니다", "새 QR이 나타나면 파일을 다시 선택해 보내세요"),
         _ =>
             ("전송된 문서를 안전하게 확인할 수 없습니다", "새 QR이 나타나면 휴대전화에서 파일을 다시 보내세요"),
     };
@@ -631,6 +714,7 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
     private static string CodeFor(Exception exception) => exception switch
     {
         EnvelopeDecryptionException => "S-02",
+        PrintBundleException => "F-01",
         DocumentValidationException => "F-01",
         CryptographicException => "S-02",
         _ => "N-01",
@@ -705,4 +789,6 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
             }
         }
     }
+
+    private sealed class PrintBundleSubmissionException : Exception;
 }
