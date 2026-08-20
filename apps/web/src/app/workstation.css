@@ -1,0 +1,335 @@
+.workstation-page {
+  width: min(100% - 40px, 1180px);
+  margin: 0 auto;
+  padding: 34px 0 72px;
+  color: var(--pc-text);
+}
+
+.workstation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--pc-line);
+}
+
+.workstation-back,
+.workstation-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 48px;
+  border-radius: 999px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.workstation-back {
+  padding: 9px 16px;
+  border: 1px solid var(--pc-line);
+  color: var(--pc-ink);
+  background: white;
+}
+
+.workstation-back svg,
+.workstation-primary svg {
+  width: 20px;
+  height: 20px;
+}
+
+.workstation-hero {
+  display: grid;
+  gap: 18px;
+  max-width: 900px;
+  padding: 72px 0 36px;
+}
+
+.workstation-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--pc-teal-soft);
+  color: var(--pc-teal-dark);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.workstation-eyebrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.workstation-hero h1 {
+  max-width: 880px;
+  margin: 0;
+  color: var(--pc-ink);
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 1.01;
+  letter-spacing: -0.05em;
+}
+
+.workstation-hero > p {
+  max-width: 820px;
+  margin: 0;
+  font-size: clamp(19px, 2vw, 23px);
+  line-height: 1.55;
+}
+
+.workstation-readiness {
+  margin: 20px 0 40px;
+  padding: 22px;
+  border: 1px solid var(--pc-line);
+  border-radius: 18px;
+  background: white;
+  box-shadow: var(--pc-shadow);
+}
+
+.workstation-readiness--ready {
+  border-inline-start: 5px solid var(--pc-success);
+}
+
+.workstation-readiness--limited {
+  border-inline-start: 5px solid #b67600;
+}
+
+.workstation-readiness--blocked {
+  border-inline-start: 5px solid var(--pc-error);
+}
+
+.workstation-readiness__headline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--pc-ink);
+  font-size: 19px;
+}
+
+.workstation-readiness__headline svg {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.workstation-readiness__spinner {
+  animation: workstation-spin 850ms linear infinite;
+}
+
+.workstation-readiness ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workstation-readiness li {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px;
+  border-radius: 12px;
+  background: var(--pc-subtle);
+}
+
+.workstation-readiness li span {
+  color: var(--pc-muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.workstation-readiness li strong {
+  color: var(--pc-ink);
+  font-size: 15px;
+}
+
+.workstation-readiness li.is-fail strong {
+  color: var(--pc-error);
+}
+
+.workstation-readiness > p {
+  margin: 16px 0 0;
+  color: var(--pc-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.workstation-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.workstation-action-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 22px;
+  min-width: 0;
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid var(--pc-line);
+  border-radius: 24px;
+  background: white;
+  box-shadow: var(--pc-shadow);
+}
+
+.workstation-action-card__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--pc-teal-soft);
+  color: var(--pc-teal-dark);
+}
+
+.workstation-action-card__icon svg {
+  width: 29px;
+  height: 29px;
+}
+
+.workstation-action-card h2,
+.workstation-security h2,
+.workstation-policy h2 {
+  margin: 0;
+  color: var(--pc-ink);
+}
+
+.workstation-action-card h2 {
+  margin-bottom: 11px;
+  font-size: 27px;
+  letter-spacing: -0.03em;
+}
+
+.workstation-action-card p,
+.workstation-security p,
+.workstation-policy li {
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.workstation-action-card p {
+  margin: 0;
+}
+
+.workstation-primary {
+  width: 100%;
+  padding: 12px 18px;
+  border: 2px solid var(--pc-teal);
+  background: var(--pc-teal);
+  color: white;
+  font-size: 17px;
+}
+
+.workstation-primary:hover,
+.workstation-primary:focus-visible {
+  background: var(--pc-teal-dark);
+  border-color: var(--pc-teal-dark);
+}
+
+.workstation-back:focus-visible,
+.workstation-primary:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+.workstation-security,
+.workstation-policy {
+  margin-top: 20px;
+  padding: 26px;
+  border-radius: 18px;
+}
+
+.workstation-security {
+  border: 1px solid var(--pc-line);
+  background: var(--pc-teal-soft);
+}
+
+.workstation-policy {
+  border: 1px solid var(--pc-line);
+  background: var(--pc-subtle);
+}
+
+.workstation-security__heading,
+.workstation-policy__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.workstation-security__heading svg,
+.workstation-policy__heading svg {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--pc-teal-dark);
+}
+
+.workstation-security h2,
+.workstation-policy h2 {
+  font-size: 22px;
+}
+
+.workstation-security p {
+  max-width: 980px;
+  margin: 0;
+}
+
+.workstation-policy ul {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding-inline-start: 22px;
+}
+
+.workstation-policy li {
+  padding-inline-start: 4px;
+}
+
+@keyframes workstation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 820px) {
+  .workstation-page {
+    width: min(100% - 32px, 680px);
+    padding-top: 24px;
+  }
+
+  .workstation-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workstation-hero {
+    padding-top: 48px;
+  }
+
+  .workstation-actions,
+  .workstation-readiness ul {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workstation-readiness__spinner {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .workstation-primary,
+  .workstation-readiness,
+  .workstation-action-card,
+  .workstation-security,
+  .workstation-policy {
+    border: 2px solid CanvasText;
+  }
+}
