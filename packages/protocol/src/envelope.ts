@@ -22,6 +22,7 @@ export const FILE_KIND_CODES = {
   png: 3,
   hwpx: 4,
   hwp: 5,
+  bundle: 6,
 } as const;
 
 export type FileKind = keyof typeof FILE_KIND_CODES;
