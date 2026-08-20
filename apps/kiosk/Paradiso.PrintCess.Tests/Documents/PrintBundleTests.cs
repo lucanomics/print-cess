@@ -6,7 +6,7 @@ namespace Paradiso.PrintCess.Tests.Documents;
 public sealed class PrintBundleTests
 {
     [Fact]
-    public void Parse_PreservesMixedFilesInOrder()
+    public void ParsePreservesMixedFilesInOrder()
     {
         var bytes = Bundle(
             (DocumentKind.Jpeg, new byte[] { 1, 2, 3 }),
@@ -23,14 +23,14 @@ public sealed class PrintBundleTests
     }
 
     [Fact]
-    public void Parse_RejectsTruncatedPayload()
+    public void ParseRejectsTruncatedPayload()
     {
         var bytes = Bundle((DocumentKind.Png, new byte[] { 1, 2, 3 }));
-        Assert.Throws<PrintBundleException>(() => PrintBundle.Parse(bytes[..^1]));
+        Assert.Throws<PrintBundleException>(() => PrintBundle.Parse(bytes.AsSpan(0, bytes.Length - 1)));
     }
 
     [Fact]
-    public void Parse_RejectsNestedBundleKind()
+    public void ParseRejectsNestedBundleKind()
     {
         var bytes = Bundle((DocumentKind.Bundle, new byte[] { 1 }));
         Assert.Throws<PrintBundleException>(() => PrintBundle.Parse(bytes));
