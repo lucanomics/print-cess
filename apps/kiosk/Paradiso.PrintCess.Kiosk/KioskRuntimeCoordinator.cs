@@ -507,7 +507,10 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
             if (decrypted.Kind == DocumentKind.Bundle)
             {
                 using var bundle = PrintBundle.Parse(decrypted.Bytes);
-                await PrintBundleAsync(bundle, registration, printSettings, cancellationToken);
+                if (!await PrintBundleAsync(bundle, registration, printSettings, cancellationToken))
+                {
+                    return;
+                }
             }
             else
             {
@@ -553,7 +556,7 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
         }
     }
 
-    private async Task PrintBundleAsync(
+    private async Task<bool> PrintBundleAsync(
         PrintBundle bundle,
         KioskSessionRegistration registration,
         PrintSettings printSettings,
@@ -580,7 +583,7 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
                 if (!result.WasSubmitted)
                 {
                     await HandlePrintFailureAsync(registration, result, anySubmitted: submitted > 0);
-                    throw new PrintBundleSubmissionException();
+                    return false;
                 }
                 submitted++;
             }
@@ -592,6 +595,8 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
                 }
             }
         }
+
+        return true;
     }
 
     private async Task<PrintResult> PrintDocumentAsync(
@@ -789,6 +794,4 @@ internal sealed class KioskRuntimeCoordinator : IKioskAdminRuntime
             }
         }
     }
-
-    private sealed class PrintBundleSubmissionException : Exception;
 }
