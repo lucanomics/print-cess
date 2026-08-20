@@ -28,9 +28,6 @@ export function encodePrintBundle(entries: readonly PrintBundleEntry[]): Uint8Ar
 
   let total = PRINT_BUNDLE_HEADER_BYTES;
   for (const entry of entries) {
-    if (entry.fileKind === ("bundle" as PrintableFileKind)) {
-      throw new PrintBundleError("Nested print bundles are not supported");
-    }
     if (entry.bytes.byteLength < 1) throw new PrintBundleError("Print bundle files must not be empty");
     total += PRINT_BUNDLE_ENTRY_HEADER_BYTES + entry.bytes.byteLength;
     if (total > MAX_PLAINTEXT_BYTES) {
@@ -48,9 +45,6 @@ export function encodePrintBundle(entries: readonly PrintBundleEntry[]): Uint8Ar
   let offset = PRINT_BUNDLE_HEADER_BYTES;
   for (const entry of entries) {
     const code = FILE_KIND_CODES[entry.fileKind];
-    if (code === undefined || entry.fileKind === "bundle") {
-      throw new PrintBundleError("Print bundle contains an unsupported file kind");
-    }
     view.setUint8(offset, code);
     view.setUint8(offset + 1, 0);
     view.setUint16(offset + 2, 0, false);
