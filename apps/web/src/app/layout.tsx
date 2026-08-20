@@ -11,6 +11,7 @@ import "./styles.css";
 import "./kiosk.css";
 import "./admin.css";
 import "./drop.css";
+import "./workstation.css";
 
 export const metadata: Metadata = {
   title: "Print-cess by Club Paradiso",
