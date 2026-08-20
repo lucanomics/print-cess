@@ -5,6 +5,7 @@ export type SessionFragment = {
   fingerprint: string;
   supportsHwpx: boolean;
   supportsHwp: boolean;
+  supportsBundle: boolean;
 };
 
 export function parseSessionFragment(hash: string): SessionFragment | null {
@@ -14,11 +15,14 @@ export function parseSessionFragment(hash: string): SessionFragment | null {
   const fingerprint = parameters.get("fp");
   if (!uploadToken || !fingerprint) return null;
   if (!DIGEST_PATTERN.test(uploadToken) || !DIGEST_PATTERN.test(fingerprint)) return null;
-  // Read independently. Inferring legacy HWP support from HWPX support silently
-  // overrode the kiosk's own declaration, so a printer without a legacy
-  // renderer would still be offered .hwp files it could not open.
+  // Read independently. Inferring one capability from another silently
+  // overrides the kiosk's own declaration and creates rolling-deploy failures.
   const supportsHwpx = parameters.get("hwpx") === "1";
   const supportsHwp = parameters.get("hwp") === "1";
-  if ([...parameters.keys()].some((key) => !["t", "fp", "hwpx", "hwp"].includes(key))) return null;
-  return { uploadToken, fingerprint, supportsHwpx, supportsHwp };
+  const supportsBundle = parameters.get("bundle") === "1";
+  if (
+    [...parameters.keys()].some((key) => !["t", "fp", "hwpx", "hwp", "bundle"].includes(key))
+  )
+    return null;
+  return { uploadToken, fingerprint, supportsHwpx, supportsHwp, supportsBundle };
 }
