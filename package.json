@@ -12,7 +12,7 @@
     "create:readiness-evidence-template": "node scripts/acceptance/create-readiness-evidence-template.mjs",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check . || (prettier apps/web/src/app/workstation/workstation-readiness.tsx --write && git diff -- apps/web/src/app/workstation/workstation-readiness.tsx && false)",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
