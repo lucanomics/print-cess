@@ -3,6 +3,15 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { createSyntheticPdf, createSyntheticPng } from "@print-cess/test-fixtures";
 
 async function openMobile(page: Page, context: BrowserContext): Promise<Page> {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "print", {
+      configurable: true,
+      value: () => {
+        const target = window as typeof window & { __printCessPrintCount?: number };
+        target.__printCessPrintCount = (target.__printCessPrintCount ?? 0) + 1;
+      },
+    });
+  });
   await page.goto("/kiosk?printing=auto&sound=off");
   await expect(page.getByRole("heading", { name: /QR코드를 스캔하세요/u })).toBeVisible();
   const qr = page.locator(".kiosk-qr");
@@ -15,7 +24,7 @@ async function openMobile(page: Page, context: BrowserContext): Promise<Page> {
   return mobile;
 }
 
-async function finishPrint(kiosk: Page, mobile: Page): Promise<void> {
+async function finishPrint(kiosk: Page, mobile: Page, expectedPrints: number): Promise<void> {
   await mobile.getByRole("button", { name: /Print 1 copy|인쇄/u }).click();
   await expect(kiosk.getByRole("heading", { name: "인쇄가 시작됐어요" })).toBeVisible({
     timeout: 90_000,
@@ -23,6 +32,14 @@ async function finishPrint(kiosk: Page, mobile: Page): Promise<void> {
   await expect(mobile.getByRole("heading", { name: /All done|완료/u })).toBeVisible({
     timeout: 90_000,
   });
+  await expect
+    .poll(() =>
+      kiosk.evaluate(
+        () =>
+          (window as typeof window & { __printCessPrintCount?: number }).__printCessPrintCount ?? 0,
+      ),
+    )
+    .toBe(expectedPrints);
 }
 
 test("prints several selected photos from one QR session", async ({ page, context }) => {
@@ -46,7 +63,7 @@ test("prints several selected photos from one QR session", async ({ page, contex
   await expect(selected.getByText("back.jpg.png")).toBeVisible();
   await expect(selected.locator(".mobile-preview-item")).toHaveCount(2);
 
-  await finishPrint(page, mobile);
+  await finishPrint(page, mobile, 2);
 });
 
 test("prints a mixed PDF and photo selection in its chosen order", async ({ page, context }) => {
@@ -72,5 +89,5 @@ test("prints a mixed PDF and photo selection in its chosen order", async ({ page
   await expect(labels.nth(0)).toContainText("1 / 2");
   await expect(labels.nth(1)).toContainText("2 / 2");
 
-  await finishPrint(page, mobile);
+  await finishPrint(page, mobile, 2);
 });
