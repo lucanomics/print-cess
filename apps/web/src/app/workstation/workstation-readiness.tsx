@@ -27,7 +27,11 @@ type ReadinessCheck = {
 
 export function WorkstationReadiness({ copy }: { copy: Copy }) {
   const hydrated = useSyncExternalStore(subscribeNever, readHydrated, readNotHydrated);
-  const secureContext = useSyncExternalStore(subscribeNever, readSecureContext, readNotHydrated);
+  const secureContext = useSyncExternalStore(
+    subscribeNever,
+    readSecureContext,
+    readNotHydrated,
+  );
   const webCrypto = useSyncExternalStore(subscribeNever, readWebCrypto, readNotHydrated);
   const fileApi = useSyncExternalStore(subscribeNever, readFileApi, readNotHydrated);
   const downloadApi = useSyncExternalStore(subscribeNever, readDownloadApi, readNotHydrated);
@@ -69,7 +73,11 @@ export function WorkstationReadiness({ copy }: { copy: Copy }) {
           </li>
         ))}
       </ul>
-      {requiredFailure ? <p>{copy.blockedHint}</p> : optionalFailure ? <p>{copy.limitedHint}</p> : null}
+      {requiredFailure ? (
+        <p>{copy.blockedHint}</p>
+      ) : optionalFailure ? (
+        <p>{copy.limitedHint}</p>
+      ) : null}
     </section>
   );
 }
@@ -95,7 +103,11 @@ function readWebCrypto(): boolean {
 }
 
 function readFileApi(): boolean {
-  return typeof File !== "undefined" && typeof Blob !== "undefined" && typeof FileReader !== "undefined";
+  return (
+    typeof File !== "undefined" &&
+    typeof Blob !== "undefined" &&
+    typeof FileReader !== "undefined"
+  );
 }
 
 function readDownloadApi(): boolean {
