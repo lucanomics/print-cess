@@ -8,6 +8,7 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Wordmark } from "@print-cess/ui";
 
@@ -104,9 +105,9 @@ export default async function WorkstationPage() {
     <main className="workstation-page">
       <header className="workstation-header">
         <Wordmark />
-        <a className="workstation-back" href="/">
+        <Link className="workstation-back" href="/">
           <ArrowLeft aria-hidden="true" /> {text.back}
-        </a>
+        </Link>
       </header>
 
       <section className="workstation-hero">
@@ -143,9 +144,9 @@ export default async function WorkstationPage() {
             <h2>{text.receiveTitle}</h2>
             <p>{text.receiveBody}</p>
           </div>
-          <a className="workstation-primary" href="/receive">
+          <Link className="workstation-primary" href="/receive">
             <MonitorCheck aria-hidden="true" /> {text.receiveCta}
-          </a>
+          </Link>
         </article>
 
         <article className="workstation-action-card">
@@ -156,9 +157,9 @@ export default async function WorkstationPage() {
             <h2>{text.sendTitle}</h2>
             <p>{text.sendBody}</p>
           </div>
-          <a className="workstation-primary" href="/send">
+          <Link className="workstation-primary" href="/send">
             <FileKey2 aria-hidden="true" /> {text.sendCta}
-          </a>
+          </Link>
         </article>
       </section>
 
