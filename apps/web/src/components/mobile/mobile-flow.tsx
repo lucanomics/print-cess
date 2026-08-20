@@ -67,14 +67,7 @@ import { useVisitorLocale, type Text } from "@/lib/use-visitor-locale";
 import { DocumentPreview } from "./document-preview";
 
 type Stage =
-  | "boot"
-  | "file"
-  | "preview"
-  | "transfer"
-  | "progress"
-  | "complete"
-  | "closed"
-  | "error";
+  "boot" | "file" | "preview" | "transfer" | "progress" | "complete" | "closed" | "error";
 
 type ClaimedSession = Awaited<ReturnType<typeof claimSession>>;
 type SelectedDocument = { file: File; validated: ValidatedMobileFile };
@@ -538,9 +531,7 @@ export function MobileFlow({
       {stage === "progress" ? (
         <ProgressState
           text={text(watching.kind === "reconnecting" ? "reconnecting" : progressKey)}
-          note={text(
-            watching.kind === "reconnecting" ? "kioskMayStillBePrinting" : "keepPageOpen",
-          )}
+          note={text(watching.kind === "reconnecting" ? "kioskMayStillBePrinting" : "keepPageOpen")}
         />
       ) : null}
       {stage === "complete" ? (
