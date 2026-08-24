@@ -203,6 +203,10 @@ test("opens a transfer from a pasted link, not just from twelve characters", asy
 
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
+    // The field is `autoFocus`, so React holding focus is the signal that this
+    // page is hydrated. Filling before that puts the link in the DOM without
+    // any handler attached to read it, and the paste is silently lost.
+    await expect(receiving.getByTestId("drop-code-input")).toBeFocused();
     // A whole link is what a person actually pastes. The field used to strip it
     // to the letters of its own hostname and open nothing.
     await receiving
