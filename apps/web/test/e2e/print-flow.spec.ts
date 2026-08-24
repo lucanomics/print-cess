@@ -60,8 +60,10 @@ test("mobile PNG flow encrypts, uploads, consumes once, and completes", async ({
   });
   await expect(page.getByText("선택한 파일 1개를 처리했습니다")).toBeVisible();
   await expect(page.getByRole("button", { name: "인쇄 창 다시 열기" })).toHaveCount(0);
-  const download = page.getByRole("link", { name: "파일 1 다운로드 (직원용)" });
-  await expect(download).toHaveAttribute("download", "print-cess-1-print-cess-document.png");
+  // A single file needs no number to tell it apart, so it keeps the plain
+  // label and the artifact's own name.
+  const download = page.getByRole("link", { name: "파일 다운로드 (직원용)" });
+  await expect(download).toHaveAttribute("download", "print-cess-document.png");
   await expect(download).toHaveAttribute("href", /^blob:/u);
   await expect(mobile.getByRole("heading", { name: "All done" })).toBeVisible({
     timeout: 60_000,
@@ -117,8 +119,16 @@ test("one kiosk scan prints multiple selected photo and document files in order"
     timeout: 60_000,
   });
   await expect(page.getByText("선택한 파일 2개를 처리했습니다")).toBeVisible();
-  await expect(page.getByRole("link", { name: "파일 1 다운로드 (직원용)" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "파일 2 다운로드 (직원용)" })).toBeVisible();
+  // Several files do get numbered, so staff can match each download to the
+  // order the visitor picked them in.
+  await expect(page.getByRole("link", { name: "파일 1 다운로드 (직원용)" })).toHaveAttribute(
+    "download",
+    /^1-/u,
+  );
+  await expect(page.getByRole("link", { name: "파일 2 다운로드 (직원용)" })).toHaveAttribute(
+    "download",
+    /^2-/u,
+  );
   await expect(mobile.getByRole("heading", { name: "All done" })).toBeVisible({ timeout: 60_000 });
 });
 

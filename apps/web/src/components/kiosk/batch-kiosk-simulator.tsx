@@ -27,6 +27,13 @@ import {
   parsePrintBundle,
   type PrintableFileKind,
 } from "@print-cess/protocol";
+import {
+  isRightToLeft,
+  LOCALE_NAMES,
+  SUPPORTED_LOCALES,
+  translate,
+  type SupportedLocale,
+} from "@print-cess/i18n";
 import { Wordmark } from "@print-cess/ui";
 
 import {
@@ -54,6 +61,14 @@ type KioskStatus =
   | "completed"
   | "failed";
 
+// Korean and English stay on screen permanently; the remaining languages take
+// turns on one line so a visitor sees the same instruction in their own
+// language without the display filling up with text.
+const SPOTLIGHT_LOCALES: readonly SupportedLocale[] = SUPPORTED_LOCALES.filter(
+  (locale) => locale !== "ko" && locale !== "en",
+);
+const SPOTLIGHT_INTERVAL_MS = 4500;
+
 type RegisteredSession = {
   sessionId: string;
   expiresAt: number;
@@ -63,6 +78,50 @@ type RegisteredSession = {
   privateKey: CryptoKey;
   fingerprint: string;
 };
+
+/** The outcome of getting one QR code onto the screen. */
+type PreparedSession = { ok: true; session: RegisteredSession } | { ok: false };
+
+/**
+ * Mints one print session and renders its QR code. Kept out of the effect body
+ * so that the promise it returns can be reused rather than the work repeated:
+ * every call here consumes a session from the per-counter creation limit.
+ */
+async function prepareSession(): Promise<PreparedSession> {
+  try {
+    const keyPair = await generateEcdhKeyPair();
+    const kioskPublicKey = await exportPublicKeyBase64Url(keyPair.publicKey);
+    const fingerprint = await fingerprintPublicKey(kioskPublicKey);
+    const response = await fetch("/api/kiosk/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        protocolVersion: 1,
+        kioskPublicKey,
+        kioskPublicKeyFingerprint: fingerprint,
+      }),
+    });
+    if (!response.ok) throw new Error("session registration failed");
+    const body = (await response.json()) as {
+      sessionId: string;
+      expiresAt: number;
+      kioskToken: string;
+      qrUrl: string;
+    };
+    const qrImage = await QRCode.toDataURL(body.qrUrl, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      scale: 11,
+      color: { dark: "#071737", light: "#ffffff" },
+    });
+    return {
+      ok: true,
+      session: { ...body, qrImage, privateKey: keyPair.privateKey, fingerprint },
+    };
+  } catch {
+    return { ok: false };
+  }
+}
 
 export function BatchKioskSimulator({
   automaticPrinting = false,
@@ -77,8 +136,10 @@ export function BatchKioskSimulator({
   const [completionRemaining, setCompletionRemaining] = useState(60);
   const [artifacts, setArtifacts] = useState<PrintArtifact[]>([]);
   const [generation, setGeneration] = useState(0);
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
   const processing = useRef(false);
   const artifactsRef = useRef<PrintArtifact[]>([]);
+  const preparation = useRef<{ generation: number; ready: Promise<PreparedSession> }>(null);
 
   const replaceArtifacts = useCallback((next: PrintArtifact[]) => {
     for (const artifact of artifactsRef.current) revokePrintArtifact(artifact);
@@ -105,42 +166,32 @@ export function BatchKioskSimulator({
   );
 
   useEffect(() => {
+    const timer = window.setInterval(
+      () => setSpotlightIndex((index) => (index + 1) % SPOTLIGHT_LOCALES.length),
+      SPOTLIGHT_INTERVAL_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     let active = true;
-    void (async () => {
-      try {
-        const keyPair = await generateEcdhKeyPair();
-        const kioskPublicKey = await exportPublicKeyBase64Url(keyPair.publicKey);
-        const fingerprint = await fingerprintPublicKey(kioskPublicKey);
-        const response = await fetch("/api/kiosk/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            protocolVersion: 1,
-            kioskPublicKey,
-            kioskPublicKeyFingerprint: fingerprint,
-          }),
-        });
-        if (!response.ok) throw new Error("session registration failed");
-        const body = (await response.json()) as {
-          sessionId: string;
-          expiresAt: number;
-          kioskToken: string;
-          qrUrl: string;
-        };
-        const qrImage = await QRCode.toDataURL(body.qrUrl, {
-          errorCorrectionLevel: "M",
-          margin: 2,
-          scale: 11,
-          color: { dark: "#071737", light: "#ffffff" },
-        });
-        if (!active) return;
-        setRemaining(Math.max(0, Math.ceil((body.expiresAt - Date.now()) / 1000)));
-        setSession({ ...body, qrImage, privateKey: keyPair.privateKey, fingerprint });
-        setStatus("waiting");
-      } catch {
-        if (active) setStatus("failed");
+    // Registering a session mints server-side state and counts against the
+    // per-counter creation limit, so it is started once per QR generation.
+    // React runs an effect twice in development; without this the screen would
+    // quietly burn two sessions every time it opened and abandon the first.
+    if (preparation.current?.generation !== generation) {
+      preparation.current = { generation, ready: prepareSession() };
+    }
+    void preparation.current.ready.then((prepared) => {
+      if (!active) return;
+      if (!prepared.ok) {
+        setStatus("failed");
+        return;
       }
-    })();
+      setRemaining(Math.max(0, Math.ceil((prepared.session.expiresAt - Date.now()) / 1000)));
+      setSession(prepared.session);
+      setStatus("waiting");
+    });
     return () => {
       active = false;
     };
@@ -232,6 +283,8 @@ export function BatchKioskSimulator({
     return <ConnectedScreen status={status} remaining={remaining} />;
   }
 
+  const spotlight = SPOTLIGHT_LOCALES[spotlightIndex] ?? "zh-CN";
+
   return (
     <main className="kiosk-shell" lang="ko">
       <Wordmark />
@@ -249,11 +302,28 @@ export function BatchKioskSimulator({
           <p className="kiosk-english" lang="en">
             Open the camera on your phone
           </p>
-          <p className="kiosk-spotlight">
-            <span>여러 파일 가능</span> 사진과 문서를 최대 {MAX_PRINT_BUNDLE_FILES}개까지 한 번에
-            출력할 수 있어요
+          {/* One line, rotating through the languages that are not permanently
+              on screen, so a visitor who reads neither Korean nor English still
+              sees what to do. Hidden from assistive technology because a line
+              that changes on a timer would interrupt it repeatedly. */}
+          <p
+            className="kiosk-spotlight"
+            lang={spotlight}
+            dir={isRightToLeft(spotlight) ? "rtl" : "ltr"}
+            aria-hidden="true"
+          >
+            <span>{LOCALE_NAMES[spotlight]}</span>
+            {translate(spotlight, "kioskScanTitle")}
           </p>
           <div className="kiosk-facts">
+            <p>
+              <Files aria-hidden="true" />
+              <span>
+                한 번에 여러 개
+                <br />
+                <strong>사진과 문서 최대 {MAX_PRINT_BUNDLE_FILES}개</strong>
+              </span>
+            </p>
             <p>
               <FileCheck2 aria-hidden="true" />
               <span>
@@ -307,13 +377,13 @@ export function BatchKioskSimulator({
             </span>
             <Smartphone aria-hidden="true" />
             <div>
-              <strong>파일을 하나 또는 여러 개 선택하세요</strong>
-              <small>Select one or multiple files, then print them together</small>
+              <strong>화면에 나타나는 링크를 누르세요</strong>
+              <small>사진을 찍을 필요는 없습니다 · Tap the link that appears</small>
             </div>
           </div>
           <p className="kiosk-languages">
             <Languages aria-hidden="true" />
-            <span>다국어 지원 · languages</span>
+            <span>{SUPPORTED_LOCALES.length}개 언어 · languages</span>
           </p>
         </section>
       </div>
@@ -502,10 +572,19 @@ function CompletedScreen({
           <a
             key={artifact.url}
             href={artifact.url}
-            download={`print-cess-${index + 1}-${artifact.filename}`}
+            // The artifact already carries a descriptive name. Numbering it is
+            // only useful when there is more than one file to tell apart, and
+            // a second `print-cess-` prefix in front of that name is noise on
+            // the counter staff's download.
+            download={
+              artifacts.length === 1 ? artifact.filename : `${index + 1}-${artifact.filename}`
+            }
             className="kiosk-download"
           >
-            <Download aria-hidden="true" /> 파일 {index + 1} 다운로드 (직원용)
+            <Download aria-hidden="true" />{" "}
+            {artifacts.length === 1
+              ? "파일 다운로드 (직원용)"
+              : `파일 ${index + 1} 다운로드 (직원용)`}
           </a>
         ))}
       </div>

@@ -87,6 +87,64 @@ const HELP_KEYS: Record<Stage, string> = {
   error: "helpError",
 };
 
+/**
+ * What one attempt at spending a QR code produced. Errors are carried back as a
+ * copy key rather than thrown so that the caller can apply the result of a
+ * single shared attempt to whichever run of the effect is still mounted.
+ */
+type ClaimOutcome =
+  | {
+      ok: true;
+      session: ClaimedSession;
+      mobileToken: string;
+      supportsHwpx: boolean;
+      supportsHwp: boolean;
+    }
+  | { ok: false; errorKey: string };
+
+/**
+ * Reads the credentials out of the URL fragment and spends them exactly once.
+ * The kiosk's public key is checked against the fingerprint the QR code
+ * carried, so a session handed back by anything other than the kiosk on screen
+ * is cancelled rather than used.
+ */
+async function claimOnce(sessionId: string): Promise<ClaimOutcome> {
+  const fragment = parseSessionFragment(window.location.hash);
+  if (!fragment) return { ok: false, errorKey: "invalidQr" };
+  try {
+    const mobileToken = generateToken();
+    const session = await claimSession({
+      sessionId,
+      uploadToken: fragment.uploadToken,
+      mobileTokenHash: await hashToken(mobileToken, "mobile"),
+      claimIdHash: await hashToken(generateToken(), "mobile"),
+    });
+    const computed = await fingerprintPublicKey(session.kioskPublicKey);
+    if (
+      !timingSafeEqual(fromBase64Url(computed), fromBase64Url(fragment.fingerprint)) ||
+      session.kioskPublicKeyFingerprint !== fragment.fingerprint
+    ) {
+      await cancelSession(sessionId, mobileToken).catch(() => undefined);
+      return { ok: false, errorKey: "fingerprintMismatch" };
+    }
+    return {
+      ok: true,
+      session,
+      mobileToken,
+      supportsHwpx: fragment.supportsHwpx,
+      supportsHwp: fragment.supportsHwp,
+    };
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 409) {
+      return { ok: false, errorKey: "usedQr" };
+    }
+    if (error instanceof ApiClientError && error.status === 410) {
+      return { ok: false, errorKey: "expiredQr" };
+    }
+    return { ok: false, errorKey: "networkError" };
+  }
+}
+
 export function BatchMobileFlow({
   sessionId,
   initialLocale,
@@ -113,6 +171,7 @@ export function BatchMobileFlow({
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const watchAbort = useRef<AbortController>(null);
+  const claimAttempt = useRef<{ sessionId: string; outcome: Promise<ClaimOutcome> }>(null);
 
   const clearDocuments = useCallback(() => {
     setDocuments((current) => {
@@ -167,52 +226,29 @@ export function BatchMobileFlow({
 
   useEffect(() => {
     let active = true;
-    void (async () => {
-      const fragment = parseSessionFragment(window.location.hash);
-      if (!fragment) {
-        if (active) {
-          setErrorKey("invalidQr");
-          setStage("error");
-        }
+    // Spending the QR code is a one-shot server operation: a second attempt is
+    // answered with 409, which reads to the visitor as "someone else already
+    // used this code". React deliberately runs an effect twice in development,
+    // and a fast remount would do the same in production, so the attempt is
+    // started once per session and every later run of this effect awaits that
+    // same promise instead of spending a code that is already claimed.
+    if (claimAttempt.current?.sessionId !== sessionId) {
+      claimAttempt.current = { sessionId, outcome: claimOnce(sessionId) };
+    }
+    void claimAttempt.current.outcome.then((outcome) => {
+      if (!active) return;
+      if (!outcome.ok) {
+        setErrorKey(outcome.errorKey);
+        setStage("error");
         return;
       }
-      try {
-        setSupportsHwpx(fragment.supportsHwpx);
-        setSupportsHwp(fragment.supportsHwp);
-        const nextMobileToken = generateToken();
-        const response = await claimSession({
-          sessionId,
-          uploadToken: fragment.uploadToken,
-          mobileTokenHash: await hashToken(nextMobileToken, "mobile"),
-          claimIdHash: await hashToken(generateToken(), "mobile"),
-        });
-        const computed = await fingerprintPublicKey(response.kioskPublicKey);
-        if (
-          !timingSafeEqual(fromBase64Url(computed), fromBase64Url(fragment.fingerprint)) ||
-          response.kioskPublicKeyFingerprint !== fragment.fingerprint
-        ) {
-          await cancelSession(sessionId, nextMobileToken).catch(() => undefined);
-          throw new Error("fingerprintMismatch");
-        }
-        if (!active) return;
-        setClaimed(response);
-        setMobileToken(nextMobileToken);
-        history.replaceState(null, "", `${window.location.pathname}#claimed`);
-        setStage("file");
-      } catch (error) {
-        if (!active) return;
-        setErrorKey(
-          error instanceof ApiClientError && error.status === 409
-            ? "usedQr"
-            : error instanceof ApiClientError && error.status === 410
-              ? "expiredQr"
-              : error instanceof Error && error.message === "fingerprintMismatch"
-                ? "fingerprintMismatch"
-                : "networkError",
-        );
-        setStage("error");
-      }
-    })();
+      setSupportsHwpx(outcome.supportsHwpx);
+      setSupportsHwp(outcome.supportsHwp);
+      setClaimed(outcome.session);
+      setMobileToken(outcome.mobileToken);
+      history.replaceState(null, "", `${window.location.pathname}#claimed`);
+      setStage("file");
+    });
     return () => {
       active = false;
     };
@@ -426,7 +462,10 @@ export function BatchMobileFlow({
             </p>
           ) : fileErrorKey ? (
             <p className="mobile-file-error" role="alert">
-              {text(fileErrorKey)}
+              {/* A refusal has to name the format the visitor actually picked:
+                  telling someone holding an .hwp that the printer cannot open
+                  HWPX sends them off to convert the wrong thing. */}
+              {applyHancomLabel(text(fileErrorKey), hancomLabel)}
             </p>
           ) : fileNoticeKey ? (
             <p className="mobile-file-notice" role="status">
