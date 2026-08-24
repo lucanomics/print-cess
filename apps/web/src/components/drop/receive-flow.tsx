@@ -61,6 +61,7 @@ import {
   type Text,
 } from "./drop-shell";
 import { dropErrorKey } from "./drop-errors";
+import { PairingEntry } from "./pairing-entry";
 
 type Stage = "code" | "scanning" | "checking" | "pending" | "files" | "error";
 
@@ -179,6 +180,12 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
     },
     [open],
   );
+
+  /** A pairing that never completed leaves nothing to retry but the code entry. */
+  const fail = useCallback((key: string) => {
+    setErrorKey(key);
+    setStage("error");
+  }, []);
 
   // A scanned QR code carries the transfer code in the fragment, so the
   // receiving phone skips straight past the keypad. The fragment is dropped
@@ -467,51 +474,50 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
       ) : null}
 
       {stage === "code" && !checking ? (
-        <section className="mobile-step">
-          <h1>{text("dropEnterCode")}</h1>
-          <p>{text("dropEnterCodeHint")}</p>
-          {canScan ? (
-            <PrimaryButton onClick={() => void scan()}>
-              <Camera aria-hidden="true" /> {text("dropScanCta")}
-            </PrimaryButton>
-          ) : null}
-          {noticeKey ? (
-            <p className="drop-notice" role="status">
-              {text(noticeKey)}
-            </p>
-          ) : null}
-          <label className="drop-code-field">
-            <span className="drop-visually-hidden">{text("dropCodeLabel")}</span>
-            <input
-              autoFocus
-              data-testid="drop-code-input"
-              inputMode="text"
-              autoCapitalize="characters"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="ABCD-EFGH-JKMN"
-              value={entry}
-              onChange={(event) => onEntryChange(event.target.value)}
-            />
-          </label>
-          {/* Scanning is the primary path where it exists, so typing keeps the
-              quieter button and does not compete with it. */}
-          {canScan ? (
-            <SecondaryButton
-              disabled={!typedCode}
-              onClick={() => typedCode && startOpen(typedCode)}
-            >
-              <Download aria-hidden="true" /> {text("dropOpenTransfer")}
-            </SecondaryButton>
-          ) : (
-            <PrimaryButton disabled={!typedCode} onClick={() => typedCode && startOpen(typedCode)}>
-              <Download aria-hidden="true" /> {text("dropOpenTransfer")}
-            </PrimaryButton>
-          )}
-          <a className="drop-link" href="/send">
-            <Send aria-hidden="true" /> {text("dropSendCta")}
-          </a>
-        </section>
+        <>
+          {/* Two digits and a shape, rather than twelve characters read off
+              somebody else's screen. Scanning stays for whoever prefers it. */}
+          <PairingEntry text={text} onTransferCode={startOpen} onError={fail} />
+          <section className="mobile-step mobile-step--single">
+            {canScan ? (
+              <SecondaryButton onClick={() => void scan()}>
+                <Camera aria-hidden="true" /> {text("dropScanCta")}
+              </SecondaryButton>
+            ) : null}
+            {noticeKey ? (
+              <p className="drop-notice" role="status">
+                {text(noticeKey)}
+              </p>
+            ) : null}
+            {/* A shared link still has to land somewhere. This is for pasting
+                one, not for typing a code out by hand — that is what the two
+                digits above replaced. */}
+            <details className="drop-paste">
+              <summary>{text("dropPasteLink")}</summary>
+              <label className="drop-code-field">
+                <span className="drop-visually-hidden">{text("dropPasteLink")}</span>
+                <input
+                  data-testid="drop-code-input"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={entry}
+                  onChange={(event) => onEntryChange(event.target.value)}
+                />
+              </label>
+              <SecondaryButton
+                disabled={!typedCode}
+                onClick={() => typedCode && startOpen(typedCode)}
+              >
+                <Download aria-hidden="true" /> {text("dropOpenTransfer")}
+              </SecondaryButton>
+            </details>
+            <a className="drop-link" href="/send">
+              <Send aria-hidden="true" /> {text("dropSendCta")}
+            </a>
+          </section>
+        </>
       ) : null}
 
       {checking ? (

@@ -1,5 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
+import { handOver, readShortCode, shapeOnScreen } from "./pairing-helpers";
+
 const FILE_NAME = "paradiso-note.txt";
 // Two chunks' worth would take minutes on a development server; one chunk with
 // a partial tail is enough to prove the split, the seal, and the reassembly.
@@ -29,10 +31,18 @@ async function pickFile(page: Page, name: string, body: string): Promise<void> {
   });
 }
 
+/**
+ * The twelve-character transfer code, which the sending screen no longer puts
+ * in front of anyone. It is still the secret that opens the files, so the tests
+ * that assert it never leaves the device read it from the development-only
+ * attribute rather than from the page text.
+ */
 async function readTransferCode(page: Page): Promise<string> {
-  const code = page.locator(".drop-code strong");
-  await expect(code).toBeVisible({ timeout: 120_000 });
-  return ((await code.textContent()) ?? "").trim();
+  const ready = page.locator(".drop-ready");
+  await expect(ready).toHaveAttribute("data-transfer-code", /^[0-9A-HJKMNP-TV-Z]{12}$/u, {
+    timeout: 120_000,
+  });
+  return (await ready.getAttribute("data-transfer-code"))!;
 }
 
 test("hands a file from one phone to another and back to disk", async ({ browser }) => {
@@ -50,15 +60,9 @@ test("hands a file from one phone to another and back to disk", async ({ browser
 
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
 
-    const transferCode = await readTransferCode(sending);
-    expect(transferCode).toMatch(
-      /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/u,
-    );
-
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    await receiving.getByTestId("drop-code-input").fill(transferCode);
-    await receiving.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
+    await handOver(sending, receiving);
 
     // The file list is only readable once the code has opened the manifest.
     await expect(receiving.getByText(FILE_NAME)).toBeVisible({ timeout: 60_000 });
@@ -111,12 +115,10 @@ test("saves one of several files without fetching the rest", async ({ browser })
     await expect(sending.getByText("third.txt")).toBeVisible();
 
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
-    const transferCode = await readTransferCode(sending);
 
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    await receiving.getByTestId("drop-code-input").fill(transferCode);
-    await receiving.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
+    await handOver(sending, receiving);
     await expect(receiving.getByText("third.txt")).toBeVisible({ timeout: 60_000 });
 
     // Only the second row's Save is pressed. Somebody who wants one of five
@@ -162,14 +164,11 @@ test("lets a receiver scan before the sender has finished uploading", async ({ b
     await pickFile(sending, FILE_NAME, "waiting for the receiver\n");
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
 
-    // The code appears as soon as the service holds the record, not when the
+    // The digits appear as soon as the service holds the record, not when the
     // last byte lands.
-    const transferCode = await readTransferCode(sending);
-
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    await receiving.getByTestId("drop-code-input").fill(transferCode);
-    await receiving.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
+    await handOver(sending, receiving);
 
     // The right code, an unfinished transfer: wait, do not claim it is wrong.
     await expect(receiving.getByRole("heading", { name: /Connected|연결됐어요/u })).toBeVisible({
@@ -205,6 +204,7 @@ test("opens a transfer from a pasted link, not just from twelve characters", asy
     await receiving.goto("/receive");
     // A whole link is what a person actually pastes. The field used to strip it
     // to the letters of its own hostname and open nothing.
+    await receiving.getByRole("group").click();
     await receiving
       .getByTestId("drop-code-input")
       .fill(`http://127.0.0.1:3000/receive#c=${transferCode}`);
@@ -218,6 +218,7 @@ test("opens a transfer from a pasted link, not just from twelve characters", asy
 
 test("says so plainly when a transfer code matches nothing", async ({ page }) => {
   await page.goto("/receive");
+  await page.getByRole("group").click();
   await page.getByTestId("drop-code-input").fill("2345-6789-ABCD");
   await page.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
 
@@ -240,4 +241,60 @@ test("keeps the transfer code out of everything but the fragment", async ({ page
   for (const url of sent) {
     expect(url).not.toContain(transferCode);
   }
+});
+
+/**
+ * The digits are guessable — a hundred of them is nothing. What is not
+ * guessable is being the phone whose shape the sender is looking at, so a
+ * receiver who pairs and then waits gets no transfer code and no files. This is
+ * the whole reason a two-digit code is safe to hand out.
+ */
+test("hands over nothing until the sender picks the shape", async ({ browser }) => {
+  const sender = await browser.newContext();
+  const receiver = await browser.newContext();
+
+  try {
+    const sending = await sender.newPage();
+    await sending.goto("/send");
+    await pickFile(sending, FILE_NAME, "held back\n");
+    await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
+
+    const shortCode = await readShortCode(sending);
+    const receiving = await receiver.newPage();
+    await receiving.goto("/receive");
+    for (const digit of shortCode) {
+      await receiving.getByTestId(`pairing-key-${digit}`).click();
+    }
+
+    // Paired, and shown a shape to hold up. That is all it gets.
+    await expect(receiving.locator(".pairing-shown__figure")).toBeVisible({ timeout: 60_000 });
+    await expect(sending.getByTestId("pairing-choice-circle")).toBeVisible({ timeout: 60_000 });
+
+    // Picking the three shapes that are not on the other screen never releases
+    // the code, and the file list stays out of reach throughout.
+    const shown = await shapeOnScreen(receiving);
+    for (const wrong of ["circle", "triangle", "square", "star"].filter((s) => s !== shown)) {
+      await sending.getByTestId(`pairing-choice-${wrong}`).click();
+      await expect(sending.getByText(/not the shape|도형과 달라요/u)).toBeVisible();
+    }
+    await expect(receiving.getByText(FILE_NAME)).toHaveCount(0);
+
+    // The right shape, and only then, opens it.
+    await sending.getByTestId(`pairing-choice-${shown}`).click();
+    await expect(receiving.getByText(FILE_NAME)).toBeVisible({ timeout: 60_000 });
+  } finally {
+    await sender.close();
+    await receiver.close();
+  }
+});
+
+/** Two digits that name no transfer are answered plainly, not with a hint. */
+test("says so plainly when two digits match nothing", async ({ page }) => {
+  await page.goto("/receive");
+  await page.getByTestId("pairing-key-0").click();
+  await page.getByTestId("pairing-key-0").click();
+
+  await expect(page.getByText(/do not match a transfer|맞는 전송이 없어요/u)).toBeVisible({
+    timeout: 60_000,
+  });
 });

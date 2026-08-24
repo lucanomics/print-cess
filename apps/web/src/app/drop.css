@@ -459,3 +459,152 @@
     box-shadow: 0 0 0 0 rgb(0 138 138 / 0%);
   }
 }
+
+/* The two digits are the one thing a person has to read off another phone
+   across a table, so they get the largest type on the screen. */
+.pairing-digits {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 18px 14px;
+  border: 2px dashed var(--pc-teal);
+  border-radius: var(--pc-radius);
+  background: var(--pc-teal-soft);
+}
+.pairing-digits__label {
+  color: var(--pc-teal-dark);
+  font-size: 14px;
+  font-weight: 750;
+}
+.pairing-digits strong {
+  direction: ltr;
+  color: var(--pc-ink);
+  font-family: "SF Mono", ui-monospace, "Roboto Mono", monospace;
+  font-size: clamp(56px, 22vw, 92px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+.pairing-digits small {
+  color: var(--pc-slate);
+  font-size: 14px;
+  text-align: center;
+}
+
+.pairing-shape__mark {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+/* One shape, shown as large as the digits were: the sender is reading it from
+   arm's length on somebody else's phone. */
+.pairing-shown {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.pairing-shown__figure {
+  width: clamp(120px, 44vw, 176px);
+  height: clamp(120px, 44vw, 176px);
+  color: var(--pc-teal-dark);
+}
+.pairing-shown figcaption {
+  color: var(--pc-slate);
+  font-size: 15px;
+  text-align: center;
+}
+
+.pairing-choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+.pairing-choices button {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 16px 10px;
+  border: 2px solid var(--pc-line);
+  border-radius: var(--pc-radius);
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  cursor: pointer;
+  font: inherit;
+  /* Tapping the wrong shape aborts a transfer, so the target is generous. */
+  min-height: 116px;
+}
+.pairing-choices button:hover:not(:disabled) {
+  border-color: var(--pc-teal);
+}
+.pairing-choices button:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+.pairing-choices button span {
+  font-size: 14px;
+  font-weight: 700;
+}
+.pairing-choices button svg {
+  width: 56px;
+  height: 56px;
+  color: var(--pc-teal-dark);
+}
+
+/* A keypad rather than a text field: two digits typed with a thumb, on a phone
+   whose keyboard may not open in numeric mode for a text input. */
+.pairing-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+  margin-inline: auto;
+}
+.pairing-keypad button {
+  padding: 16px 0;
+  border: 2px solid var(--pc-line);
+  border-radius: var(--pc-radius);
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  cursor: pointer;
+  font-family: "SF Mono", ui-monospace, "Roboto Mono", monospace;
+  font-size: 26px;
+  font-weight: 700;
+}
+.pairing-keypad button:hover:not(:disabled) {
+  border-color: var(--pc-teal);
+}
+.pairing-keypad button:disabled {
+  opacity: 0.5;
+}
+.pairing-entry {
+  direction: ltr;
+  color: var(--pc-ink);
+  font-family: "SF Mono", ui-monospace, "Roboto Mono", monospace;
+  font-size: clamp(44px, 18vw, 68px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.16em;
+  text-align: center;
+}
+.pairing-entry--empty {
+  color: var(--pc-line);
+}
+
+/* The link fallback is for people who were sent one, so it stays folded away
+   behind the two digits rather than competing with them. */
+.drop-paste {
+  width: 100%;
+}
+.drop-paste summary {
+  color: var(--pc-teal-dark);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 8px 0;
+  text-align: center;
+}
+.drop-paste > * + * {
+  margin-block-start: 10px;
+}

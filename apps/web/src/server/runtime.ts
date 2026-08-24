@@ -15,8 +15,17 @@ import { InProcessCleanupScheduler } from "./cleanup/in-process";
 import { PersistentSweepCleanupScheduler } from "./cleanup/persistent-sweep";
 import { QStashCleanupScheduler } from "./cleanup/qstash";
 import { loadConfig, type ServerConfig } from "./config";
-import type { BlobTransport, CleanupScheduler, DropStore, SessionStore } from "./contracts";
+import type {
+  BlobTransport,
+  CleanupScheduler,
+  DropStore,
+  PairingStore,
+  SessionStore,
+} from "./contracts";
 import { MemoryDropStore } from "./drop-store/memory";
+import { MemoryPairingStore } from "./pairing-store/memory";
+import { RedisPairingStore } from "./pairing-store/redis";
+import { RailwayPostgresPairingStore } from "./pairing-store/postgres";
 import { RailwayPostgresDropStore } from "./drop-store/postgres";
 import { RedisDropStore } from "./drop-store/redis";
 import { UpstashScriptClient } from "./drop-store/upstash-client";
@@ -34,6 +43,7 @@ export type ServerRuntime = {
   config: ServerConfig;
   sessions: SessionStore;
   drops: DropStore;
+  pairings: PairingStore;
   blobs: BlobTransport;
   cleanup: CleanupScheduler;
 };
@@ -61,21 +71,30 @@ export function getRuntime(): ServerRuntime {
         : config.sessionProvider === "railway-postgres"
           ? new RailwayPostgresDropStore()
           : new RedisDropStore(new UpstashScriptClient());
+    // Pairings are the same kind of short-lived rendezvous state as sessions,
+    // so they follow the service that already holds them.
+    const pairings: PairingStore =
+      config.sessionProvider === "railway-redis"
+        ? new RedisPairingStore(createNodeRedisScriptClient())
+        : config.sessionProvider === "railway-postgres"
+          ? new RailwayPostgresPairingStore()
+          : new RedisPairingStore(new UpstashScriptClient());
     const blobs: BlobTransport =
       config.blobProvider === "railway-s3" ? new S3BlobTransport() : new VercelBlobTransport();
     const cleanup: CleanupScheduler =
       config.cleanupProvider === "railway-worker"
         ? new PersistentSweepCleanupScheduler()
         : new QStashCleanupScheduler(`${config.publicBaseUrl}/api/cleanup`);
-    runtime = { config, sessions, drops, blobs, cleanup };
+    runtime = { config, sessions, drops, pairings, blobs, cleanup };
   } else {
     const sessions = new MemorySessionStore();
     const drops = new MemoryDropStore();
+    const pairings = new MemoryPairingStore();
     const blobs = new LocalEncryptedBlobTransport(config.publicBaseUrl);
     const cleanup = new InProcessCleanupScheduler(async (sessionId) => {
       await cleanupSession(runtime, sessionId);
     });
-    runtime = { config, sessions, drops, blobs, cleanup };
+    runtime = { config, sessions, drops, pairings, blobs, cleanup };
   }
   globalThis.__printCessRuntime = runtime;
   return runtime;

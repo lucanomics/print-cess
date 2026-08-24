@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { expect, test, type Download } from "@playwright/test";
 
+import { handOver } from "./pairing-helpers";
+
 /**
  * Hancom documents are the format this service exists for, and in Korea they
  * arrive with Korean file names and, on most phones, no MIME type at all. The
@@ -73,14 +75,9 @@ test("hands Hancom documents over byte-identically, Korean names included", asyn
     await expect(sending.getByText("전입신고서.hwpx")).toBeVisible();
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
 
-    const code = sending.locator(".drop-code strong");
-    await expect(code).toBeVisible({ timeout: 180_000 });
-    const transferCode = ((await code.textContent()) ?? "").trim();
-
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    await receiving.getByTestId("drop-code-input").fill(transferCode);
-    await receiving.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
+    await handOver(sending, receiving);
     await expect(receiving.getByText("임대차계약서.hwp")).toBeVisible({ timeout: 60_000 });
 
     const downloads: Download[] = [];

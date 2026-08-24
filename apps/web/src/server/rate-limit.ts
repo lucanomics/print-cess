@@ -31,3 +31,27 @@ export function enforceRateLimit(
     );
   }
 }
+
+/**
+ * Checks a budget without spending from it. Pairing joins are counted only when
+ * they miss, because a café or a school shares one address: charging every
+ * successful hand-off to that address would ration the service by building
+ * rather than by behaviour, while a run of misses is what enumeration of a
+ * hundred codes actually looks like.
+ */
+export function assertUnderRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+  now = Date.now(),
+): void {
+  const existing = windows.get(key);
+  if (!existing || existing.resetAt <= now) return;
+  if (existing.count > limit) {
+    throw new ServiceError(
+      "rate_limited",
+      "Too many wrong numbers. Wait a moment and try again.",
+      429,
+    );
+  }
+}

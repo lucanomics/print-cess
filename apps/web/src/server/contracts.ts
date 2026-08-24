@@ -1,4 +1,9 @@
-import type { DropRecord, PrintSession, PrintSessionStatus } from "@print-cess/protocol";
+import type {
+  DropRecord,
+  PairingRecord,
+  PrintSession,
+  PrintSessionStatus,
+} from "@print-cess/protocol";
 
 export type SessionReceipt = {
   protocolVersion: 1;
@@ -116,6 +121,36 @@ export interface DropStore {
   recordReceiverEvent(dropId: string, event: DropReceiverEvent, now: number): Promise<DropRecord>;
   remove(dropId: string): Promise<void>;
   listExpired(now: number, limit: number): Promise<DropRecord[]>;
+}
+
+/**
+ * The rendezvous two phones use to hand a transfer code over without a person
+ * typing it. It holds public keys and one sealed envelope, none of which the
+ * service can open, keyed by the two digits the receiving phone is given.
+ */
+export interface PairingStore {
+  /**
+   * Claims one unused two-digit code. The code is chosen by the store rather
+   * than the caller so that the check for "already taken" and the write cannot
+   * be separated by another sender doing the same thing.
+   */
+  claim(
+    pairing: Omit<PairingRecord, "code">,
+    candidates: readonly string[],
+  ): Promise<PairingRecord | null>;
+  get(code: string): Promise<PairingRecord | null>;
+  join(
+    code: string,
+    join: { receiverTokenHash: string; receiverPublicKey: string },
+    now: number,
+  ): Promise<PairingRecord>;
+  deliver(
+    code: string,
+    senderTokenHash: string,
+    sealedCode: string,
+    now: number,
+  ): Promise<PairingRecord>;
+  remove(code: string): Promise<void>;
 }
 
 export type SignedBlobOperation = {
