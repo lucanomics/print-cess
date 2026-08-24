@@ -11,11 +11,14 @@
 This private repository contains the mobile transfer service, public browser kiosk, shared
 protocol, and Windows kiosk for a no-login, one-document, one-copy print flow. It also carries a
 phone-to-phone file hand-off at `/send` and `/receive`: end-to-end encrypted, chunked for large
-files, format blind, and needing no kiosk — see `docs/FILE_TRANSFER.md` for how it moves bytes and
-`docs/FILE_COMPATIBILITY.md` for what it will carry, what it does to a file name, and where a
-received file actually ends up. `docs/DOCUMENT_JOURNEY.md` is the design record for what the
-screens say. Development uses encrypted local adapters; production integrations require separately
-approved Vercel and Upstash resources.
+files, format blind, and needing no kiosk. Managed government and public-sector workstations can
+start from `/workstation`, which adds browser readiness checks and a policy-aware desktop entry
+without installing software or attempting to bypass endpoint controls. See `docs/FILE_TRANSFER.md`
+for how it moves bytes, `docs/FILE_COMPATIBILITY.md` for what it will carry, what it does to a file
+name, and where a received file actually ends up, and `docs/GOVERNMENT_WORKSTATION.md` for the
+managed workstation security boundary. `docs/DOCUMENT_JOURNEY.md` is the design record for what
+the screens say. Development uses encrypted local adapters; production integrations require
+separately approved Vercel and Upstash resources.
 
 The complete setup, security boundaries, test commands, macOS browser-kiosk procedure, Windows
 deployment procedure, and remaining production blockers are documented in `docs/`. Never use real
@@ -39,7 +42,8 @@ pnpm dev
 
 Open `http://localhost:3000/kiosk`, scan the generated QR with a phone on the same reachable
 development URL, or open its mobile link in another browser tab. Local mode stores ciphertext
-only under an application-owned development directory.
+only under an application-owned development directory. Open `http://localhost:3000/workstation`
+to exercise the managed-workstation entry and local browser capability diagnostics.
 
 For unattended Production printing on a Mac, configure an explicit default printer and follow
 `docs/MACOS_BROWSER_KIOSK.md`. The checked-in LaunchAgent opens the live URL with Chrome's kiosk and

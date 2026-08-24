@@ -33,7 +33,7 @@ describe("home page", () => {
     acceptLanguage.value = "";
   });
 
-  it("keeps file hand-off and kiosk entry discoverable when the browser kiosk is enabled", async () => {
+  it("keeps file hand-off, workstation, and kiosk entry discoverable when the browser kiosk is enabled", async () => {
     vi.stubEnv("ENABLE_BROWSER_KIOSK", "true");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
     vi.stubEnv("VERCEL_ENV", "production");
@@ -41,10 +41,12 @@ describe("home page", () => {
     const page = await HomePage();
 
     expect(page.props.className).toBe("status-page");
-    expect(hrefsOf(page)).toEqual(expect.arrayContaining(["/send", "/receive", "/kiosk"]));
+    expect(hrefsOf(page)).toEqual(
+      expect.arrayContaining(["/send", "/receive", "/workstation", "/kiosk"]),
+    );
   });
 
-  it("hides the kiosk shortcut when the production route is disabled", async () => {
+  it("keeps workstation access while hiding a disabled production kiosk shortcut", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("ENABLE_BROWSER_KIOSK", "false");
     vi.stubEnv("ENABLE_DEMO_ROUTES", "false");
@@ -53,7 +55,7 @@ describe("home page", () => {
     const page = await HomePage();
     const hrefs = hrefsOf(page);
 
-    expect(hrefs).toEqual(expect.arrayContaining(["/send", "/receive"]));
+    expect(hrefs).toEqual(expect.arrayContaining(["/send", "/receive", "/workstation"]));
     expect(hrefs).not.toContain("/kiosk");
   });
 
@@ -65,7 +67,9 @@ describe("home page", () => {
     const page = await HomePage();
 
     expect(page.props.className).toBe("status-page");
-    expect(hrefsOf(page)).toEqual(expect.arrayContaining(["/send", "/receive", "/kiosk"]));
+    expect(hrefsOf(page)).toEqual(
+      expect.arrayContaining(["/send", "/receive", "/workstation", "/kiosk"]),
+    );
   });
 
   it("greets a visitor in the language their browser asked for", async () => {
@@ -76,6 +80,7 @@ describe("home page", () => {
     expect(copy).toContain("안전하게 인쇄하고 주고받아요");
     expect(copy).toContain("파일 보내기");
     expect(copy).toContain("파일 받기");
+    expect(copy).toContain("업무용 PC");
     expect(copy).toContain("키오스크 열기");
     expect(copy).not.toContain("Secure print and transfer service");
   });
@@ -86,6 +91,7 @@ describe("home page", () => {
     expect(copy).toContain("Secure print and transfer service");
     expect(copy).toContain("Send files");
     expect(copy).toContain("Receive files");
+    expect(copy).toContain("Work computer");
     expect(copy).toContain("Open kiosk");
   });
 });
