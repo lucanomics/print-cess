@@ -21,6 +21,6 @@
     "i18next": "26.3.6"
   },
   "devDependencies": {
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }
