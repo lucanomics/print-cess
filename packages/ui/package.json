@@ -19,12 +19,12 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "lucide-react": "1.31.0",
+    "lucide-react": "1.33.0",
     "react": "19.2.8"
   },
   "devDependencies": {
     "@types/react": "19.2.18",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "peerDependencies": {
     "react": "19.2.8"
