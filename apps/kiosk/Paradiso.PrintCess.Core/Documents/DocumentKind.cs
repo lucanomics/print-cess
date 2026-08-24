@@ -7,6 +7,7 @@ public enum DocumentKind : byte
     Png = 3,
     Hwpx = 4,
     Hwp = 5,
+    Bundle = 6,
 }
 
 public static class DocumentKindExtensions
@@ -18,6 +19,7 @@ public static class DocumentKindExtensions
         DocumentKind.Png => "image/png",
         DocumentKind.Hwpx => "application/hwp+zip",
         DocumentKind.Hwp => "application/x-hwp",
+        DocumentKind.Bundle => "application/vnd.print-cess.bundle",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }

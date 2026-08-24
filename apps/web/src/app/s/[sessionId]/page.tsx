@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { SESSION_ID_PATTERN } from "@print-cess/protocol";
 
-import { MobileFlow } from "@/components/mobile/mobile-flow";
+import { BatchMobileFlow } from "@/components/mobile/batch-mobile-flow";
 import { requestLocale } from "@/lib/request-locale";
 
 export default async function MobileSessionPage({
@@ -14,5 +14,5 @@ export default async function MobileSessionPage({
   if (!SESSION_ID_PATTERN.test(sessionId)) notFound();
   // The first paint is already in the visitor's language, so nobody watches
   // the page load in English and then change under them.
-  return <MobileFlow sessionId={sessionId} initialLocale={await requestLocale()} />;
+  return <BatchMobileFlow sessionId={sessionId} initialLocale={await requestLocale()} />;
 }
