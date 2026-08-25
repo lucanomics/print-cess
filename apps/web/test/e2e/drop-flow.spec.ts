@@ -169,11 +169,12 @@ test("lets a receiver scan before the sender has finished uploading", async ({ b
     await pickFile(sending, FILE_NAME, "waiting for the receiver\n");
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
 
-    // The digits appear as soon as the service holds the record, not when the
-    // last byte lands.
+    // QR and shared-link hand-offs remain available as soon as the service
+    // holds the record. Nearby two-digit pairing deliberately waits for the
+    // upload to seal so its three-minute escrow clock cannot run out here.
+    const transferCode = await readTransferCode(sending);
     const receiving = await receiver.newPage();
-    await receiving.goto("/receive");
-    await handOver(sending, receiving);
+    await receiving.goto(`/receive#c=${transferCode}`);
 
     // The right code, an unfinished transfer: wait, do not claim it is wrong.
     await expect(receiving.getByRole("heading", { name: /Connected|연결됐어요/u })).toBeVisible({
