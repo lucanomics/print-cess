@@ -392,11 +392,10 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
                 <figcaption>{text("dropScanToReceive")}</figcaption>
               </figure>
             ) : null}
-            {/* The twelve-character code still exists and still never reaches
-                the service; it simply is not what a person has to read out any
-                more. Two digits find this phone, and the shape below is what
-                actually releases the code to the phone that typed them. */}
-            <PairingHandover transferCode={result.code} text={text} />
+            {/* QR and shared-link hand-offs keep the transfer code in the URL
+                fragment. The optional nearby-phone flow below escrows it for
+                three minutes so the sender can leave after upload. */}
+            <PairingHandover transferCode={result.code} sealed={sealed} text={text} />
             {!sealed && progress ? (
               <div className="drop-still-sending">
                 <TransferBar progress={progress} text={text} minutesRemaining={minutesRemaining} />

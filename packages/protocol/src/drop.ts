@@ -8,9 +8,10 @@ import { DIGEST_PATTERN } from "./canonical.js";
  * there is no kiosk, no printer, and no single-document restriction.
  *
  * The only secret is a twelve-character transfer code that the sender's browser
- * generates and never sends anywhere. Both the storage identifier and the
- * content key are stretched out of that code on the device, so the server holds
- * ciphertext plus an opaque identifier and can never read a file it stores.
+ * generates. QR and shared-link hand-offs keep it in a URL fragment, so the
+ * server holds ciphertext plus an opaque identifier and cannot read a file it
+ * stores. The optional nearby-phone pairing flow explicitly trades that
+ * property for convenience by escrowing the code for three minutes.
  */
 export const DROP_PROTOCOL_VERSION = 1 as const;
 

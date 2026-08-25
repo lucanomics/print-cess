@@ -34,12 +34,10 @@ export async function POST(request: Request) {
     const now = Date.now();
     const pairing: Omit<PairingRecord, "code"> = {
       protocolVersion: 1,
-      state: "waiting",
-      senderTokenHash: body.senderTokenHash,
-      senderPublicKey: body.senderPublicKey,
+      shape: body.shape,
+      transferCode: body.transferCode,
       createdAt: now,
       expiresAt: now + PAIRING_TTL_SECONDS * 1000,
-      revision: 0,
     };
 
     const claimed = await server.pairings.claim(pairing, drawCandidates());

@@ -497,6 +497,12 @@
   fill: currentColor;
 }
 
+.pairing-created {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+}
+
 /* One shape, shown as large as the digits were: the sender is reading it from
    arm's length on somebody else's phone. */
 .pairing-shown {
@@ -508,6 +514,10 @@
   width: clamp(120px, 44vw, 176px);
   height: clamp(120px, 44vw, 176px);
   color: var(--pc-teal-dark);
+}
+.pairing-shown--selected .pairing-shown__figure {
+  width: clamp(88px, 30vw, 128px);
+  height: clamp(88px, 30vw, 128px);
 }
 .pairing-shown figcaption {
   color: var(--pc-slate);
@@ -532,7 +542,7 @@
   color: var(--pc-ink);
   cursor: pointer;
   font: inherit;
-  /* Tapping the wrong shape aborts a transfer, so the target is generous. */
+  /* One wrong receiver choice consumes the pairing, so targets are generous. */
   min-height: 116px;
 }
 .pairing-choices button:hover:not(:disabled) {
@@ -590,6 +600,19 @@
 }
 .pairing-entry--empty {
   color: var(--pc-line);
+}
+.pairing-back {
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--pc-teal-dark);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+.pairing-back:disabled {
+  cursor: progress;
+  opacity: 0.5;
 }
 
 /* The link fallback is for people who were sent one, so it stays folded away

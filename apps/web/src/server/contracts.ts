@@ -124,9 +124,8 @@ export interface DropStore {
 }
 
 /**
- * The rendezvous two phones use to hand a transfer code over without a person
- * typing it. It holds public keys and one sealed envelope, none of which the
- * service can open, keyed by the two digits the receiving phone is given.
+ * Short-lived escrow for the optional two-digits-and-shape hand-off. A redeem
+ * attempt always consumes a live record, including when the shape is wrong.
  */
 export interface PairingStore {
   /**
@@ -139,17 +138,7 @@ export interface PairingStore {
     candidates: readonly string[],
   ): Promise<PairingRecord | null>;
   get(code: string): Promise<PairingRecord | null>;
-  join(
-    code: string,
-    join: { receiverTokenHash: string; receiverPublicKey: string },
-    now: number,
-  ): Promise<PairingRecord>;
-  deliver(
-    code: string,
-    senderTokenHash: string,
-    sealedCode: string,
-    now: number,
-  ): Promise<PairingRecord>;
+  redeem(code: string, shape: PairingRecord["shape"], now: number): Promise<PairingRecord>;
   remove(code: string): Promise<void>;
 }
 

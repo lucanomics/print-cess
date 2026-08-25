@@ -181,12 +181,6 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
     [open],
   );
 
-  /** A pairing that never completed leaves nothing to retry but the code entry. */
-  const fail = useCallback((key: string) => {
-    setErrorKey(key);
-    setStage("error");
-  }, []);
-
   // A scanned QR code carries the transfer code in the fragment, so the
   // receiving phone skips straight past the keypad. The fragment is dropped
   // once the transfer is open, which also lets a reload before then retry with
@@ -477,7 +471,7 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
         <>
           {/* Two digits and a shape, rather than twelve characters read off
               somebody else's screen. Scanning stays for whoever prefers it. */}
-          <PairingEntry text={text} onTransferCode={startOpen} onError={fail} />
+          <PairingEntry text={text} onTransferCode={startOpen} />
           <section className="mobile-step mobile-step--single">
             {canScan ? (
               <SecondaryButton onClick={() => void scan()}>

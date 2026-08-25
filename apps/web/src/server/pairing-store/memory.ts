@@ -1,7 +1,7 @@
 import type { PairingRecord } from "@print-cess/protocol";
 
 import type { PairingStore } from "../contracts";
-import { applyDelivery, applyJoin, requireLive, requireSender } from "./transitions";
+import { requireLive, requireShape } from "./transitions";
 
 /**
  * Development and single-process store. Every read and write hands back a clone
@@ -29,28 +29,16 @@ export class MemoryPairingStore implements PairingStore {
     return stored ? structuredClone(stored) : null;
   }
 
-  public async join(
+  public async redeem(
     code: string,
-    join: { receiverTokenHash: string; receiverPublicKey: string },
+    shape: PairingRecord["shape"],
     now: number,
   ): Promise<PairingRecord> {
     const current = requireLive(await this.get(code), now);
-    const { next } = applyJoin(current, join);
-    this.#pairings.set(code, structuredClone(next));
-    return next;
-  }
-
-  public async deliver(
-    code: string,
-    senderTokenHash: string,
-    sealedCode: string,
-    now: number,
-  ): Promise<PairingRecord> {
-    const current = requireLive(await this.get(code), now);
-    requireSender(current, senderTokenHash);
-    const { next } = applyDelivery(current, sealedCode);
-    this.#pairings.set(code, structuredClone(next));
-    return next;
+    // Consume before checking the shape. A wrong shape therefore gets exactly
+    // one try and cannot walk the four choices against a live two-digit code.
+    this.#pairings.delete(code);
+    return requireShape(current, shape);
   }
 
   public async remove(code: string): Promise<void> {

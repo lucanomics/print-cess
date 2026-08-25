@@ -2,13 +2,7 @@ import { pairingRecordSchema, type PairingRecord } from "@print-cess/protocol";
 
 import type { PairingStore } from "../contracts";
 import { createPostgresExecutor, type PostgresExecutor } from "../session-store/postgres-client";
-import {
-  applyDelivery,
-  applyJoin,
-  pairingNotFound,
-  requireLive,
-  requireSender,
-} from "./transitions";
+import { pairingNotFound, requireLive, requireShape } from "./transitions";
 
 const TABLE_NAME = "print_cess_pairing_state_v1";
 
@@ -33,6 +27,12 @@ export class RailwayPostgresPairingStore implements PairingStore {
     candidates: readonly string[],
   ): Promise<PairingRecord | null> {
     await this.ensureSchema();
+    // The table can hold at most one row per two-digit code, so pruning on
+    // ordinary pairing traffic is bounded and keeps expired escrow out of
+    // persistent storage even when its particular code is not selected next.
+    await this.#executor.query(`DELETE FROM ${TABLE_NAME} WHERE expires_at <= $1`, [
+      pairing.createdAt,
+    ]);
     for (const code of candidates) {
       const record: PairingRecord = { ...pairing, code };
       const result = await this.#executor.query(
@@ -54,67 +54,42 @@ export class RailwayPostgresPairingStore implements PairingStore {
 
   public async get(code: string): Promise<PairingRecord | null> {
     await this.ensureSchema();
+    const now = Date.now();
+    await this.#executor.query(`DELETE FROM ${TABLE_NAME} WHERE code = $1 AND expires_at <= $2`, [
+      code,
+      now,
+    ]);
     const result = await this.#executor.query<PairingRow>(
       `SELECT pairing, expires_at FROM ${TABLE_NAME} WHERE code = $1`,
       [code],
     );
     const row = result.rows[0];
     if (!row) return null;
-    if (Number(row.expires_at) <= Date.now()) return null;
     return parsePairing(row.pairing);
   }
 
-  public async join(
+  public async redeem(
     code: string,
-    join: { receiverTokenHash: string; receiverPublicKey: string },
+    shape: PairingRecord["shape"],
     now: number,
   ): Promise<PairingRecord> {
-    return this.mutate(code, now, (current) => applyJoin(current, join).next);
-  }
-
-  public async deliver(
-    code: string,
-    senderTokenHash: string,
-    sealedCode: string,
-    now: number,
-  ): Promise<PairingRecord> {
-    return this.mutate(code, now, (current) => {
-      requireSender(current, senderTokenHash);
-      return applyDelivery(current, sealedCode).next;
+    await this.ensureSchema();
+    return this.#executor.transaction(`pairing:${code}`, async (client) => {
+      // Delete first and inspect the returned record second. A wrong shape is
+      // therefore consumed just as atomically as a correct one.
+      const result = await client.query<PairingRow>(
+        `DELETE FROM ${TABLE_NAME} WHERE code = $1 RETURNING pairing, expires_at`,
+        [code],
+      );
+      const row = result.rows[0];
+      const stored = row ? parsePairing(row.pairing) : null;
+      return requireShape(requireLive(stored, now), shape);
     });
   }
 
   public async remove(code: string): Promise<void> {
     await this.ensureSchema();
     await this.#executor.query(`DELETE FROM ${TABLE_NAME} WHERE code = $1`, [code]);
-  }
-
-  /**
-   * One transaction per mutation, holding an advisory lock on the code, so two
-   * receivers arriving together cannot interleave their read-modify-write and
-   * both come away believing they joined.
-   */
-  private async mutate(
-    code: string,
-    now: number,
-    decide: (current: PairingRecord) => PairingRecord,
-  ): Promise<PairingRecord> {
-    await this.ensureSchema();
-    return this.#executor.transaction(`pairing:${code}`, async (client) => {
-      const result = await client.query<PairingRow>(
-        `SELECT pairing, expires_at FROM ${TABLE_NAME} WHERE code = $1 FOR UPDATE`,
-        [code],
-      );
-      const row = result.rows[0];
-      const stored = row && Number(row.expires_at) > now ? parsePairing(row.pairing) : null;
-      const current = requireLive(stored, now);
-      const next = decide(current);
-      await client.query(
-        `UPDATE ${TABLE_NAME} SET pairing = $2::jsonb, updated_at = NOW() WHERE code = $1`,
-        [code, JSON.stringify(next)],
-      );
-      return next;
-    });
   }
 
   private async ensureSchema(): Promise<void> {

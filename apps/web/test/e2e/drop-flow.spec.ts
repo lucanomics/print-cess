@@ -1,6 +1,11 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
-import { handOver, readShortCode, shapeOnScreen, waitForReceiveHydration } from "./pairing-helpers";
+import {
+  chooseSenderShape,
+  handOver,
+  readShortCode,
+  waitForReceiveHydration,
+} from "./pairing-helpers";
 
 const FILE_NAME = "paradiso-note.txt";
 // Two chunks' worth would take minutes on a development server; one chunk with
@@ -229,7 +234,7 @@ test("says so plainly when a transfer code matches nothing", async ({ page }) =>
   ).toBeVisible({ timeout: 60_000 });
 });
 
-test("keeps the transfer code out of everything but the fragment", async ({ page }) => {
+test("keeps the transfer code out of request URLs", async ({ page }) => {
   const sent: string[] = [];
   page.on("request", (request) => sent.push(request.url()));
 
@@ -245,13 +250,8 @@ test("keeps the transfer code out of everything but the fragment", async ({ page
   }
 });
 
-/**
- * The digits are guessable — a hundred of them is nothing. What is not
- * guessable is being the phone whose shape the sender is looking at, so a
- * receiver who pairs and then waits gets no transfer code and no files. This is
- * the whole reason a two-digit code is safe to hand out.
- */
-test("hands over nothing until the sender picks the shape", async ({ browser }) => {
+/** A wrong shape consumes the short pairing, so four-choice guessing fails. */
+test("consumes the pairing after one wrong shape", async ({ browser }) => {
   const sender = await browser.newContext();
   const receiver = await browser.newContext();
 
@@ -261,6 +261,7 @@ test("hands over nothing until the sender picks the shape", async ({ browser }) 
     await pickFile(sending, FILE_NAME, "held back\n");
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
 
+    await chooseSenderShape(sending, "star");
     const shortCode = await readShortCode(sending);
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
@@ -269,22 +270,19 @@ test("hands over nothing until the sender picks the shape", async ({ browser }) 
       await receiving.getByTestId(`pairing-key-${digit}`).click();
     }
 
-    // Paired, and shown a shape to hold up. That is all it gets.
-    await expect(receiving.locator(".pairing-shown__figure")).toBeVisible({ timeout: 60_000 });
-    await expect(sending.getByTestId("pairing-choice-circle")).toBeVisible({ timeout: 60_000 });
-
-    // Picking the three shapes that are not on the other screen never releases
-    // the code, and the file list stays out of reach throughout.
-    const shown = await shapeOnScreen(receiving);
-    for (const wrong of ["circle", "triangle", "square", "star"].filter((s) => s !== shown)) {
-      await sending.getByTestId(`pairing-choice-${wrong}`).click();
-      await expect(sending.getByText(/not the shape|도형과 달라요/u)).toBeVisible();
-    }
+    await expect(receiving.getByTestId("pairing-shape-circle")).toBeVisible({ timeout: 60_000 });
+    await receiving.getByTestId("pairing-shape-circle").click();
+    await expect(receiving.getByText(/numbers and shape|숫자와 도형/u)).toBeVisible();
     await expect(receiving.getByText(FILE_NAME)).toHaveCount(0);
 
-    // The right shape, and only then, opens it.
-    await sending.getByTestId(`pairing-choice-${shown}`).click();
-    await expect(receiving.getByText(FILE_NAME)).toBeVisible({ timeout: 60_000 });
+    // The same digits cannot be retried with the right answer: the first
+    // attempt already destroyed the escrow.
+    for (const digit of shortCode) {
+      await receiving.getByTestId(`pairing-key-${digit}`).click();
+    }
+    await receiving.getByTestId("pairing-shape-star").click();
+    await expect(receiving.getByText(/numbers and shape|숫자와 도형/u)).toBeVisible();
+    await expect(receiving.getByText(FILE_NAME)).toHaveCount(0);
   } finally {
     await sender.close();
     await receiver.close();
