@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { PairingShape } from "@print-cess/protocol";
 
@@ -10,9 +10,10 @@ import type { Text } from "@/lib/use-visitor-locale";
 import { PairingShapeMark, shapeLabel } from "./pairing-shape";
 
 /**
- * The sender chooses the shared shape while the file uploads. The transfer
- * code is not escrowed and its three-minute clock does not start until the
- * upload seals. QR and shared links remain the private path.
+ * The sender chooses the shared shape once the upload seals, so the transfer
+ * code is never escrowed while bytes are still moving and the three-minute
+ * clock is entirely available to the receiver. QR and shared links remain the
+ * private path.
  */
 export function PairingHandover({
   transferCode,
@@ -23,27 +24,35 @@ export function PairingHandover({
   sealed: boolean;
   text: Text;
 }) {
-  const [selected, setSelected] = useState<PairingShape>();
   const [pairing, setPairing] = useState<SenderPairing>();
+  const [creating, setCreating] = useState<PairingShape>();
   const [failed, setFailed] = useState(false);
 
-  const pick = useCallback((shape: PairingShape) => {
-    setSelected((current) => current ?? shape);
-    setFailed(false);
-  }, []);
-
-  useEffect(() => {
-    if (!sealed || !selected || pairing) return;
-    const controller = new AbortController();
-    void openPairing(transferCode, selected, controller.signal)
-      .then(setPairing)
-      .catch(() => {
-        if (controller.signal.aborted) return;
-        setSelected(undefined);
+  const pick = useCallback(
+    async (shape: PairingShape) => {
+      if (!sealed || creating || pairing) return;
+      setCreating(shape);
+      setFailed(false);
+      try {
+        setPairing(await openPairing(transferCode, shape));
+      } catch {
         setFailed(true);
-      });
-    return () => controller.abort();
-  }, [pairing, sealed, selected, transferCode]);
+      } finally {
+        setCreating(undefined);
+      }
+    },
+    [creating, pairing, sealed, transferCode],
+  );
+
+  if (!sealed) {
+    return (
+      <section className="pairing-pick" aria-live="polite">
+        <p className="drop-notice" role="status">
+          {text("pairWaitingReceiver")}
+        </p>
+      </section>
+    );
+  }
 
   if (pairing) {
     return (
@@ -66,22 +75,6 @@ export function PairingHandover({
     );
   }
 
-  if (selected) {
-    return (
-      <section className="pairing-created" aria-live="polite">
-        <figure className="pairing-shown pairing-shown--selected">
-          <div className="pairing-shown__figure" data-testid={`pairing-selected-${selected}`}>
-            <PairingShapeMark shape={selected} />
-          </div>
-          <figcaption>{shapeLabel(selected, text)}</figcaption>
-        </figure>
-        <p className="drop-notice" role="status">
-          {text("pairWaitingReceiver")}
-        </p>
-      </section>
-    );
-  }
-
   return (
     <section className="pairing-pick">
       <h2>{text("pairPickShape")}</h2>
@@ -96,7 +89,8 @@ export function PairingHandover({
           <button
             key={choice}
             type="button"
-            onClick={() => pick(choice)}
+            disabled={creating !== undefined}
+            onClick={() => void pick(choice)}
             data-testid={`pairing-choice-${choice}`}
           >
             <PairingShapeMark shape={choice} />
