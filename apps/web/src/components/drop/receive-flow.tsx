@@ -139,12 +139,14 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
    * half was the single worst moment in the flow.
    */
   const open = useCallback(
-    async (candidate: string) => {
+    async (candidate: string, onRecognized?: () => void) => {
       pending.current?.abort();
       const controller = new AbortController();
       pending.current = controller;
       try {
         let opened = await inspectDrop(candidate, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        onRecognized?.();
         for (let attempt = 0; opened.state === "collecting"; attempt += 1) {
           setExpiresAt(opened.expiresAt);
           setStage("pending");
@@ -188,11 +190,10 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
   useEffect(() => {
     const scanned = parseDropFragment(window.location.hash);
     if (!scanned) return;
-    history.replaceState(null, "", window.location.pathname);
     let active = true;
-    void (async () => {
-      if (active) await open(scanned);
-    })();
+    void open(scanned, () => {
+      if (active) history.replaceState(null, "", window.location.pathname);
+    });
     return () => {
       active = false;
     };
