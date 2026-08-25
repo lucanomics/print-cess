@@ -4,6 +4,7 @@ import {
   HKDF_INFO,
   HKDF_SALT_BYTES,
   MAX_PLAINTEXT_BYTES,
+  MAX_PRINT_BUNDLE_BYTES,
   assembleEnvelope,
   buildAad,
   encodeEnvelopeHeader,
@@ -31,8 +32,14 @@ export type EncryptDocumentInput = {
 };
 
 export async function encryptDocument(input: EncryptDocumentInput): Promise<Uint8Array> {
-  if (input.plaintext.byteLength > MAX_PLAINTEXT_BYTES) {
-    throw new Error("Document exceeds the 10 MiB plaintext limit");
+  const maximumPlaintext =
+    input.fileKind === "bundle" ? MAX_PRINT_BUNDLE_BYTES : MAX_PLAINTEXT_BYTES;
+  if (input.plaintext.byteLength > maximumPlaintext) {
+    throw new Error(
+      input.fileKind === "bundle"
+        ? "Print bundle exceeds the 32 MiB plaintext limit"
+        : "Document exceeds the 10 MiB plaintext limit",
+    );
   }
   const runtime = cryptoRuntime();
   const keyPair = input.mobileKeyPair ?? (await generateEcdhKeyPair());
@@ -76,7 +83,7 @@ export async function decryptDocument(
   envelope: Uint8Array,
   context: AadContext,
   kioskPrivateKey: CryptoKey,
-): Promise<{ plaintext: Uint8Array; fileKind: FileKind }> {
+): Promise<{ plaintext: Uint8Array<ArrayBuffer>; fileKind: FileKind }> {
   const parsed = parseEnvelope(envelope);
   const mobilePublicKey = await importPublicKey(parsed.ephemeralPublicKey);
   const sharedSecret = await deriveSharedSecret(kioskPrivateKey, mobilePublicKey);

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { KioskSimulator } from "@/components/kiosk/kiosk-simulator";
+import { BatchKioskSimulator } from "@/components/kiosk/batch-kiosk-simulator";
 import { isBrowserKioskEnabled } from "@/server/demo";
 
 export default async function BrowserKioskPage({
@@ -12,5 +12,5 @@ export default async function BrowserKioskPage({
   const { printing, sound } = await searchParams;
   // `?sound=off` for a counter where a completion tone would carry further than
   // it helps. The screen says the same thing either way.
-  return <KioskSimulator automaticPrinting={printing === "auto"} sound={sound !== "off"} />;
+  return <BatchKioskSimulator automaticPrinting={printing === "auto"} sound={sound !== "off"} />;
 }

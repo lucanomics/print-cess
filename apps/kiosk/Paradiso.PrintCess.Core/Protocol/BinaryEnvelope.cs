@@ -13,7 +13,9 @@ public static class BinaryEnvelope
     public const int TagBytes = 16;
     public const int HeaderBytes = FixedPrefixBytes + PublicKeyBytes + SaltBytes + IvBytes;
     public const int MaxPlaintextBytes = 10 * 1024 * 1024;
-    public const int MaxEnvelopeBytes = MaxPlaintextBytes + HeaderBytes + TagBytes;
+    public const int MaxBundleFiles = 10;
+    public const int MaxBundleBytes = 32 * 1024 * 1024;
+    public const int MaxEnvelopeBytes = MaxBundleBytes + HeaderBytes + TagBytes;
     public const string HkdfInfo = "print-cess-by-paradiso:file:v1";
     public const string AadDomain = "print-cess-by-paradiso:aad:v1";
 
@@ -26,7 +28,7 @@ public static class BinaryEnvelope
         ReadOnlySpan<byte> salt,
         ReadOnlySpan<byte> iv)
     {
-        if (!Enum.IsDefined(fileKind) || plaintextLength is < 1 or > MaxPlaintextBytes)
+        if (!Enum.IsDefined(fileKind) || plaintextLength < 1 || plaintextLength > MaximumPlaintextBytes(fileKind))
         {
             throw new EnvelopeFormatException("Envelope metadata is invalid.");
         }
@@ -117,7 +119,19 @@ public static class BinaryEnvelope
             throw new EnvelopeFormatException("Envelope cryptographic field sizes are invalid.");
         }
 
-        if (plaintextLength is 0 or > MaxPlaintextBytes || ciphertextLength != plaintextLength + TagBytes)
+        var kind = kindCode switch
+        {
+            (byte)DocumentKind.Pdf => DocumentKind.Pdf,
+            (byte)DocumentKind.Jpeg => DocumentKind.Jpeg,
+            (byte)DocumentKind.Png => DocumentKind.Png,
+            (byte)DocumentKind.Hwpx => DocumentKind.Hwpx,
+            (byte)DocumentKind.Hwp => DocumentKind.Hwp,
+            (byte)DocumentKind.Bundle => DocumentKind.Bundle,
+            _ => throw new EnvelopeFormatException("Envelope file kind is unsupported."),
+        };
+
+        if (plaintextLength is 0 || plaintextLength > checked((uint)MaximumPlaintextBytes(kind)) ||
+            ciphertextLength != plaintextLength + TagBytes)
         {
             throw new EnvelopeFormatException("Envelope payload sizes are invalid.");
         }
@@ -127,16 +141,6 @@ public static class BinaryEnvelope
         {
             throw new EnvelopeFormatException("Envelope length does not match its header.");
         }
-
-        var kind = kindCode switch
-        {
-            (byte)DocumentKind.Pdf => DocumentKind.Pdf,
-            (byte)DocumentKind.Jpeg => DocumentKind.Jpeg,
-            (byte)DocumentKind.Png => DocumentKind.Png,
-            (byte)DocumentKind.Hwpx => DocumentKind.Hwpx,
-            (byte)DocumentKind.Hwp => DocumentKind.Hwp,
-            _ => throw new EnvelopeFormatException("Envelope file kind is unsupported."),
-        };
 
         var publicKey = envelope.Slice(FixedPrefixBytes, PublicKeyBytes).ToArray();
         if (publicKey[0] != 0x04)
@@ -187,6 +191,9 @@ public static class BinaryEnvelope
         envelopeHeader.CopyTo(aad.AsSpan(offset));
         return aad;
     }
+
+    private static int MaximumPlaintextBytes(DocumentKind kind) =>
+        kind == DocumentKind.Bundle ? MaxBundleBytes : MaxPlaintextBytes;
 }
 
 public sealed record AadContext(
