@@ -25,7 +25,6 @@ export function PairingHandover({
 }) {
   const [selected, setSelected] = useState<PairingShape>();
   const [pairing, setPairing] = useState<SenderPairing>();
-  const [creating, setCreating] = useState(false);
   const [failed, setFailed] = useState(false);
 
   const pick = useCallback((shape: PairingShape) => {
@@ -36,16 +35,12 @@ export function PairingHandover({
   useEffect(() => {
     if (!sealed || !selected || pairing) return;
     const controller = new AbortController();
-    setCreating(true);
     void openPairing(transferCode, selected, controller.signal)
       .then(setPairing)
       .catch(() => {
         if (controller.signal.aborted) return;
         setSelected(undefined);
         setFailed(true);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setCreating(false);
       });
     return () => controller.abort();
   }, [pairing, sealed, selected, transferCode]);
@@ -101,7 +96,6 @@ export function PairingHandover({
           <button
             key={choice}
             type="button"
-            disabled={creating}
             onClick={() => pick(choice)}
             data-testid={`pairing-choice-${choice}`}
           >
