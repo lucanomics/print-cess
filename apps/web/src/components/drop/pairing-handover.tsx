@@ -71,11 +71,7 @@ export function PairingHandover({
         <p className="drop-notice" role="status">
           {text(sealed ? "pairHandedOver" : "pairWaitingReceiver")}
         </p>
-        <button
-          type="button"
-          className="pairing-back"
-          onClick={() => setPairing(undefined)}
-        >
+        <button type="button" className="pairing-back" onClick={() => setPairing(undefined)}>
           {text("dropClearSelection")}
         </button>
       </section>
