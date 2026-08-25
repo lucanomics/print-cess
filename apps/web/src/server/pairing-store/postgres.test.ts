@@ -85,7 +85,7 @@ class FakePostgresExecutor implements PostgresExecutor {
       const code = String(values[0]);
       const row = this.rows.get(code);
       this.rows.delete(code);
-      return result(row ? [row] : []);
+      return result<R>(row ? [row as unknown as R] : []);
     }
     throw new Error(`Unexpected test query: ${normalized}`);
   }
