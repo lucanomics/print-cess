@@ -23,7 +23,7 @@ export function enforceRateLimit(
     return;
   }
   existing.count += 1;
-  if (existing.count >= limit) {
+  if (existing.count > limit) {
     throw new ServiceError(
       "rate_limited",
       "Too many requests. Scan a current QR code and try again.",
@@ -47,7 +47,7 @@ export function assertUnderRateLimit(
 ): void {
   const existing = windows.get(key);
   if (!existing || existing.resetAt <= now) return;
-  if (existing.count > limit) {
+  if (existing.count >= limit) {
     throw new ServiceError(
       "rate_limited",
       "Too many wrong numbers. Wait a moment and try again.",
