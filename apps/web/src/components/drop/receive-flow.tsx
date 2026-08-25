@@ -191,9 +191,12 @@ export function ReceiveFlow({ initialLocale }: { initialLocale?: SupportedLocale
     const scanned = parseDropFragment(window.location.hash);
     if (!scanned) return;
     let active = true;
-    void open(scanned, () => {
-      if (active) history.replaceState(null, "", window.location.pathname);
-    });
+    void (async () => {
+      if (!active) return;
+      await open(scanned, () => {
+        if (active) history.replaceState(null, "", window.location.pathname);
+      });
+    })();
     return () => {
       active = false;
     };
