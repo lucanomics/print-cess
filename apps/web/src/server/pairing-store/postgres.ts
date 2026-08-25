@@ -74,7 +74,10 @@ export class RailwayPostgresPairingStore implements PairingStore {
     now: number,
   ): Promise<PairingRecord> {
     await this.ensureSchema();
-    return this.#executor.transaction(`pairing:${code}`, async (client) => {
+    // Return the deleted record from the transaction, then validate it after
+    // COMMIT. Throwing a shape mismatch inside the callback would ROLLBACK the
+    // DELETE and let a caller try the other three shapes against the same code.
+    const stored = await this.#executor.transaction(`pairing:${code}`, async (client) => {
       // Delete first and inspect the returned record second. A wrong shape is
       // therefore consumed just as atomically as a correct one.
       const result = await client.query<PairingRow>(
@@ -82,9 +85,9 @@ export class RailwayPostgresPairingStore implements PairingStore {
         [code],
       );
       const row = result.rows[0];
-      const stored = row ? parsePairing(row.pairing) : null;
-      return requireShape(requireLive(stored, now), shape);
+      return row ? parsePairing(row.pairing) : null;
     });
+    return requireShape(requireLive(stored, now), shape);
   }
 
   public async remove(code: string): Promise<void> {
