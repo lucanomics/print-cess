@@ -4,3 +4,4 @@ export * from "./envelope.js";
 export * from "./print-bundle.js";
 export * from "./session.js";
 export * from "./status.js";
+export * from "./drop-pairing.js";

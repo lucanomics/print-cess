@@ -8,7 +8,7 @@ export function generateToken(byteLength = 32): string {
   return toBase64Url(cryptoRuntime().getRandomValues(new Uint8Array(byteLength)));
 }
 
-export type TokenKind = "upload" | "kiosk" | "mobile" | "drop";
+export type TokenKind = "upload" | "kiosk" | "mobile" | "drop" | "pairing";
 
 export async function hashToken(token: string, kind: TokenKind): Promise<string> {
   const tokenBytes = fromCanonicalBase64Url(token, 32);

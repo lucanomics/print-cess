@@ -1,0 +1,82 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  PAIRING_CODE_SPACE,
+  PAIRING_SHAPES,
+  PAIRING_TTL_SECONDS,
+  createPairingRequestSchema,
+  normalizePairingCode,
+  pairingRecordSchema,
+  redeemPairingRequestSchema,
+} from "../src/drop-pairing.js";
+
+const TRANSFER_CODE = "23456789ABCD";
+
+describe("nearby drop pairing", () => {
+  it("defines exactly 400 human choices with a three-minute lifetime", () => {
+    expect(PAIRING_CODE_SPACE * PAIRING_SHAPES.length).toBe(400);
+    expect(PAIRING_TTL_SECONDS).toBe(180);
+  });
+
+  it("accepts a sender-selected shape and complete transfer code", () => {
+    expect(
+      createPairingRequestSchema.safeParse({
+        protocolVersion: 1,
+        shape: "star",
+        transferCode: TRANSFER_CODE,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an unknown shape and malformed transfer code", () => {
+    expect(
+      createPairingRequestSchema.safeParse({
+        protocolVersion: 1,
+        shape: "diamond",
+        transferCode: TRANSFER_CODE,
+      }).success,
+    ).toBe(false);
+    expect(
+      createPairingRequestSchema.safeParse({
+        protocolVersion: 1,
+        shape: "star",
+        transferCode: "TOO-SHORT",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("lets redemption submit only a shape, never a replacement transfer code", () => {
+    expect(
+      redeemPairingRequestSchema.safeParse({ protocolVersion: 1, shape: "circle" }).success,
+    ).toBe(true);
+    expect(
+      redeemPairingRequestSchema.safeParse({
+        protocolVersion: 1,
+        shape: "circle",
+        transferCode: TRANSFER_CODE,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires a live, strict pairing record", () => {
+    const record = {
+      protocolVersion: 1,
+      code: "07",
+      shape: "square",
+      transferCode: TRANSFER_CODE,
+      createdAt: 1_000,
+      expiresAt: 181_000,
+    } as const;
+    expect(pairingRecordSchema.safeParse(record).success).toBe(true);
+    expect(pairingRecordSchema.safeParse({ ...record, expiresAt: 1_000 }).success).toBe(false);
+    expect(pairingRecordSchema.safeParse({ ...record, senderPublicKey: "secret" }).success).toBe(
+      false,
+    );
+  });
+
+  it("normalizes one spoken digit without accepting more than two", () => {
+    expect(normalizePairingCode("7")).toBe("07");
+    expect(normalizePairingCode(" 4-2 ")).toBe("42");
+    expect(normalizePairingCode("123")).toBe("12");
+  });
+});

@@ -1,5 +1,12 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
+import {
+  chooseSenderShape,
+  handOver,
+  readShortCode,
+  waitForReceiveHydration,
+} from "./pairing-helpers";
+
 const FILE_NAME = "paradiso-note.txt";
 // Two chunks' worth would take minutes on a development server; one chunk with
 // a partial tail is enough to prove the split, the seal, and the reassembly.
@@ -29,10 +36,18 @@ async function pickFile(page: Page, name: string, body: string): Promise<void> {
   });
 }
 
+/**
+ * The twelve-character transfer code, which the sending screen no longer puts
+ * in front of anyone. It is still the secret that opens the files, so the tests
+ * that assert it never leaves the device read it from the development-only
+ * attribute rather than from the page text.
+ */
 async function readTransferCode(page: Page): Promise<string> {
-  const code = page.locator(".drop-code strong");
-  await expect(code).toBeVisible({ timeout: 120_000 });
-  return ((await code.textContent()) ?? "").trim();
+  const ready = page.locator(".drop-ready");
+  await expect(ready).toHaveAttribute("data-transfer-code", /^[0-9A-HJKMNP-TV-Z]{12}$/u, {
+    timeout: 120_000,
+  });
+  return (await ready.getAttribute("data-transfer-code"))!;
 }
 
 test("hands a file from one phone to another and back to disk", async ({ browser }) => {
@@ -50,15 +65,9 @@ test("hands a file from one phone to another and back to disk", async ({ browser
 
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
 
-    const transferCode = await readTransferCode(sending);
-    expect(transferCode).toMatch(
-      /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/u,
-    );
-
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    await receiving.getByTestId("drop-code-input").fill(transferCode);
-    await receiving.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
+    await handOver(sending, receiving);
 
     // The file list is only readable once the code has opened the manifest.
     await expect(receiving.getByText(FILE_NAME)).toBeVisible({ timeout: 60_000 });
@@ -111,12 +120,10 @@ test("saves one of several files without fetching the rest", async ({ browser })
     await expect(sending.getByText("third.txt")).toBeVisible();
 
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
-    const transferCode = await readTransferCode(sending);
 
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    await receiving.getByTestId("drop-code-input").fill(transferCode);
-    await receiving.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
+    await handOver(sending, receiving);
     await expect(receiving.getByText("third.txt")).toBeVisible({ timeout: 60_000 });
 
     // Only the second row's Save is pressed. Somebody who wants one of five
@@ -162,14 +169,12 @@ test("lets a receiver scan before the sender has finished uploading", async ({ b
     await pickFile(sending, FILE_NAME, "waiting for the receiver\n");
     await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
 
-    // The code appears as soon as the service holds the record, not when the
-    // last byte lands.
+    // QR and shared-link hand-offs remain available as soon as the service
+    // holds the record. Nearby two-digit pairing deliberately waits for the
+    // upload to seal so its three-minute escrow clock cannot run out here.
     const transferCode = await readTransferCode(sending);
-
     const receiving = await receiver.newPage();
-    await receiving.goto("/receive");
-    await receiving.getByTestId("drop-code-input").fill(transferCode);
-    await receiving.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
+    await receiving.goto(`/receive#c=${transferCode}`);
 
     // The right code, an unfinished transfer: wait, do not claim it is wrong.
     await expect(receiving.getByRole("heading", { name: /Connected|연결됐어요/u })).toBeVisible({
@@ -203,12 +208,10 @@ test("opens a transfer from a pasted link, not just from twelve characters", asy
 
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    // The field is `autoFocus`, so React holding focus is the signal that this
-    // page is hydrated. Filling before that puts the link in the DOM without
-    // any handler attached to read it, and the paste is silently lost.
-    await expect(receiving.getByTestId("drop-code-input")).toBeFocused();
+    await waitForReceiveHydration(receiving);
     // A whole link is what a person actually pastes. The field used to strip it
     // to the letters of its own hostname and open nothing.
+    await receiving.getByRole("group").click();
     await receiving
       .getByTestId("drop-code-input")
       .fill(`http://127.0.0.1:3000/receive#c=${transferCode}`);
@@ -222,6 +225,8 @@ test("opens a transfer from a pasted link, not just from twelve characters", asy
 
 test("says so plainly when a transfer code matches nothing", async ({ page }) => {
   await page.goto("/receive");
+  await waitForReceiveHydration(page);
+  await page.getByRole("group").click();
   await page.getByTestId("drop-code-input").fill("2345-6789-ABCD");
   await page.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
 
@@ -230,7 +235,7 @@ test("says so plainly when a transfer code matches nothing", async ({ page }) =>
   ).toBeVisible({ timeout: 60_000 });
 });
 
-test("keeps the transfer code out of everything but the fragment", async ({ page }) => {
+test("keeps the transfer code out of request URLs", async ({ page }) => {
   const sent: string[] = [];
   page.on("request", (request) => sent.push(request.url()));
 
@@ -244,4 +249,56 @@ test("keeps the transfer code out of everything but the fragment", async ({ page
   for (const url of sent) {
     expect(url).not.toContain(transferCode);
   }
+});
+
+/** A wrong shape consumes the short pairing, so four-choice guessing fails. */
+test("consumes the pairing after one wrong shape", async ({ browser }) => {
+  const sender = await browser.newContext();
+  const receiver = await browser.newContext();
+
+  try {
+    const sending = await sender.newPage();
+    await sending.goto("/send");
+    await pickFile(sending, FILE_NAME, "held back\n");
+    await sending.getByRole("button", { name: /Send these files|이 파일 보내기/u }).click();
+
+    await chooseSenderShape(sending, "star");
+    const shortCode = await readShortCode(sending);
+    const receiving = await receiver.newPage();
+    await receiving.goto("/receive");
+    await waitForReceiveHydration(receiving);
+    for (const digit of shortCode) {
+      await receiving.getByTestId(`pairing-key-${digit}`).click();
+    }
+
+    await expect(receiving.getByTestId("pairing-shape-circle")).toBeVisible({ timeout: 60_000 });
+    await receiving.getByTestId("pairing-shape-circle").click();
+    await expect(receiving.getByText(/numbers and shape|숫자와 도형/u)).toBeVisible();
+    await expect(receiving.getByText(FILE_NAME)).toHaveCount(0);
+
+    // The same digits cannot be retried with the right answer: the first
+    // attempt already destroyed the escrow.
+    for (const digit of shortCode) {
+      await receiving.getByTestId(`pairing-key-${digit}`).click();
+    }
+    await receiving.getByTestId("pairing-shape-star").click();
+    await expect(receiving.getByText(/numbers and shape|숫자와 도형/u)).toBeVisible();
+    await expect(receiving.getByText(FILE_NAME)).toHaveCount(0);
+  } finally {
+    await sender.close();
+    await receiver.close();
+  }
+});
+
+/** Two digits that name no transfer are answered plainly, not with a hint. */
+test("says so plainly when two digits match nothing", async ({ page }) => {
+  await page.goto("/receive");
+  await waitForReceiveHydration(page);
+  await page.getByTestId("pairing-key-0").click();
+  await page.getByTestId("pairing-key-0").click();
+  await page.getByTestId("pairing-shape-circle").click();
+
+  await expect(page.getByText(/numbers and shape|숫자와 도형/u)).toBeVisible({
+    timeout: 60_000,
+  });
 });
