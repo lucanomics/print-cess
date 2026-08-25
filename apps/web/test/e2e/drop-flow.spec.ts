@@ -295,8 +295,9 @@ test("says so plainly when two digits match nothing", async ({ page }) => {
   await waitForReceiveHydration(page);
   await page.getByTestId("pairing-key-0").click();
   await page.getByTestId("pairing-key-0").click();
+  await page.getByTestId("pairing-shape-circle").click();
 
-  await expect(page.getByText(/do not match a transfer|맞는 전송이 없어요/u)).toBeVisible({
+  await expect(page.getByText(/numbers and shape|숫자와 도형/u)).toBeVisible({
     timeout: 60_000,
   });
 });
