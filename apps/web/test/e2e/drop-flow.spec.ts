@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
-import { handOver, readShortCode, shapeOnScreen } from "./pairing-helpers";
+import { handOver, readShortCode, shapeOnScreen, waitForReceiveHydration } from "./pairing-helpers";
 
 const FILE_NAME = "paradiso-note.txt";
 // Two chunks' worth would take minutes on a development server; one chunk with
@@ -202,10 +202,7 @@ test("opens a transfer from a pasted link, not just from twelve characters", asy
 
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
-    // The field is `autoFocus`, so React holding focus is the signal that this
-    // page is hydrated. Filling before that puts the link in the DOM without
-    // any handler attached to read it, and the paste is silently lost.
-    await expect(receiving.getByTestId("drop-code-input")).toBeFocused();
+    await waitForReceiveHydration(receiving);
     // A whole link is what a person actually pastes. The field used to strip it
     // to the letters of its own hostname and open nothing.
     await receiving.getByRole("group").click();
@@ -222,6 +219,7 @@ test("opens a transfer from a pasted link, not just from twelve characters", asy
 
 test("says so plainly when a transfer code matches nothing", async ({ page }) => {
   await page.goto("/receive");
+  await waitForReceiveHydration(page);
   await page.getByRole("group").click();
   await page.getByTestId("drop-code-input").fill("2345-6789-ABCD");
   await page.getByRole("button", { name: /Show me the files|파일 확인하기/u }).click();
@@ -266,6 +264,7 @@ test("hands over nothing until the sender picks the shape", async ({ browser }) 
     const shortCode = await readShortCode(sending);
     const receiving = await receiver.newPage();
     await receiving.goto("/receive");
+    await waitForReceiveHydration(receiving);
     for (const digit of shortCode) {
       await receiving.getByTestId(`pairing-key-${digit}`).click();
     }
@@ -295,6 +294,7 @@ test("hands over nothing until the sender picks the shape", async ({ browser }) 
 /** Two digits that name no transfer are answered plainly, not with a hint. */
 test("says so plainly when two digits match nothing", async ({ page }) => {
   await page.goto("/receive");
+  await waitForReceiveHydration(page);
   await page.getByTestId("pairing-key-0").click();
   await page.getByTestId("pairing-key-0").click();
 

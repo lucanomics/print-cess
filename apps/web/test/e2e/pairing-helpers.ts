@@ -25,12 +25,27 @@ export async function shapeOnScreen(page: Page): Promise<string> {
 }
 
 /**
+ * Proof that the receive page is hydrated. A keypad press is React's to handle,
+ * so the entry display only changes once the handlers are attached; filling the
+ * link field before that point puts the link in the DOM with nothing listening,
+ * and a keypad press lands on nothing at all. The digit is taken back
+ * afterwards so this can also be used by the tests whose subject is the digits.
+ */
+export async function waitForReceiveHydration(page: Page): Promise<void> {
+  await page.getByTestId("pairing-key-1").click();
+  await expect(page.getByTestId("pairing-entry")).toHaveText(/^1/u);
+  await page.getByTestId("pairing-key-back").click();
+  await expect(page.getByTestId("pairing-entry")).not.toHaveText(/^1/u);
+}
+
+/**
  * The whole hand-off as two people perform it: two digits typed on the
  * receiving phone, then the shape that phone displays picked on the sending
  * one. Nothing the receiving phone can do alone gets it the files, which is
  * what makes a hundred possible codes safe to hand out.
  */
 export async function handOver(sending: Page, receiving: Page): Promise<void> {
+  await waitForReceiveHydration(receiving);
   for (const digit of await readShortCode(sending)) {
     await receiving.getByTestId(`pairing-key-${digit}`).click();
   }

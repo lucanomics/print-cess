@@ -152,6 +152,7 @@ export function PairingEntry({
           disabled={joining || digits.length === 0}
           onClick={() => setDigits((current) => current.slice(0, -1))}
           aria-label={text("dropBack")}
+          data-testid="pairing-key-back"
         >
           <Delete aria-hidden="true" />
         </button>
