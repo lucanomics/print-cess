@@ -1,13 +1,15 @@
-import { FILE_KIND_CODES, MAX_PLAINTEXT_BYTES, type FileKind } from "./envelope.js";
+import {
+  FILE_KIND_CODES,
+  MAX_PRINT_BUNDLE_BYTES,
+  MAX_PRINT_BUNDLE_FILES,
+  type PrintableFileKind,
+} from "./envelope.js";
 
-export const MAX_PRINT_BUNDLE_FILES = 20;
 export const PRINT_BUNDLE_HEADER_BYTES = 12;
 export const PRINT_BUNDLE_ENTRY_HEADER_BYTES = 8;
 
 const MAGIC = new Uint8Array([0x50, 0x43, 0x42, 0x4e, 0x44, 0x4c, 0x30, 0x31]);
 const VERSION = 1;
-
-export type PrintableFileKind = Exclude<FileKind, "bundle">;
 
 export type PrintBundleEntry = {
   fileKind: PrintableFileKind;
@@ -31,7 +33,7 @@ export function encodePrintBundle(entries: readonly PrintBundleEntry[]): Uint8Ar
     if (entry.bytes.byteLength < 1)
       throw new PrintBundleError("Print bundle files must not be empty");
     total += PRINT_BUNDLE_ENTRY_HEADER_BYTES + entry.bytes.byteLength;
-    if (total > MAX_PLAINTEXT_BYTES) {
+    if (total > MAX_PRINT_BUNDLE_BYTES) {
       throw new PrintBundleError("Print bundle exceeds the encrypted payload limit");
     }
   }
@@ -59,7 +61,7 @@ export function encodePrintBundle(entries: readonly PrintBundleEntry[]): Uint8Ar
 }
 
 export function decodePrintBundle(bytes: Uint8Array): PrintBundleEntry[] {
-  if (bytes.byteLength < PRINT_BUNDLE_HEADER_BYTES || bytes.byteLength > MAX_PLAINTEXT_BYTES) {
+  if (bytes.byteLength < PRINT_BUNDLE_HEADER_BYTES || bytes.byteLength > MAX_PRINT_BUNDLE_BYTES) {
     throw new PrintBundleError("Print bundle size is invalid");
   }
   if (!equal(bytes.subarray(0, MAGIC.length), MAGIC)) {
