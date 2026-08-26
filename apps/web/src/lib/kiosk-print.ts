@@ -1,4 +1,4 @@
-import type { PrintableFileKind } from "@print-cess/protocol";
+import type { FileKind, PrintableFileKind } from "@print-cess/protocol";
 
 export type PrintArtifact = {
   url: string;
@@ -15,7 +15,10 @@ const PRINT_METADATA: Record<PrintableFileKind, { filename: string; mimeType: st
   hwp: { filename: "print-cess-document.hwp", mimeType: "application/x-hwp" },
 };
 
-export function createPrintArtifact(bytes: Uint8Array, fileKind: PrintableFileKind): PrintArtifact {
+export function createPrintArtifact(bytes: Uint8Array, fileKind: FileKind): PrintArtifact {
+  if (fileKind === "bundle") {
+    throw new Error("A print bundle must be expanded before creating browser print artifacts");
+  }
   const metadata = PRINT_METADATA[fileKind];
   const blob = new Blob([Uint8Array.from(bytes).buffer], { type: metadata.mimeType });
   return {
