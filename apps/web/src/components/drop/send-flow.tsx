@@ -19,7 +19,7 @@ import {
 import QRCode from "qrcode";
 
 import type { SupportedLocale } from "@print-cess/i18n";
-import { formatDropCode, type DropReceiverState } from "@print-cess/protocol";
+import type { DropReceiverState } from "@print-cess/protocol";
 import { PrimaryButton, ProgressSteps, SecondaryButton, StatusIcon } from "@print-cess/ui";
 
 import { getDropCapabilities, getDropStatus, revokeDrop } from "@/lib/drop-client";
@@ -52,6 +52,7 @@ import {
   type Text,
 } from "./drop-shell";
 import { dropErrorKey } from "./drop-errors";
+import { PairingHandover } from "./pairing-handover";
 
 type Stage = "pick" | "sending" | "ready" | "error";
 
@@ -374,7 +375,14 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
             </PrimaryButton>
           </section>
         ) : (
-          <section className="mobile-step drop-ready">
+          <section
+            className="mobile-step drop-ready"
+            // The transfer code is the whole secret and no longer appears on
+            // screen. End-to-end tests need it to stand in for the phone that
+            // scanned the QR code, so it is exposed outside a Production build
+            // only — exactly as the kiosk exposes its session URL.
+            data-transfer-code={process.env.NODE_ENV === "production" ? undefined : result.code}
+          >
             <h1>{text(sealed ? "dropReady" : "dropReadyEarly")}</h1>
             <p>{text("dropReadyHint")}</p>
             {qrImage ? (
@@ -384,10 +392,10 @@ export function SendFlow({ initialLocale }: { initialLocale?: SupportedLocale })
                 <figcaption>{text("dropScanToReceive")}</figcaption>
               </figure>
             ) : null}
-            <div className="drop-code">
-              <span className="drop-code__label">{text("dropCodeLabel")}</span>
-              <strong>{formatDropCode(result.code)}</strong>
-            </div>
+            {/* QR and shared-link hand-offs keep the transfer code in the URL
+                fragment. The optional nearby-phone flow below escrows it for
+                three minutes so the sender can leave after upload. */}
+            <PairingHandover transferCode={result.code} sealed={sealed} text={text} />
             {!sealed && progress ? (
               <div className="drop-still-sending">
                 <TransferBar progress={progress} text={text} minutesRemaining={minutesRemaining} />

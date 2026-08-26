@@ -1,4 +1,9 @@
-import type { DropRecord, PrintSession, PrintSessionStatus } from "@print-cess/protocol";
+import type {
+  DropRecord,
+  PairingRecord,
+  PrintSession,
+  PrintSessionStatus,
+} from "@print-cess/protocol";
 
 export type SessionReceipt = {
   protocolVersion: 1;
@@ -116,6 +121,25 @@ export interface DropStore {
   recordReceiverEvent(dropId: string, event: DropReceiverEvent, now: number): Promise<DropRecord>;
   remove(dropId: string): Promise<void>;
   listExpired(now: number, limit: number): Promise<DropRecord[]>;
+}
+
+/**
+ * Short-lived escrow for the optional two-digits-and-shape hand-off. A redeem
+ * attempt always consumes a live record, including when the shape is wrong.
+ */
+export interface PairingStore {
+  /**
+   * Claims one unused two-digit code. The code is chosen by the store rather
+   * than the caller so that the check for "already taken" and the write cannot
+   * be separated by another sender doing the same thing.
+   */
+  claim(
+    pairing: Omit<PairingRecord, "code">,
+    candidates: readonly string[],
+  ): Promise<PairingRecord | null>;
+  get(code: string): Promise<PairingRecord | null>;
+  redeem(code: string, shape: PairingRecord["shape"], now: number): Promise<PairingRecord>;
+  remove(code: string): Promise<void>;
 }
 
 export type SignedBlobOperation = {

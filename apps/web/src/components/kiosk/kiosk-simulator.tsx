@@ -71,6 +71,63 @@ type RegisteredSession = {
   fingerprint: string;
 };
 
+/**
+ * The outcome of getting one QR code onto the screen. The failing step travels
+ * with the failure so the development console still names where it broke,
+ * while the caller stays free to apply a single shared attempt to whichever run
+ * of the effect is still mounted.
+ */
+type PreparedSession =
+  { ok: true; session: RegisteredSession } | { ok: false; step: string; reason: string };
+
+/**
+ * Mints one print session and renders its QR code. Kept out of the effect body
+ * so that the promise it returns can be reused rather than the work repeated:
+ * every call here consumes a session from the per-counter creation limit.
+ */
+async function prepareSession(): Promise<PreparedSession> {
+  let step = "key-generation";
+  try {
+    const keyPair = await generateEcdhKeyPair();
+    const kioskPublicKey = await exportPublicKeyBase64Url(keyPair.publicKey);
+    const fingerprint = await fingerprintPublicKey(kioskPublicKey);
+    step = "session-registration";
+    const response = await fetch("/api/kiosk/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        protocolVersion: 1,
+        kioskPublicKey,
+        kioskPublicKeyFingerprint: fingerprint,
+      }),
+    });
+    if (!response.ok) throw new Error("session registration failed");
+    const body = (await response.json()) as {
+      sessionId: string;
+      expiresAt: number;
+      kioskToken: string;
+      qrUrl: string;
+    };
+    step = "qr-rendering";
+    const qrImage = await QRCode.toDataURL(body.qrUrl, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      scale: 11,
+      color: { dark: "#071737", light: "#ffffff" },
+    });
+    return {
+      ok: true,
+      session: { ...body, qrImage, privateKey: keyPair.privateKey, fingerprint },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      step,
+      reason: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+}
+
 export function KioskSimulator({
   automaticPrinting = false,
   sound = true,
@@ -87,6 +144,7 @@ export function KioskSimulator({
   const [spotlightIndex, setSpotlightIndex] = useState(0);
   const processing = useRef(false);
   const artifactRef = useRef<PrintArtifact | undefined>(undefined);
+  const preparation = useRef<{ generation: number; ready: Promise<PreparedSession> }>(null);
 
   const replaceArtifact = useCallback((nextArtifact: PrintArtifact | undefined) => {
     revokePrintArtifact(artifactRef.current);
@@ -159,13 +217,15 @@ export function KioskSimulator({
         setStatus("waiting");
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
-          console.error(
-            `Kiosk preparation failed during ${preparationStep}: ${error instanceof Error ? error.message : "unknown error"}.`,
-          );
+          console.error(`Kiosk preparation failed during ${prepared.step}: ${prepared.reason}.`);
         }
-        if (active) setStatus("failed");
+        setStatus("failed");
+        return;
       }
-    })();
+      setRemaining(Math.max(0, Math.ceil((prepared.session.expiresAt - Date.now()) / 1000)));
+      setSession(prepared.session);
+      setStatus("waiting");
+    });
     return () => {
       active = false;
     };

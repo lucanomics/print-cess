@@ -21,9 +21,10 @@ flowchart LR
   S -.->|"transfer code, out of band"| R
 ```
 
-The transfer code travels between two people â€” read aloud, or scanned from a QR code that carries
-it in the URL fragment. It never reaches the service, and the service is never able to read a file
-it stores.
+The transfer code normally travels between two people through a QR code or shared link that carries
+it in the URL fragment. On those paths it never reaches the service, and the service is never able
+to read a file it stores. The optional nearby two-digits-and-shape path below makes a narrower,
+explicit convenience trade-off.
 
 Scanning is the primary path on the receiving side: `/receive` opens the camera and reads the
 sending phone's QR through `BarcodeDetector`, so nobody types twelve characters unless their browser
@@ -63,6 +64,20 @@ The PBKDF2 work factor is what protects ciphertext that leaks by another route â
 misconfiguration, say. It lifts an offline search by roughly nineteen bits. This is a deliberate
 trade against a code a person can read out loud; it is weaker than the print flow's ECDH exchange,
 and the two are not interchangeable.
+
+### Optional nearby pairing
+
+People standing together can avoid scanning or typing the full transfer code. The sender chooses
+one of four shapes and receives two digits. After the upload finishes, the receiver enters both.
+For this path only, the service temporarily escrows the transfer code, shape, and digits for three
+minutes. A redemption atomically deletes the record before checking the shape, so a wrong shape
+uses the only attempt and an attacker cannot walk all four choices against a live code. Repeated
+misses are also limited per source address.
+
+This optional path is not server-blind: an operator with access to the live pairing store could
+recover the transfer code during that short window. QR and shared-link delivery remain the private
+default when that trust trade-off is not acceptable. Redis applies an actual key expiry;
+PostgreSQL rejects expired records and prunes them on subsequent pairing traffic.
 
 ---
 

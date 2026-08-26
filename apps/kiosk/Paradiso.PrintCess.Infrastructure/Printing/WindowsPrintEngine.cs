@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Xps;
 using Paradiso.PrintCess.Core.Documents;
 using Paradiso.PrintCess.Core.Printing;
+using Paradiso.PrintCess.Core.Protocol;
 using Windows.Data.Pdf;
 using Windows.Storage.Streams;
 
@@ -119,7 +120,7 @@ public sealed class WindowsPrintEngine : IPrintEngine
             {
                 fixedDocument = await RenderDocumentAsync(document, cancellationToken);
             }
-            catch (Exception exception) when (exception is InvalidDataException or ArgumentException or COMException)
+            catch (Exception exception) when (exception is InvalidDataException or ArgumentException or COMException or ProtocolException)
             {
                 return PrintResult.Rejected("F-01");
             }
@@ -135,6 +136,9 @@ public sealed class WindowsPrintEngine : IPrintEngine
             {
                 var writer = PrintQueue.CreateXpsDocumentWriter(queue);
                 submissionStarted = true;
+                // A multi-file selection is intentionally rendered into one
+                // FixedDocument. The spooler therefore receives one guarded job
+                // containing all pages, in the exact order selected on the phone.
                 writer.Write(fixedDocument.DocumentPaginator, ticket);
                 return PrintResult.Submitted();
             }
@@ -176,14 +180,14 @@ public sealed class WindowsPrintEngine : IPrintEngine
         ValidatedDocument document,
         CancellationToken cancellationToken)
     {
-        var renderedPages = document.Kind switch
+        var renderedPages = document.Kind == DocumentKind.Bundle
+            ? await RenderBundleAsync(document.Content, cancellationToken)
+            : await RenderPagesAsync(document.Content, document.Kind, cancellationToken);
+
+        if (renderedPages.Count == 0)
         {
-            DocumentKind.Pdf => await RenderPdfAsync(document.Content, cancellationToken),
-            DocumentKind.Jpeg or DocumentKind.Png => [DecodeImage(document.Content)],
-            DocumentKind.Hwp or DocumentKind.Hwpx =>
-                await RenderHangulAsync(document.Content, document.Kind, cancellationToken),
-            _ => throw new InvalidDataException("Unsupported document kind."),
-        };
+            throw new InvalidDataException("The print job contains no rendered pages.");
+        }
 
         var fixedDocument = new FixedDocument();
         fixedDocument.DocumentPaginator.PageSize = new Size(A4Width, A4Height);
@@ -213,6 +217,32 @@ public sealed class WindowsPrintEngine : IPrintEngine
 
         return fixedDocument;
     }
+
+    private static async Task<IReadOnlyList<BitmapSource>> RenderBundleAsync(
+        byte[] content,
+        CancellationToken cancellationToken)
+    {
+        using var bundle = PrintBundle.Parse(content);
+        var pages = new List<BitmapSource>();
+        foreach (var entry in bundle.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var rendered = await RenderPagesAsync(entry.Bytes, entry.Kind, cancellationToken);
+            pages.AddRange(rendered);
+        }
+        return pages;
+    }
+
+    private static async Task<IReadOnlyList<BitmapSource>> RenderPagesAsync(
+        byte[] content,
+        DocumentKind kind,
+        CancellationToken cancellationToken) => kind switch
+    {
+        DocumentKind.Pdf => await RenderPdfAsync(content, cancellationToken),
+        DocumentKind.Jpeg or DocumentKind.Png => [DecodeImage(content)],
+        DocumentKind.Hwp or DocumentKind.Hwpx => await RenderHangulAsync(content, kind, cancellationToken),
+        _ => throw new InvalidDataException("Unsupported document kind inside the print job."),
+    };
 
     private static BitmapFrame DecodeImage(byte[] content)
     {
