@@ -98,6 +98,11 @@ export function decodePrintBundle(bytes: Uint8Array): PrintBundleEntry[] {
   return entries;
 }
 
+// Keep the API introduced by the earlier multi-file implementation while the
+// newer call sites use the clearer decode/EncodedBytes names. Rolling branches
+// should not have to choose which generation of the same protocol helper exists.
+export const parsePrintBundle = decodePrintBundle;
+
 export function printBundleEncodedBytes(entries: readonly { bytes: Uint8Array }[]): number {
   return (
     PRINT_BUNDLE_HEADER_BYTES +
@@ -107,6 +112,8 @@ export function printBundleEncodedBytes(entries: readonly { bytes: Uint8Array }[
     )
   );
 }
+
+export const printBundleEncodedSize = printBundleEncodedBytes;
 
 function printableKindFromCode(code: number): PrintableFileKind {
   for (const [kind, value] of Object.entries(FILE_KIND_CODES)) {
