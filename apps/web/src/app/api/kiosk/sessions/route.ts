@@ -33,7 +33,14 @@ export async function POST(request: Request) {
       60_000,
     );
 
-    const input = await readJson(request, createSessionRequestSchema);
+    // This endpoint is only used by the routed batch-capable browser kiosk.
+    // Declare that invariant at the server boundary too, so a stale/cached
+    // browser bundle cannot accidentally mint a QR that hides functionality
+    // the receiving kiosk actually supports.
+    const input = {
+      ...(await readJson(request, createSessionRequestSchema)),
+      supportsBundle: true,
+    };
     const { session, uploadToken, kioskToken } = await createPrintSession(input);
     after(async () => {
       await sweepDueOrphans(server, Date.now(), 3).catch(() => undefined);
