@@ -77,25 +77,30 @@ export function decodePrintBundle(bytes: Uint8Array): PrintBundleEntry[] {
 
   const entries: PrintBundleEntry[] = [];
   let offset = PRINT_BUNDLE_HEADER_BYTES;
-  for (let index = 0; index < count; index += 1) {
-    if (offset + PRINT_BUNDLE_ENTRY_HEADER_BYTES > bytes.byteLength) {
-      throw new PrintBundleError("Print bundle entry header is truncated");
+  try {
+    for (let index = 0; index < count; index += 1) {
+      if (offset + PRINT_BUNDLE_ENTRY_HEADER_BYTES > bytes.byteLength) {
+        throw new PrintBundleError("Print bundle entry header is truncated");
+      }
+      const kind = printableKindFromCode(view.getUint8(offset));
+      if (view.getUint8(offset + 1) !== 0 || view.getUint16(offset + 2, false) !== 0) {
+        throw new PrintBundleError("Print bundle entry flags are unsupported");
+      }
+      const length = view.getUint32(offset + 4, false);
+      offset += PRINT_BUNDLE_ENTRY_HEADER_BYTES;
+      if (length < 1 || offset + length > bytes.byteLength) {
+        throw new PrintBundleError("Print bundle entry length is invalid");
+      }
+      entries.push({ fileKind: kind, bytes: bytes.slice(offset, offset + length) });
+      offset += length;
     }
-    const kind = printableKindFromCode(view.getUint8(offset));
-    if (view.getUint8(offset + 1) !== 0 || view.getUint16(offset + 2, false) !== 0) {
-      throw new PrintBundleError("Print bundle entry flags are unsupported");
-    }
-    const length = view.getUint32(offset + 4, false);
-    offset += PRINT_BUNDLE_ENTRY_HEADER_BYTES;
-    if (length < 1 || offset + length > bytes.byteLength) {
-      throw new PrintBundleError("Print bundle entry length is invalid");
-    }
-    entries.push({ fileKind: kind, bytes: bytes.slice(offset, offset + length) });
-    offset += length;
-  }
 
-  if (offset !== bytes.byteLength) throw new PrintBundleError("Print bundle has trailing bytes");
-  return entries;
+    if (offset !== bytes.byteLength) throw new PrintBundleError("Print bundle has trailing bytes");
+    return entries;
+  } catch (error) {
+    for (const entry of entries) entry.bytes.fill(0);
+    throw error;
+  }
 }
 
 // Keep the API introduced by the earlier multi-file implementation while the
