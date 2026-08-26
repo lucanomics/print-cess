@@ -2,15 +2,18 @@ using Paradiso.PrintCess.Core.Protocol;
 
 namespace Paradiso.PrintCess.Core.Documents;
 
-// Bundle parsing lives in Core.Protocol.PrintBundle. Keep only the local magic
-// probe here so DocumentValidation can classify a bundle without introducing a
-// second parser with a different file-count or payload limit.
+// Bundle parsing lives in Core.Protocol.PrintBundle. This internal facade keeps
+// document detection/inspection on the canonical parser without introducing a
+// second implementation with different file-count or payload limits.
 internal static class PrintBundle
 {
     private static ReadOnlySpan<byte> Magic => [0x50, 0x43, 0x42, 0x4e, 0x44, 0x4c, 0x30, 0x31];
 
     public static bool LooksLike(ReadOnlySpan<byte> bytes) =>
         bytes.Length >= Magic.Length && bytes[..Magic.Length].SequenceEqual(Magic);
+
+    public static Paradiso.PrintCess.Core.Protocol.PrintBundle Parse(ReadOnlySpan<byte> bytes) =>
+        Paradiso.PrintCess.Core.Protocol.PrintBundle.Parse(bytes);
 }
 
 // Retained for the PR's visitor-facing error mapping. The canonical protocol
