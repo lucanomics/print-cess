@@ -16,11 +16,16 @@ import { POST } from "@/app/api/cleanup/route";
 const ADMIN_SECRET = "admin-".padEnd(40, "a");
 const WORKER_SECRET = "worker-".padEnd(40, "w");
 const SESSION_ID = "A".repeat(22);
+const PUBLIC_BASE_URL = "https://print-cess.example.test";
 
-let config: { mode: "local" | "external"; cleanupProvider: "qstash" | "railway-worker" | null };
+let config: {
+  mode: "local" | "external";
+  cleanupProvider: "qstash" | "railway-worker" | null;
+  publicBaseUrl: string;
+};
 
 function request(headers: Record<string, string>, body: unknown): Request {
-  return new Request("https://app.example.test/api/cleanup", {
+  return new Request("https://deployment-alias.example.test/api/cleanup", {
     method: "POST",
     headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify(body),
@@ -30,7 +35,11 @@ function request(headers: Record<string, string>, body: unknown): Request {
 beforeEach(() => {
   vi.stubEnv("ADMIN_DIAGNOSTICS_SECRET", ADMIN_SECRET);
   vi.stubEnv("CLEANUP_WORKER_SECRET", WORKER_SECRET);
-  config = { mode: "external", cleanupProvider: "railway-worker" };
+  config = {
+    mode: "external",
+    cleanupProvider: "railway-worker",
+    publicBaseUrl: PUBLIC_BASE_URL,
+  };
   runtimeMock.getRuntime.mockReturnValue({
     config,
     sessions: { get: vi.fn().mockResolvedValue(null) },
@@ -98,12 +107,18 @@ describe("cleanup route worker authorization", () => {
     expect(response.status).toBe(401);
   });
 
-  it("accepts a verified qstash sweep under the qstash provider", async () => {
+  it("accepts a verified qstash sweep against the configured callback URL", async () => {
     config.cleanupProvider = "qstash";
     qstashMock.verifyQStashRequest.mockResolvedValue(true);
-    const response = await POST(request({}, { sweep: true }));
+    const incoming = request({}, { sweep: true });
+    const response = await POST(incoming);
     expect(response.status).toBe(200);
     expect(runtimeMock.sweepDueOrphans).toHaveBeenCalledOnce();
+    expect(qstashMock.verifyQStashRequest).toHaveBeenCalledWith(
+      incoming,
+      JSON.stringify({ sweep: true }),
+      `${PUBLIC_BASE_URL}/api/cleanup`,
+    );
   });
 
   it("rejects a malformed body once authorized", async () => {

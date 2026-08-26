@@ -138,7 +138,8 @@ public sealed record CreateSessionRequest(
     [property: JsonPropertyName("kioskPublicKey")] string KioskPublicKey,
     [property: JsonPropertyName("kioskPublicKeyFingerprint")] string KioskPublicKeyFingerprint,
     [property: JsonPropertyName("supportsHwpx")] bool SupportsHwpx = false,
-    [property: JsonPropertyName("supportsHwp")] bool SupportsHwp = false);
+    [property: JsonPropertyName("supportsHwp")] bool SupportsHwp = false,
+    [property: JsonPropertyName("supportsBundle")] bool SupportsPrintBundles = false);
 
 public sealed record KioskTransitionRequest(
     [property: JsonPropertyName("status")] PrintSessionStatus Status);

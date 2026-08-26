@@ -12,6 +12,7 @@ import "./kiosk.css";
 import "./admin.css";
 import "./drop.css";
 import "./workstation.css";
+import "./multi-print.css";
 
 export const metadata: Metadata = {
   title: "Print-cess by Club Paradiso",
@@ -20,10 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  // A request must exist so Next.js can apply the request-scoped CSP nonce to framework assets.
   await connection();
-  // Arabic reads right to left, and a wrong `dir` reflows the whole page once
-  // the client corrects it. Both attributes are settled before the first byte.
   const locale = await requestLocale();
 
   return (

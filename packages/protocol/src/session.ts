@@ -56,6 +56,7 @@ export const createSessionRequestSchema = z
     kioskPublicKeyFingerprint: z.string().regex(DIGEST_PATTERN),
     supportsHwpx: z.boolean().optional().default(false),
     supportsHwp: z.boolean().optional().default(false),
+    supportsBundle: z.boolean().optional().default(false),
   })
   .strict();
 

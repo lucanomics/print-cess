@@ -37,12 +37,25 @@ export class QStashCleanupScheduler implements CleanupScheduler {
   }
 }
 
-export async function verifyQStashRequest(request: Request, body: string): Promise<boolean> {
+export async function verifyQStashRequest(
+  request: Request,
+  body: string,
+  canonicalCallbackUrl = request.url,
+): Promise<boolean> {
   const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY;
   if (!currentSigningKey || !nextSigningKey) return false;
   const signature = request.headers.get("upstash-signature");
   if (!signature) return false;
   const receiver = new Receiver({ currentSigningKey, nextSigningKey });
-  return receiver.verify({ signature, body, url: request.url });
+  try {
+    // QStash signs the URL that was submitted to publishJSON. Vercel can serve
+    // the same deployment through several aliases, so request.url is not a
+    // stable verification input. Verify against the configured public callback
+    // instead and treat malformed/invalid signatures as authorization failures,
+    // not generic 503 application errors.
+    return await receiver.verify({ signature, body, url: canonicalCallbackUrl });
+  } catch {
+    return false;
+  }
 }

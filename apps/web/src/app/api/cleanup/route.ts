@@ -32,9 +32,6 @@ export async function POST(request: Request) {
       process.env.ADMIN_DIAGNOSTICS_SECRET,
     );
 
-    // Authorization is branched strictly by the configured cleanup provider so
-    // that enabling one path never loosens another. `sweepAuthorized` covers
-    // the periodic due-orphan sweep; targeted/forced cleanup needs `admin`.
     let sweepAuthorized = adminAuthorized;
     let qstashAuthorized = false;
 
@@ -46,15 +43,17 @@ export async function POST(request: Request) {
         );
         sweepAuthorized = adminAuthorized || workerAuthorized;
       } else {
-        qstashAuthorized = await verifyQStashRequest(request, body);
+        qstashAuthorized = await verifyQStashRequest(
+          request,
+          body,
+          `${server.config.publicBaseUrl}/api/cleanup`,
+        );
         sweepAuthorized = adminAuthorized || qstashAuthorized;
       }
       if (!sweepAuthorized) {
         throw new ServiceError("unauthorized", "Cleanup authorization failed.", 401);
       }
     } else {
-      // Local development: if an admin secret is set it must match; otherwise
-      // the loopback endpoint stays open for the in-process scheduler.
       if (process.env.ADMIN_DIAGNOSTICS_SECRET && !adminAuthorized) {
         throw new ServiceError("unauthorized", "Cleanup authorization failed.", 401);
       }
@@ -76,15 +75,10 @@ export async function POST(request: Request) {
       }
       const now = Date.now();
       const result = await sweepDueOrphans(server, now, parsed.data.limit);
-      // Expired hand-offs are erased on the same schedule as orphaned print
-      // ciphertext, so one scheduled sweep clears everything the service holds.
       const drops = await sweepExpiredDrops(server, now, parsed.data.limit);
       return json({ ok: true, ...result, drops });
     }
 
-    // Targeted cleanup of a single session is never granted by the worker
-    // secret; only QStash (single-session delivery) or an administrator may
-    // trigger it, and forced cleanup always requires the administrator.
     const targetedAuthorized = adminAuthorized || qstashAuthorized;
     if (server.config.mode === "external" && !targetedAuthorized) {
       throw new ServiceError(
