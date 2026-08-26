@@ -244,7 +244,7 @@ const en = {
   dropMemoryNotice:
     "This browser holds a whole file in memory while it saves. For very large files, an up-to-date Chrome or Safari works better.",
   dropPrivacyNote:
-    "Files are locked on this phone and only the transfer code opens them. Everything is erased when the transfer expires.",
+    "Files are locked on this phone and erased when the transfer expires. A QR code or link keeps the key between the two phones; the two-digit code leaves it with the service until the other phone collects it.",
   dropNoFiles: "Pick at least one file first.",
   dropTooManyFiles: "Send up to 20 files at a time. Pick fewer, then send the rest after.",
   dropTooLarge: "This is larger than one transfer holds. Split it into two sends.",
@@ -469,7 +469,7 @@ const ko = {
   dropMemoryNotice:
     "이 브라우저는 저장하는 동안 파일 전체를 메모리에 올려요. 아주 큰 파일은 최신 크롬이나 사파리에서 받으면 더 안정적이에요.",
   dropPrivacyNote:
-    "파일은 이 휴대전화에서 잠기고, 받기 코드로만 열려요. 시간이 지나면 모두 지워져요.",
+    "파일은 이 휴대전화에서 잠기고, 시간이 지나면 모두 지워져요. QR코드나 링크로 건네면 열쇠는 두 휴대전화 사이에만 있고, 두 자리 숫자로 건네면 상대방이 받아 갈 때까지 서비스가 잠시 맡아요.",
   dropNoFiles: "파일을 하나 이상 골라요.",
   dropTooManyFiles: "한 번에 20개까지 보낼 수 있어요. 나눠서 보내면 다 보낼 수 있어요.",
   dropTooLarge: "한 번에 보내기엔 너무 커요. 두 번에 나눠 보내요.",
@@ -683,7 +683,8 @@ const zhCN = {
   dropReceiveAnother: "接收其他文件",
   dropMemoryNotice:
     "这个浏览器在保存时会把整个文件放进内存。文件很大时，用最新版 Chrome 或 Safari 更稳定。",
-  dropPrivacyNote: "文件在这台手机上加锁，只有接收码能打开。到期后全部删除。",
+  dropPrivacyNote:
+    "文件在这台手机上加锁，到期后全部删除。用二维码或链接时，钥匙只在两台手机之间；用两位数字时，钥匙会暂存在服务端，直到对方取走。",
   dropNoFiles: "请先选择至少一个文件。",
   dropTooManyFiles: "一次最多 20 个文件。先选少一些，剩下的分批发送。",
   dropTooLarge: "超过了单次传输的大小。分成两次发送吧。",
@@ -909,7 +910,7 @@ const id = {
   dropMemoryNotice:
     "Peramban ini menahan seluruh file di memori saat menyimpan. Untuk file sangat besar, Chrome atau Safari terbaru lebih stabil.",
   dropPrivacyNote:
-    "File dikunci di ponsel ini dan hanya kode transfer yang membukanya. Semuanya terhapus saat transfer berakhir.",
+    "Berkas dikunci di ponsel ini dan dihapus saat transfer kedaluwarsa. Kode QR atau tautan menjaga kuncinya tetap di antara kedua ponsel; kode dua angka menitipkannya ke layanan sampai ponsel lain mengambilnya.",
   dropNoFiles: "Pilih dulu minimal satu file.",
   dropTooManyFiles: "Maksimal 20 file sekali kirim. Kirim sisanya setelah ini.",
   dropTooLarge: "Ini lebih besar dari satu transfer. Bagi jadi dua pengiriman.",
@@ -1148,7 +1149,7 @@ const fil = {
   dropMemoryNotice:
     "Hawak ng browser na ito ang buong file sa memory habang nagse-save. Sa napakalaking file, mas matatag ang bagong Chrome o Safari.",
   dropPrivacyNote:
-    "Naka-lock ang mga file sa teleponong ito at ang transfer code lang ang makakabukas. Buburahin lahat pagkatapos.",
+    "Naka-lock ang mga file sa teleponong ito at buburahin pag nag-expire. Sa QR code o link, nasa pagitan lang ng dalawang telepono ang susi; sa dalawang numero, iniiwan ito sa serbisyo hanggang makuha ng kabila.",
   dropNoFiles: "Pumili muna ng kahit isang file.",
   dropTooManyFiles: "Hanggang 20 file bawat padala. Ipadala ang natitira pagkatapos.",
   dropTooLarge: "Mas malaki ito kaysa sa kayang isang transfer. Hatiin sa dalawang padala.",
@@ -1375,7 +1376,7 @@ const vi = {
   dropMemoryNotice:
     "Trình duyệt này giữ cả tệp trong bộ nhớ khi lưu. Với tệp rất lớn, Chrome hoặc Safari mới sẽ ổn định hơn.",
   dropPrivacyNote:
-    "Tệp được khoá ngay trên điện thoại này và chỉ mã nhận mới mở được. Mọi thứ bị xoá khi hết hạn.",
+    "Tệp được khoá trên điện thoại này và bị xoá khi hết hạn. Dùng mã QR hoặc đường liên kết thì khoá chỉ nằm giữa hai điện thoại; dùng hai chữ số thì khoá được dịch vụ giữ hộ đến khi máy kia lấy đi.",
   dropNoFiles: "Hãy chọn ít nhất một tệp.",
   dropTooManyFiles: "Mỗi lần gửi tối đa 20 tệp. Gửi phần còn lại sau nhé.",
   dropTooLarge: "Lớn hơn mức một lượt gửi cho phép. Hãy chia thành hai lượt.",
@@ -1595,7 +1596,7 @@ const th = {
   dropMemoryNotice:
     "เบราว์เซอร์นี้เก็บทั้งไฟล์ไว้ในหน่วยความจำตอนบันทึก ถ้าไฟล์ใหญ่มาก ใช้ Chrome หรือ Safari รุ่นใหม่จะนิ่งกว่า",
   dropPrivacyNote:
-    "ไฟล์ถูกล็อกไว้ในเครื่องนี้ และเปิดได้ด้วยรหัสรับไฟล์เท่านั้น ทุกอย่างจะถูกลบเมื่อหมดเวลา",
+    "ไฟล์ถูกล็อกไว้บนเครื่องนี้และจะถูกลบเมื่อหมดเวลา ถ้าใช้คิวอาร์โค้ดหรือลิงก์ กุญแจจะอยู่ระหว่างสองเครื่องเท่านั้น ถ้าใช้ตัวเลขสองหลัก บริการจะเก็บกุญแจไว้จนกว่าอีกเครื่องจะรับไป",
   dropNoFiles: "เลือกไฟล์อย่างน้อยหนึ่งไฟล์ก่อน",
   dropTooManyFiles: "ส่งได้ครั้งละไม่เกิน 20 ไฟล์ ที่เหลือส่งรอบถัดไปได้",
   dropTooLarge: "ใหญ่เกินที่ส่งได้ในครั้งเดียว แบ่งส่งเป็นสองรอบ",
@@ -1817,7 +1818,8 @@ const ne = {
   dropReceiveAnother: "अर्को फाइल लिनुहोस्",
   dropMemoryNotice:
     "यो ब्राउजरले सुरक्षित गर्दा पूरै फाइल मेमोरीमा राख्छ। धेरै ठूलो फाइलका लागि नयाँ Chrome वा Safari बढी भरपर्दो हुन्छ।",
-  dropPrivacyNote: "फाइल यही मोबाइलमा लक हुन्छ र लिने कोडले मात्र खुल्छ। समय सकिएपछि सबै मेटिन्छ।",
+  dropPrivacyNote:
+    "फाइलहरू यही फोनमा लक हुन्छन् र समय सकिएपछि मेटिन्छन्। QR कोड वा लिंकमा साँचो दुई फोनबीच मात्र रहन्छ; दुई अंक प्रयोग गर्दा अर्को फोनले नलिएसम्म सेवाले साँचो राख्छ।",
   dropNoFiles: "पहिले कम्तीमा एउटा फाइल छान्नुहोस्।",
   dropTooManyFiles: "एकपटकमा 20 वटासम्म। बाँकी पछि पठाउन सकिन्छ।",
   dropTooLarge: "एक पटकमा पठाउन मिल्नेभन्दा ठूलो छ। दुई पटक गरी पठाउनुहोस्।",
@@ -2041,7 +2043,7 @@ const km = {
   dropMemoryNotice:
     "កម្មវិធីរុករកនេះទុកឯកសារទាំងមូលក្នុងអង្គចងចាំពេលរក្សាទុក។ សម្រាប់ឯកសារធំ Chrome ឬ Safari ថ្មីមានស្ថេរភាពជាង។",
   dropPrivacyNote:
-    "ឯកសារត្រូវបានចាក់សោនៅលើទូរស័ព្ទនេះ ហើយបើកបានតែដោយកូដទទួល។ អ្វីៗត្រូវលុបនៅពេលផុតកំណត់។",
+    "ឯកសារត្រូវបានចាក់សោនៅលើទូរស័ព្ទនេះ ហើយលុបនៅពេលផុតកំណត់។ បើប្រើកូដ QR ឬតំណ សោនៅតែរវាងទូរស័ព្ទពីរប៉ុណ្ណោះ។ បើប្រើលេខពីរខ្ទង់ សេវាកម្មរក្សាសោរហូតដល់ទូរស័ព្ទម្ខាងទៀតយកវា។",
   dropNoFiles: "ជ្រើសយ៉ាងតិចមួយឯកសារជាមុនសិន។",
   dropTooManyFiles: "ផ្ញើបានរហូតដល់ 20 ឯកសារក្នុងមួយលើក។ ផ្ញើផ្នែកនៅសល់នៅលើកក្រោយ។",
   dropTooLarge: "ធំជាងអ្វីដែលមួយលើកអាចផ្ញើបាន។ បែងចែកជាពីរលើក។",
@@ -2263,7 +2265,7 @@ const ar = {
   dropMemoryNotice:
     "يحتفظ هذا المتصفح بالملف كاملًا في الذاكرة أثناء الحفظ. للملفات الكبيرة جدًا، Chrome أو Safari الحديث أفضل.",
   dropPrivacyNote:
-    "تُقفل الملفات على هذا الهاتف ولا يفتحها إلا رمز الاستلام. يُمحى كل شيء عند انتهاء المدة.",
+    "تُقفل الملفات على هذا الهاتف وتُمحى عند انتهاء المدة. مع رمز QR أو الرابط يبقى المفتاح بين الهاتفين فقط، ومع الرقمين يبقى لدى الخدمة إلى أن يستلمه الهاتف الآخر.",
   dropNoFiles: "اختر ملفًا واحدًا على الأقل أولًا.",
   dropTooManyFiles: "أرسل حتى 20 ملفًا في المرة. أرسل الباقي بعد ذلك.",
   dropTooLarge: "هذا أكبر مما تحمله عملية إرسال واحدة. قسّمه إلى إرسالين.",
@@ -2490,7 +2492,7 @@ const ru = {
   dropMemoryNotice:
     "Этот браузер держит файл целиком в памяти при сохранении. Для очень больших файлов надёжнее свежий Chrome или Safari.",
   dropPrivacyNote:
-    "Файлы запираются на этом телефоне, и открывает их только код получения. Всё стирается по истечении срока.",
+    "Файлы запираются на этом телефоне и стираются по истечении срока. С QR-кодом или ссылкой ключ остаётся только между двумя телефонами; с двумя цифрами его хранит сервис, пока другой телефон его не заберёт.",
   dropNoFiles: "Сначала выберите хотя бы один файл.",
   dropTooManyFiles: "За раз можно отправить до 20 файлов. Остальные отправьте следующей передачей.",
   dropTooLarge: "Это больше, чем помещается в одну передачу. Разделите на две.",
@@ -2721,7 +2723,7 @@ const mn = {
   dropMemoryNotice:
     "Энэ хөтөч хадгалах үедээ файлыг бүтнээр нь санах ойд барьдаг. Маш том файлыг шинэ Chrome эсвэл Safari дээр авбал тогтвортой.",
   dropPrivacyNote:
-    "Файл энэ утсан дээр түгжигдэж, зөвхөн хүлээн авах кодоор нээгдэнэ. Хугацаа дуусахад бүгд устана.",
+    "Файлууд энэ утсан дээр түгжигдэж, хугацаа дуусахад устана. QR код эсвэл холбоосоор бол түлхүүр зөвхөн хоёр утасны хооронд байна; хоёр оронтой тоогоор бол нөгөө утас авах хүртэл үйлчилгээ түр хадгална.",
   dropNoFiles: "Эхлээд дор хаяж нэг файл сонгоно уу.",
   dropTooManyFiles: "Нэг удаад 20 хүртэл файл. Үлдсэнийг нь дараа илгээ.",
   dropTooLarge: "Нэг удаагийн дамжуулалтад багтахгүй хэмжээтэй байна. Хоёр хуваан илгээ.",
@@ -2950,7 +2952,7 @@ const uk = {
   dropMemoryNotice:
     "Цей браузер тримає файл цілком у пам’яті під час збереження. Для дуже великих файлів надійніший свіжий Chrome або Safari.",
   dropPrivacyNote:
-    "Файли замикаються на цьому телефоні, і відкриває їх лише код отримання. Усе стирається після завершення терміну.",
+    "Файли замикаються на цьому телефоні й стираються після закінчення терміну. З QR-кодом або посиланням ключ лишається лише між двома телефонами; з двома цифрами його зберігає сервіс, доки інший телефон його не забере.",
   dropNoFiles: "Спершу виберіть хоча б один файл.",
   dropTooManyFiles: "За раз можна надіслати до 20 файлів. Решту надішліть наступним передаванням.",
   dropTooLarge: "Це більше, ніж уміщає одне передавання. Розділіть на два.",
